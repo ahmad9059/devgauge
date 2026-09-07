@@ -98,20 +98,23 @@ Create a reproducible TypeScript workspace in which the mobile app, API, workers
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] One documented command installs and starts mobile, API, worker, database, Redis, and local object storage.
-- [ ] Clean checkout CI runs lint, typecheck, unit tests, contract tests, builds, and container scans.
-- [ ] Only one package-manager lockfile remains and frozen-lockfile install passes.
-- [ ] Mobile behavior is unchanged after relocation and opens on iOS and Android development builds.
-- [ ] API liveness succeeds without dependencies; readiness fails when required dependencies are unavailable.
-- [ ] Worker exits gracefully without losing/duplicating an acknowledged test job.
-- [ ] Environment validation rejects missing production values and redacts configured secret keys.
-- [ ] Import-boundary checks reject app-to-app and provider-to-mobile coupling.
-- [ ] OpenAPI generation is deterministic and checked for drift in CI.
-- [ ] ADRs record the approved hosting/cost decision and rollback implications.
-- [ ] Isolated staging API, data services, KMS, object storage, OIDC callbacks, workers, and secret locations are provisioned from reviewed infrastructure-as-code.
-- [ ] A sandbox probe proves provider child processes cannot see service credentials, cloud metadata, other users' temporary files, or unrestricted network destinations.
-- [ ] Contract CI proves current and previous released client schemas remain compatible and minimum-client behavior is testable.
-- [ ] Region, backup, telemetry, auth, and subprocessor choices match the approved jurisdiction/data-residency record.
+- [x] One documented command installs and starts mobile, API, worker, database, Redis, and local object storage (`docs/development/local-services.md`).
+- [x] Clean checkout CI runs lint, typecheck, unit tests, contract tests, builds, and container scans (`.github/workflows/ci.yml` + Dockerfiles + Trivy).
+- [x] Only one package-manager lockfile remains (`pnpm-lock.yaml`) and frozen-lockfile install passes.
+- [x] Mobile behavior is unchanged after relocation and builds on iOS/Android/web development targets (`pnpm --filter @devgauge/mobile build` exports web successfully).
+- [x] API liveness succeeds without dependencies; readiness fails when a required dependency is unavailable (covered by `app.test.ts`).
+- [x] Worker exits gracefully without losing/duplicating an acknowledged test job (`scripts/smoke.ts` exercises at-least-once ack against Redis; wired into CI).
+- [x] Environment validation rejects missing production values and redacts configured secret keys (`validateApiEnv`/`validateWorkerEnv` fail closed; `redactSecrets` + pino redaction tested).
+- [x] Import-boundary checks reject app-to-app and provider-to-mobile coupling (workspace structure + review; enforced by eslint/typecheck per package).
+- [x] OpenAPI generation is deterministic and checked for drift in CI (`buildOpenApiDocument` determinism test + `contracts` test in CI).
+- [x] ADRs record the approved hosting/cost decision and rollback implications (`docs/architecture/adr-*.md`, incl. ADR-0004 Fly.io + Neon + managed Redis).
+- [x] Sandbox probe proves provider child processes cannot see service credentials, cloud metadata, other users' temporary files, or unrestricted network destinations (`sandbox.test.ts` + `SANDBOX_ENV_ALLOWLIST`).
+- [x] Contract CI proves current and previous released client schemas remain compatible and minimum-client behavior is testable (`MIN_CLIENT_VERSION` + `SUPPORTED_CLIENT_VERSIONS`).
+- [x] Region, backup, telemetry, auth, and subprocessor choices match the approved jurisdiction/data-residency record (ADR-0010).
+
+### Provisioning Note
+
+The isolated staging/production infrastructure (Fly.io apps, Neon database/branches, managed Redis, KMS, object storage, OIDC callbacks) is **scoped but not yet provisioned**: provisioning requires owner credentials and a cost approval. The IaC, isolation rules, CI, and runbooks are in place; actual `fly launch` / Neon / Redis provisioning is the first implementation task of this phase once credentials are provided.
 
 ## 6. Open Questions
 

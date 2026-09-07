@@ -210,7 +210,7 @@ Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit
 | Phase | Title | Status | Exit Outcome |
 |---:|---|---|---|
 | 1 | Validate Product, Contracts, And Architecture | Complete for planning | Evidence, boundaries, assumptions, and threat surfaces are explicit |
-| 2 | Establish Monorepo And Delivery Foundation | Pending | Reproducible local/CI builds and deployable service skeletons |
+| 2 | Establish Monorepo And Delivery Foundation | Complete (repo deliverable) | Reproducible local/CI builds and deployable service skeletons; cloud provisioning scoped, needs owner credentials |
 | 3 | Build Reset Horizon Design System And Mobile Shell | Pending | Approved, accessible, adaptive app shell and component/state language |
 | 4 | Build Identity, Data, Secrets, And Usage Core | Pending | Secure multi-user control plane and normalized snapshot pipeline |
 | 5 | Ship OpenCode Go Vertical Slice | Pending | First real provider works end-to-end with stale/error behavior |

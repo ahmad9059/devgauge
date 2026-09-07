@@ -1,57 +1,46 @@
-# Welcome to your Expo app 👋
+# DevGauge
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A premium, dark-first mobile app for tracking AI coding usage across **OpenAI Codex**, **Claude Code**, **OpenCode Go**, and **GitHub Copilot** — with honest freshness, reset timing, history, and actionable alerts.
 
-## Get started
+This is a pnpm + Turborepo TypeScript monorepo.
 
-1. Install dependencies
+## Workspace
 
-   ```bash
-   npm install
-   ```
+| Path | Package | Purpose |
+|---|---|---|
+| `apps/mobile` | `@devgauge/mobile` | Expo (React Native) mobile app |
+| `apps/api` | `@devgauge/api` | Fastify control-plane API skeleton |
+| `apps/connector-worker` | `@devgauge/connector-worker` | BullMQ refresh worker + subprocess sandbox |
+| `apps/claude-companion` | `@devgauge/claude-companion` | Claude Code statusLine companion CLI |
+| `packages/contracts` | `@devgauge/contracts` | Shared Zod domain model, fixtures, OpenAPI |
+| `packages/config` | `@devgauge/config` | Env validation, redaction, logging, provider metadata |
+| `packages/provider-core` | `@devgauge/provider-core` | Normalization + error taxonomy for provider adapters |
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Getting started
 
 ```bash
-npm run reset-project
+pnpm install
+docker compose -f infra/docker-compose.yml up -d   # postgres + redis + minio (local dev)
+pnpm dev                                            # turbo dev
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+See `docs/development/local-services.md` for details and the one-command flow.
 
-### Other setup steps
+## Quality gates
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+pnpm lint        # eslint across the workspace (expo lint for mobile)
+pnpm typecheck   # tsc --noEmit per package
+pnpm test        # vitest per package
+pnpm build       # tsc emit + expo export (web)
+```
 
-## Learn more
+CI (`.github/workflows/ci.yml`) runs these plus gitleaks secret scanning, `pnpm audit`, container builds + Trivy scans, and a Redis-backed worker smoke test.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Architecture
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Design and phase plans live in `docs/plans/devgauge-production-app/` (master plan + ten phases). Product truth is recorded in `PRODUCT.md`; infrastructure decisions are in `docs/architecture/adr-*.md`.
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# devgauge
+0BSD
