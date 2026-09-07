@@ -7,8 +7,8 @@ import { createQueue, createWorkerRuntime } from "./queue.js";
 const env = validateWorkerEnv();
 const logger = createLogger({ name: "connector-worker", level: env.LOG_LEVEL });
 
-const queue = createQueue(env);
-const { worker, queueEvents } = createWorkerRuntime(
+const queueHandle = createQueue(env);
+const { close: closeWorker } = createWorkerRuntime(
   env,
   {
     refresh: refreshJobProcessor,
@@ -30,9 +30,8 @@ const shutdown = async (signal: string): Promise<void> => {
   logger.info({ signal }, "shutting down");
   // close() waits for in-flight jobs and un-acks nothing: BullMQ re-queues
   // jobs whose processing was interrupted, so no job is lost or duplicated.
-  await worker.close();
-  await queueEvents.close();
-  await queue.close();
+  await closeWorker();
+  await queueHandle.close();
   process.exit(0);
 };
 

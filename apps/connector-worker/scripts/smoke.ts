@@ -14,12 +14,13 @@ import { echoJobProcessor, refreshJobProcessor } from "../src/jobs/refresh.js";
 const env = validateWorkerEnv();
 const logger = createLogger({ name: "worker-smoke", level: env.LOG_LEVEL });
 
-const queue = createQueue(env);
-const { worker, queueEvents } = createWorkerRuntime(
+const queueHandle = createQueue(env);
+const { queueEvents, close: closeWorker } = createWorkerRuntime(
   env,
   { refresh: refreshJobProcessor, echo: echoJobProcessor },
   logger
 );
+const queue = queueHandle.queue;
 
 const waitFor = (predicate: () => boolean, timeoutMs = 10_000): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -72,9 +73,8 @@ const main = async (): Promise<void> => {
   }
 
   logger.info("worker smoke test passed");
-  await worker.close();
-  await queueEvents.close();
-  await queue.close();
+  await closeWorker();
+  await queueHandle.close();
   process.exit(0);
 };
 
