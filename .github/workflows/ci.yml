@@ -65,13 +65,13 @@ jobs:
           push: false
           tags: devgauge-worker:ci
       - name: Container scan (API)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devgauge-api:ci
           exit-code: "1"
           severity: CRITICAL,HIGH
       - name: Container scan (Worker)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devgauge-worker:ci
           exit-code: "1"
