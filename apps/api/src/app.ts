@@ -7,8 +7,16 @@ import { buildOpenApiDocument } from "@devgauge/contracts";
 
 import type { ApiEnv } from "./env.js";
 import { registerErrorHandling } from "./plugins/errors.js";
+import { registerDatabase } from "./plugins/database.js";
+import { registerCrypto } from "./plugins/crypto.js";
+import { registerAuth } from "./plugins/auth.js";
 import { buildHealthRoutes, type DependencyCheck } from "./routes/health.js";
 import { buildVersionRoutes } from "./routes/version.js";
+import { buildAuthRoutes } from "./routes/auth.js";
+import { buildMeRoutes } from "./routes/me.js";
+import { buildProvidersRoutes } from "./routes/providers.js";
+import { buildConnectionsRoutes } from "./routes/connections.js";
+import { buildUsageRoutes } from "./routes/usage.js";
 
 export interface BuildAppOptions {
   env: ApiEnv;
@@ -74,6 +82,21 @@ export const buildApp = async (options: BuildAppOptions): Promise<FastifyInstanc
   registerErrorHandling(app);
   buildHealthRoutes(app, dependencies);
   buildVersionRoutes(app);
+
+  // Data-plane plugins require DATABASE_URL + ENC_MASTER_KEY. In production
+  // these are enforced at startup (fail closed); in dev/test they are skipped
+  // so the skeleton health/version surface stays bootable without infra.
+  const dataPlaneReady = Boolean(env.DATABASE_URL && env.ENC_MASTER_KEY);
+  if (dataPlaneReady) {
+    await app.register(registerDatabase, { env });
+    await app.register(registerCrypto, { env });
+    await app.register(registerAuth);
+    buildAuthRoutes(app, env);
+    buildMeRoutes(app);
+    buildProvidersRoutes(app);
+    buildConnectionsRoutes(app);
+    buildUsageRoutes(app);
+  }
 
   return app;
 };

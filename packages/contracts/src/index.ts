@@ -6,3 +6,5 @@ export * from "./pagination.js";
 export * from "./testing.js";
 export * from "./fixtures.js";
 export * from "./openapi.js";
+export * from "./auth.js";
+export * from "./api.js";

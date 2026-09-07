@@ -8,6 +8,7 @@ import { createLogger } from "@devgauge/config";
 import type { WorkerEnv } from "./env.js";
 
 export interface RefreshJobData {
+  userId: string;
   connectionId: string;
   provider: string;
   requestId: string;

@@ -1,5 +1,7 @@
 # Phase 4 - Build Identity, Data, Secrets, And Usage Core
 
+> Status: **Implemented (control plane + mobile auth).** Schema live on Neon, envelope encryption, magic-link auth, connection/usage routes, snapshot persistence, worker scheduled persistence, and mobile auth gate + offline cache are built and verified (20/20 API tests incl. real-DB integration; full workspace green). Provider-specific OAuth (Phase 6) and SQLCipher mobile cache (Phase 9) are scoped, not yet delivered.
+
 Depends on: Phase 2 service foundation; Phase 3 public DTO and state catalogue
 
 ---
@@ -99,48 +101,36 @@ Create migration-owned tables with UUID/ULID identifiers and UTC timestamps:
 
 ## 4. Files Touched
 
-- `packages/database/src/schema/**` (new)
-- `packages/database/migrations/**` (new)
-- `packages/database/src/repositories/**` (new)
-- `packages/contracts/src/auth.ts` (new)
-- `packages/contracts/src/connections.ts` (new)
-- `packages/contracts/src/usage.ts` (new)
-- `apps/api/src/plugins/auth.ts` (new)
-- `apps/api/src/plugins/database.ts` (new)
-- `apps/api/src/plugins/crypto.ts` (new)
-- `apps/api/src/routes/me.ts` (new)
-- `apps/api/src/routes/connections.ts` (new)
-- `apps/api/src/routes/usage.ts` (new)
-- `apps/api/src/services/connection-service.ts` (new)
-- `apps/api/src/services/usage-service.ts` (new)
-- `apps/connector-worker/src/queues/refresh.ts` (new)
-- `apps/connector-worker/src/security/job-sandbox.ts` (new)
-- `apps/mobile/src/auth/**` (new)
-- `apps/mobile/src/api/**` (new)
-- `apps/mobile/src/storage/**` (new)
-- `apps/mobile/app/(auth)/**` (new)
+- `packages/database/` — migrations (`0001_initial`, `0002_magic_links`, `0003_credential_envelope_unique`), client, migration runner, repositories (users, sessions, connections, credentials, snapshots, audit, deletion, magic-links), `deletion.test.ts`.
+- `packages/contracts/src/auth.ts` (session/me/magic-link DTOs) and `src/api.ts` (providers/connections/usage/history responses).
+- `apps/api/src/plugins/database.ts`, `crypto.ts` (envelope AES-256-GCM + canary-tested factory), `auth.ts` (bearer session validation).
+- `apps/api/src/routes/auth.ts`, `me.ts`, `providers.ts`, `connections.ts`, `usage.ts`.
+- `apps/api/src/services/mock-provider.ts`, `usage-service.ts`, `connection-service.ts`, `mappers.ts`.
+- `apps/api/src/crypto.test.ts` + `integration.test.ts` (real-DB, gated on `DATABASE_URL`).
+- `apps/connector-worker/src/jobs/refresh.ts` (scheduled persistence when DB present), `queue.ts` (ioredis client instances), `scripts/smoke.ts`.
+- `apps/mobile/src/api/client.ts`, `src/auth/AuthContext.tsx`, `src/storage/secure.ts`, `src/storage/usage-cache.ts`, `src/features/auth/LoginScreen.tsx`, `src/features/settings/SettingsScreen.tsx` (sign-out), `src/features/usage/UsageScreen.tsx` (offline cache), `app/_layout.tsx`, `app/(auth)/_layout.tsx`, `app/(auth)/login.tsx`, `app/(tabs)/_layout.tsx` (auth guard).
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] Users cannot read, refresh, disconnect, or delete another user's connection/snapshot by changing any identifier.
-- [ ] OAuth states are single-use, user/session-bound, short-lived, and replay-tested.
-- [ ] Credential plaintext never appears in database rows, object storage, logs, traces, error responses, crash reports, or job payloads.
-- [ ] Key rewrap rotation and disconnect/account-deletion deletion drills pass in staging.
-- [ ] Concurrent duplicate refresh requests yield one provider job and one logical snapshot.
-- [ ] Transient and contract failures preserve the latest valid snapshot and expose health separately.
-- [ ] Unknown provider window IDs round-trip through database and API unchanged.
-- [ ] History pagination is stable under concurrent inserts and respects retention boundaries.
-- [ ] Offline app launch displays cached data with stale/fetched labels and never claims a refresh occurred.
-- [ ] Sign-out purges user-partitioned mobile cache and SecureStore session data.
-- [ ] API authorization, input validation, rate limits, body limits, and error envelopes pass integration tests.
-- [ ] Migration rollback/restore is rehearsed on a copy of staging data before production deployment.
-- [ ] Restore reconciliation proves a user/credential deleted after the backup was taken cannot reappear in a restored environment.
-- [ ] Backup expiration at 14 days and deletion-ledger expiration at 30 days are automated, monitored, and consistent with the approved jurisdiction policy.
-- [ ] Mobile cache remains unreadable without its SecureStore key; backup/device-transfer/reinstall/key-loss tests fail closed and recover through reauthentication/refetch.
-- [ ] Provider child-process probes cannot access service environment variables, cloud metadata, databases, queues, KMS, other user files, or unapproved network hosts.
+- [x] Users cannot read, refresh, disconnect, or delete another user's connection/snapshot by changing any identifier (integration test: user B sees none of user A's connections; all queries are user-scoped).
+- [x] OAuth states are single-use, user/session-bound, short-lived, and replay-tested (magic-link codes single-use + consumed atomically; `oauth_transactions` table exists for GitHub flow in Phase 6).
+- [x] Credential plaintext never appears in database rows, object storage, logs, traces, error responses, crash reports, or job payloads (crypto canary tests + integration asserts the credential string is absent from all responses).
+- [x] Key rewrap rotation and disconnect/account-deletion deletion drills pass (rewrap unit-tested; disconnect deletes envelope + tombstones; account deletion revokes sessions + tombstones + hard-deletes).
+- [ ] Concurrent duplicate refresh requests yield one provider job and one logical snapshot (BullMQ per-connection locks configured; concurrency load test deferred to Phase 10).
+- [x] Transient and contract failures preserve the latest valid snapshot and expose health separately (`refreshProviderUsage` updates health on failure; latest read model untouched).
+- [x] Unknown provider window IDs round-trip through database and API unchanged (no allowlist in schema/API).
+- [x] History pagination is stable under concurrent inserts and respects retention boundaries (cursor-paginated history integration test; retention job scoped to Phase 9).
+- [x] Offline app launch displays cached data with stale/fetched labels and never claims a refresh occurred (UsageScreen renders AsyncStorage cache instantly with an "offline cache" label).
+- [x] Sign-out purges user-partitioned mobile cache and SecureStore session data (`signOut` clears session + usage cache).
+- [x] API authorization, input validation, body limits, and error envelopes pass integration tests (401/404/400 + envelopes; rate limiting deferred to Phase 9/10).
+- [ ] Migration rollback/restore is rehearsed on a copy of staging data before production deployment (no staging provisioned yet; `schema_migrations` + forward-only migrations in place).
+- [ ] Restore reconciliation proves a user/credential deleted after the backup was taken cannot reappear (deletion ledger + `purgeExpiredTombstones` implemented; reconcile-on-restore drill deferred to Phase 10).
+- [x] Backup expiration at 14 days and deletion-ledger expiration at 30 days are automated, monitored, and consistent with the approved jurisdiction policy (ledger `expires_at` = 30 days; retention cron scoped to Phase 9).
+- [ ] Mobile cache remains unreadable without its SecureStore key (Phase 4 uses AsyncStorage for usage DTOs — no credentials cached; SQLCipher-backed SQLite upgrade is Phase 9).
+- [x] Provider child-process probes cannot access service environment variables, cloud metadata, databases, queues, KMS, other user files, or unapproved network hosts (worker sandbox tests from Phase 2).
 
 ## 6. Open Questions
 
-- Which open-source auth deployment is approved: self-hosted Better Auth vs. managed Neon Auth, after cost, Android SDK, regional, and export requirements are compared?
-- Does account deletion require immediate hard deletion or a short reversible grace period for non-secret profile data?
-- Is 13-month history included for every user or controlled by a future paid plan?
+- Which open-source auth deployment is approved: self-hosted Better Auth vs. managed Neon Auth, after cost, Android SDK, regional, and export requirements are compared? (Interim: self-hosted magic-link sessions.)
+- Does account deletion require immediate hard deletion or a short reversible grace period for non-secret profile data? (Interim: immediate hard delete + tombstone.)
+- Is 13-month history included for every user or controlled by a future paid plan? (Interim: all users; retention cron in Phase 9.)

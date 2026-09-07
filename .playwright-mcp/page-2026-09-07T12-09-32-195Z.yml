@@ -1,0 +1,6 @@
+- generic [ref=f5e9]:
+  - button "‹" [ref=f5e10] [cursor=pointer]
+  - generic [ref=f5e12]:
+    - heading "OpenCode Go" [level=1] [ref=f5e13]
+    - generic [ref=f5e14]: Loading…
+  - generic "Connected" [ref=f5e15]

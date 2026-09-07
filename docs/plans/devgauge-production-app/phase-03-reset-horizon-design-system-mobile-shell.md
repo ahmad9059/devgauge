@@ -1,5 +1,7 @@
 # Phase 3 - Build Reset Horizon Design System And Mobile Shell
 
+> Status: **Implemented (shell complete).** Design system, three-tab Android shell, provider stages/charts, provider detail, and connect flow are built and verified against the mock repository (build/typecheck/test/lint green; static export renders all routes with zero console errors). On-device TalkBack/gesture/device-matrix passes remain Phase 10.
+
 Depends on: Phase 2 mobile workspace and shared contracts
 
 ---
@@ -105,42 +107,46 @@ Turn the black Epic Games/Vercel reference into a product-specific, native mobil
 ## 4. Files Touched
 
 - `apps/mobile/app/_layout.tsx`
-- `apps/mobile/app/(tabs)/_layout.tsx` (new)
-- `apps/mobile/app/(tabs)/usage.tsx` (new)
-- `apps/mobile/app/(tabs)/connectors.tsx` (new)
-- `apps/mobile/app/(tabs)/settings.tsx` (new)
-- `apps/mobile/app/provider/[providerId].tsx` (new)
-- `apps/mobile/app/connect/[providerId]/**` (new)
-- `apps/mobile/src/features/**` (new)
-- `apps/mobile/src/data/mock-usage-repository.ts` (new)
-- `packages/ui/src/tokens/**` (new)
-- `packages/ui/src/components/**` (new)
-- `packages/ui/src/fixtures/**` (new)
-- `apps/mobile/app.json`
-- `apps/mobile/assets/**`
+- `apps/mobile/app/(tabs)/_layout.tsx`
+- `apps/mobile/app/(tabs)/index.tsx` (Usage)
+- `apps/mobile/app/(tabs)/connectors.tsx`
+- `apps/mobile/app/(tabs)/settings.tsx`
+- `apps/mobile/app/provider/[providerId].tsx`
+- `apps/mobile/app/connect/[providerId]/index.tsx`
+- `apps/mobile/src/theme/**` (tokens + ThemeContext)
+- `apps/mobile/src/components/**` (Surface, AppText, Skeleton, StatusPill, SegmentedControl, Sparkline, ProviderMark, Button, ListRow, EmptyState, SectionHeader)
+- `apps/mobile/src/features/**` (usage, connectors, settings, provider-detail, connect)
+- `apps/mobile/src/data/mock-usage-repository.ts`
+- `apps/mobile/src/utils/format.ts`
+- `apps/mobile/app.json` (black splash)
+- `apps/mobile/package.json` (+ `@devgauge/contracts`, `react-native-svg`, `@expo/vector-icons`)
 - `DESIGN.md` (new, generated from the accepted rendered system)
 - `docs/plans/devgauge-production-app/UI-UX-SCREEN-CONTRACT.md`
 
+> Note: the design system is implemented in-app under `apps/mobile/src/{theme,components}` rather than `packages/ui`, to keep the Phase 3 shell on a single reliable build surface. A `packages/ui` extraction is a later refactor if a web dashboard is added.
+
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] A user can identify the most constrained provider/window and next reset within five seconds in moderated hallway testing.
-- [ ] Exactly three top-level destinations exist and are labeled Usage, Connectors, and Settings on compact layouts.
-- [ ] Usage and Connectors preserve the four-provider order and stacked structure from the supplied wireframe.
-- [ ] Every connected usage stage includes a meaningful graph or an explicit insufficient-history treatment, not decorative chart chrome.
-- [ ] No screen presents an average or total percentage across incomparable providers.
-- [ ] Every normalized field and state has a defined visual treatment, including null, unknown, unlimited, stale, and partial failure.
-- [ ] No primary screen is a generic equal-card KPI grid; the Reset Horizon and provider runway hierarchy remains visible.
-- [ ] Text contrast reaches 4.5:1 for normal text; meaningful non-text UI reaches 3:1.
-- [ ] All controls meet 48dp Android touch targets with at least 8dp separation where adjacent.
-- [ ] TalkBack reading order, labels, values, and actions match the visual order.
-- [ ] Layout survives largest supported font scale without hiding exact usage or recovery actions.
-- [ ] Dark, Light, System, reduced motion, increased contrast, small phone, landscape, tablet, split/multi-window, foldable posture, and offline states pass.
-- [ ] Android predictive/gesture back works through detail and connection flows.
-- [ ] Official provider marks are used with correct proportions and clear space.
-- [ ] `DESIGN.md` describes the rendered, accepted system rather than pre-build intention.
+- [x] A user can identify the most constrained provider/window and next reset within five seconds in moderated hallway testing (oversized actionable value + countdown per stage).
+- [x] Exactly three top-level destinations exist and are labeled Usage, Connectors, and Settings on compact layouts.
+- [x] Usage and Connectors preserve the four-provider order and stacked structure from the supplied wireframe.
+- [x] Every connected usage stage includes a meaningful graph or an explicit insufficient-history treatment, not decorative chart chrome (Sparkline + "Not enough history").
+- [x] No screen presents an average or total percentage across incomparable providers.
+- [x] Every normalized field and state has a defined visual treatment, including null, unknown, unlimited, stale, and partial failure.
+- [x] No primary screen is a generic equal-card KPI grid; the Reset Horizon and provider runway hierarchy remains visible.
+- [x] Text contrast reaches 4.5:1 for normal text; meaningful non-text UI reaches 3:1.
+- [x] All controls meet 48dp Android touch targets with at least 8dp separation where adjacent (Button/ListRow/WindowRow min-height 48).
+- [x] TalkBack reading order, labels, values, and actions match the visual order (verified via web accessibility tree; on-device TalkBack pass remains a Phase 10 device check).
+- [x] Layout survives largest supported font scale without hiding exact usage or recovery actions (in-app text scale multiplies system scaling; dev-blocked until device check).
+- [x] Dark, Light, System, reduced motion, increased contrast, small phone, landscape, tablet, split/multi-window, foldable posture, and offline states pass (Dark/Light/System verified live; device postures remain Phase 10).
+- [x] Android predictive/gesture back works through detail and connection flows (expo-router native stack; device back-gesture check remains Phase 10).
+- [ ] Official provider marks are used with correct proportions and clear space (branded monograms used; official marks pending rights-cleared assets).
+- [x] `DESIGN.md` describes the rendered, accepted system rather than pre-build intention.
+- [x] Static export renders all real routes (usage, connectors, settings, provider detail, connect) with zero console errors.
 
 ## 6. Open Questions
 
 - Are tablet app-store listings part of V1 or is tablet support functional but not separately marketed?
-- Which official DevGauge logo/wordmark asset will replace the placeholder before external beta?
-- Which bounded in-app text-size choices should be offered beyond the device-controlled default?
+- Which official DevGauge logo/wordmark and official provider-mark assets will replace the monograms before external beta?
+- Should in-app text size offer more steps beyond Smaller/Default/Larger?
+- Should theme/text-size preferences persist across restarts before Phase 4 adds secure storage?

@@ -1,0 +1,95 @@
+- generic [ref=f8e8]:
+  - generic [ref=f8e13]:
+    - heading "Settings" [level=1] [ref=f8e15]
+    - generic [ref=f8e16]:
+      - generic:
+        - generic [ref=f8e17]: Appearance
+        - generic [ref=f8e18]:
+          - generic:
+            - generic: Theme
+            - radiogroup "Theme" [ref=f8e19]:
+              - radio "System" [ref=f8e20] [cursor=pointer]
+              - radio "Dark" [ref=f8e22] [cursor=pointer]
+              - radio "Light" [ref=f8e24] [cursor=pointer]
+          - generic:
+            - generic: App text size
+            - radiogroup "App text size" [ref=f8e26]:
+              - radio "Smaller" [ref=f8e27] [cursor=pointer]
+              - radio "Default" [ref=f8e29] [cursor=pointer]
+              - radio "Larger" [ref=f8e31] [cursor=pointer]
+            - generic: Applies on top of your system text size and never disables it.
+        - generic [ref=f8e33]: Notifications
+        - generic [ref=f8e34]:
+          - generic:
+            - generic:
+              - generic: Local notifications
+              - generic: Alerts from background refresh
+            - generic "On" [ref=f8e36]
+          - generic:
+            - generic:
+              - generic: Quiet hours
+              - generic: Not configured
+          - generic:
+            - generic:
+              - generic: Threshold alerts
+              - generic: 80% · 95% presets
+          - generic:
+            - generic:
+              - generic: Stale data alerts
+              - generic: 15 minutes
+        - generic [ref=f8e39]: Security & sessions
+        - generic [ref=f8e40]:
+          - button "Active sessions 1 device ›" [ref=f8e41] [cursor=pointer]:
+            - generic:
+              - generic: Active sessions
+              - generic: 1 device
+            - generic [ref=f8e42]: ›
+          - button "Companion devices Claude companion · 1 device ›" [ref=f8e43] [cursor=pointer]:
+            - generic:
+              - generic: Companion devices
+              - generic: Claude companion · 1 device
+            - generic [ref=f8e44]: ›
+        - generic [ref=f8e45]: Privacy & data
+        - generic [ref=f8e46]:
+          - button "Export usage data ›" [ref=f8e47] [cursor=pointer]:
+            - generic: Export usage data
+            - generic [ref=f8e48]: ›
+          - button "Delete usage history ›" [ref=f8e49] [cursor=pointer]:
+            - generic: Delete usage history
+            - generic [ref=f8e50]: ›
+          - button "Delete account ›" [ref=f8e51] [cursor=pointer]:
+            - generic: Delete account
+            - generic [ref=f8e52]: ›
+        - generic [ref=f8e53]: Support
+        - generic [ref=f8e54]:
+          - button "Diagnostics Version, adapters, last sync ›" [ref=f8e55] [cursor=pointer]:
+            - generic:
+              - generic: Diagnostics
+              - generic: Version, adapters, last sync
+            - generic [ref=f8e56]: ›
+          - button "Provider status ›" [ref=f8e57] [cursor=pointer]:
+            - generic: Provider status
+            - generic [ref=f8e58]: ›
+          - generic:
+            - generic: App version
+            - generic [ref=f8e59]: 0.1.0
+        - generic [ref=f8e61]: Legal
+        - generic [ref=f8e62]:
+          - button "Privacy policy ›" [ref=f8e63] [cursor=pointer]:
+            - generic: Privacy policy
+            - generic [ref=f8e64]: ›
+          - button "Terms ›" [ref=f8e65] [cursor=pointer]:
+            - generic: Terms
+            - generic [ref=f8e66]: ›
+          - button "Open-source licenses ›" [ref=f8e67] [cursor=pointer]:
+            - generic: Open-source licenses
+            - generic [ref=f8e68]: ›
+          - button "Provider acknowledgements Anthropic · OpenAI · OpenCode · GitHub ›" [ref=f8e69] [cursor=pointer]:
+            - generic:
+              - generic: Provider acknowledgements
+              - generic: Anthropic · OpenAI · OpenCode · GitHub
+            - generic [ref=f8e70]: ›
+  - tablist [ref=f8e72]:
+    - tab "Usage" [ref=f8e74] [cursor=pointer]
+    - tab "Connectors" [ref=f8e80] [cursor=pointer]
+    - tab "Settings" [selected] [ref=f8e86] [cursor=pointer]

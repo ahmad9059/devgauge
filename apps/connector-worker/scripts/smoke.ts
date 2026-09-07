@@ -40,6 +40,7 @@ queueEvents.on("completed", (event) => {
 
 const main = async (): Promise<void> => {
   const echoJob = await queue.add("echo", {
+    userId: "00000000-0000-0000-0000-000000000000",
     connectionId: "conn_1",
     provider: "opencode-go",
     requestId: "req_smoke",
@@ -47,6 +48,7 @@ const main = async (): Promise<void> => {
     attempt: 0,
   });
   const refreshJob = await queue.add("refresh", {
+    userId: "00000000-0000-0000-0000-000000000000",
     connectionId: "conn_2",
     provider: "github-copilot",
     requestId: "req_smoke",
@@ -68,7 +70,7 @@ const main = async (): Promise<void> => {
   if (echoed?.echoed?.provider !== "opencode-go") {
     throw new Error("echo job returned the wrong payload");
   }
-  if (refreshed?.status !== "stub" || refreshed?.provider !== "github-copilot") {
+  if (!["stub", "persisted"].includes(refreshed?.status ?? "") || refreshed?.provider !== "github-copilot") {
     throw new Error("refresh job returned the wrong payload");
   }
 

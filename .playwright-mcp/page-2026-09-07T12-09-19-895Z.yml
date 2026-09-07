@@ -1,0 +1,95 @@
+- generic [ref=f4e8]:
+  - generic [ref=f4e13]:
+    - heading "Settings" [level=1] [ref=f4e15]
+    - generic [ref=f4e16]:
+      - generic:
+        - heading "Appearance" [level=1] [ref=f4e17]
+        - generic [ref=f4e18]:
+          - generic:
+            - generic: Theme
+            - radiogroup "Theme" [ref=f4e19]:
+              - radio "System" [ref=f4e20] [cursor=pointer]
+              - radio "Dark" [ref=f4e22] [cursor=pointer]
+              - radio "Light" [ref=f4e24] [cursor=pointer]
+          - generic:
+            - generic: App text size
+            - radiogroup "App text size" [ref=f4e26]:
+              - radio "Smaller" [ref=f4e27] [cursor=pointer]
+              - radio "Default" [ref=f4e29] [cursor=pointer]
+              - radio "Larger" [ref=f4e31] [cursor=pointer]
+            - generic: Applies on top of your system text size and never disables it.
+        - heading "Notifications" [level=1] [ref=f4e33]
+        - generic [ref=f4e34]:
+          - generic:
+            - generic:
+              - generic: Local notifications
+              - generic: Alerts from background refresh
+            - generic "On" [ref=f4e36]
+          - generic:
+            - generic:
+              - generic: Quiet hours
+              - generic: Not configured
+          - generic:
+            - generic:
+              - generic: Threshold alerts
+              - generic: 80% · 95% presets
+          - generic:
+            - generic:
+              - generic: Stale data alerts
+              - generic: 15 minutes
+        - heading "Security & sessions" [level=1] [ref=f4e39]
+        - generic [ref=f4e40]:
+          - button "Active sessions 1 device ›" [ref=f4e41] [cursor=pointer]:
+            - generic:
+              - generic: Active sessions
+              - generic: 1 device
+            - generic [ref=f4e42]: ›
+          - button "Companion devices Claude companion · 1 device ›" [ref=f4e43] [cursor=pointer]:
+            - generic:
+              - generic: Companion devices
+              - generic: Claude companion · 1 device
+            - generic [ref=f4e44]: ›
+        - heading "Privacy & data" [level=1] [ref=f4e45]
+        - generic [ref=f4e46]:
+          - button "Export usage data ›" [ref=f4e47] [cursor=pointer]:
+            - generic: Export usage data
+            - generic [ref=f4e48]: ›
+          - button "Delete usage history ›" [ref=f4e49] [cursor=pointer]:
+            - generic: Delete usage history
+            - generic [ref=f4e50]: ›
+          - button "Delete account ›" [ref=f4e51] [cursor=pointer]:
+            - generic: Delete account
+            - generic [ref=f4e52]: ›
+        - heading "Support" [level=1] [ref=f4e53]
+        - generic [ref=f4e54]:
+          - button "Diagnostics Version, adapters, last sync ›" [ref=f4e55] [cursor=pointer]:
+            - generic:
+              - generic: Diagnostics
+              - generic: Version, adapters, last sync
+            - generic [ref=f4e56]: ›
+          - button "Provider status ›" [ref=f4e57] [cursor=pointer]:
+            - generic: Provider status
+            - generic [ref=f4e58]: ›
+          - generic:
+            - generic: App version
+            - generic [ref=f4e59]: 0.1.0
+        - heading "Legal" [level=1] [ref=f4e61]
+        - generic [ref=f4e62]:
+          - button "Privacy policy ›" [ref=f4e63] [cursor=pointer]:
+            - generic: Privacy policy
+            - generic [ref=f4e64]: ›
+          - button "Terms ›" [ref=f4e65] [cursor=pointer]:
+            - generic: Terms
+            - generic [ref=f4e66]: ›
+          - button "Open-source licenses ›" [ref=f4e67] [cursor=pointer]:
+            - generic: Open-source licenses
+            - generic [ref=f4e68]: ›
+          - button "Provider acknowledgements Anthropic · OpenAI · OpenCode · GitHub ›" [ref=f4e69] [cursor=pointer]:
+            - generic:
+              - generic: Provider acknowledgements
+              - generic: Anthropic · OpenAI · OpenCode · GitHub
+            - generic [ref=f4e70]: ›
+  - tablist [ref=f4e72]:
+    - tab "Usage" [ref=f4e74] [cursor=pointer]
+    - tab "Connectors" [ref=f4e80] [cursor=pointer]
+    - tab "Settings" [selected] [ref=f4e86] [cursor=pointer]

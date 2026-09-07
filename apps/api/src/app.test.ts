@@ -108,7 +108,12 @@ describe("validateApiEnv", () => {
   });
 
   it("accepts production when required services are present", () => {
-    const parsed = testEnv({ NODE_ENV: "production", DATABASE_URL: "postgres://x", REDIS_URL: "redis://x" });
+    const parsed = testEnv({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://x",
+      REDIS_URL: "redis://x",
+      ENC_MASTER_KEY: "0123456789abcdef0123456789abcdef",
+    });
     expect(parsed.NODE_ENV).toBe("production");
   });
 });

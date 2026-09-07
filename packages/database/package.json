@@ -1,0 +1,28 @@
+{
+  "name": "@devgauge/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": ["dist", "migrations"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "migrate": "tsx src/migrate.ts"
+  },
+  "dependencies": {
+    "@devgauge/contracts": "workspace:*",
+    "postgres": "^3.4.7"
+  }
+}

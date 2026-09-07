@@ -1,0 +1,8 @@
+- generic [ref=f9e8]:
+  - generic [ref=f9e14]:
+    - heading "Connectors" [level=1] [ref=f9e15]
+    - generic [ref=f9e16]: Loading…
+  - tablist [ref=f9e32]:
+    - tab "Usage" [ref=f9e34] [cursor=pointer]
+    - tab "Connectors" [selected] [ref=f9e40] [cursor=pointer]
+    - tab "Settings" [ref=f9e46] [cursor=pointer]

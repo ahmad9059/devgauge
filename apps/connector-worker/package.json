@@ -17,6 +17,7 @@
   "dependencies": {
     "@devgauge/config": "workspace:*",
     "@devgauge/contracts": "workspace:*",
+    "@devgauge/database": "workspace:*",
     "@devgauge/provider-core": "workspace:*",
     "bullmq": "^6.3.4",
     "ioredis": "^5.6.0",

@@ -1,0 +1,63 @@
+[    2045ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=app&transform.reactCompiler=true:51099
+[    2095ms] [LOG] Running application "main" with appParams:
+ {rootTag: #root, hydrate: undefined} 
+Development-level warnings: ON.
+Performance optimizations: OFF. @ http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=app&transform.reactCompiler=true:51099
+[    2143ms] [WARNING] Require cycle: ../../packages/contracts/dist/index.js -> ../../packages/contracts/dist/openapi.js -> ../../packages/contracts/dist/index.js
+
+Require cycles are allowed, but can result in uninitialized values. Consider refactoring to remove the need for a cycle. @ http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=app&transform.reactCompiler=true:51099
+[    2223ms] [WARNING] Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md @ http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=app&transform.reactCompiler=true:51099
+[    2885ms] [ERROR] In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+
+  ...
+    <UsageScreen>
+      <View style={[...]} ref={null}>
+        <div dir={null} ref={function forwardRef} className="css-view-g..." style={{flex:1, ...}}>
+          <View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{padding:16, ...}}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{padding:16, ...}} ...>
+              <View onTouchStart={function} onTouchEnd={function} onScrollBeginDrag={function} onScrollEndDrag={function} ...>
+                <div onTouchStart={function} onTouchEnd={function} onScroll={function handleScroll} ...>
+                  <View collapsable={false} ref={function} style={[...]}>
+                    <div dir={null} ref={function forwardRef} className="css-view-g..." style={{...}}>
+                      <ProviderStage provider="claude-code" usage={{provider:"...", ...}} ...>
+                        <Pressable accessibilityRole="button" accessibilityLabel="claude-cod..." onPress={function t4} ...>
+                          <View accessibilityRole="button" accessibilityLabel="claude-cod..." ...>
+>                           <button
+>                             onKeyDown={function}
+>                             onClick={function onClick}
+>                             onContextMenu={function}
+>                             onBlur={function}
+>                             onFocus={function}
+>                             dir={null}
+>                             ref={function forwardRef}
+>                             aria-label="claude-code usage"
+>                             role="button"
+>                             tabIndex={0}
+>                             className="css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73"
+>                             style={{opacity:1}}
+>                             type="button"
+>                           >
+                              ...
+                                <Pressable accessibilityRole="button" accessibilityLabel="5 hour: 23..." ...>
+                                  <View accessibilityRole="button" accessibilityLabel="5 hour: 23..." ...>
+>                                   <button
+>                                     onKeyDown={function}
+>                                     onClick={function onClick}
+>                                     onContextMenu={function}
+>                                     onBlur={function}
+>                                     onFocus={function}
+>                                     dir={null}
+>                                     ref={function forwardRef}
+>                                     aria-label="5 hour: 23% used, resets in 1h 59m"
+>                                     role="button"
+>                                     tabIndex={0}
+>                                     className="css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73"
+>                                     style={{minHeight:"48px",flexDirection:"row",alignItems:"center",gap:"12px",paddingRight:"12px", ...}}
+>                                     type="button"
+>                                   >
+                      ...
+ @ http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=app&transform.reactCompiler=true:51099
+[    2885ms] [ERROR] <%s> cannot contain a nested %s.
+See this log for the ancestor stack trace. button <button> @ http://localhost:8081/apps/mobile/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=app&transform.reactCompiler=true:51099

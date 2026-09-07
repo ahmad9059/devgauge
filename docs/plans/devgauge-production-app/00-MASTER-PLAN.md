@@ -214,8 +214,8 @@ Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit
 |---:|---|---|---|
 | 1 | Validate Product, Contracts, And Architecture | Complete for planning | Evidence, boundaries, assumptions, and threat surfaces are explicit |
 | 2 | Establish Monorepo And Delivery Foundation | Complete (repo deliverable) | Reproducible local/CI builds and deployable service skeletons; cloud provisioning scoped, needs owner credentials |
-| 3 | Build Reset Horizon Design System And Mobile Shell | Pending | Approved, accessible, adaptive app shell and component/state language |
-| 4 | Build Identity, Data, Secrets, And Usage Core | Pending | Secure multi-user control plane and normalized snapshot pipeline |
+| 3 | Build Reset Horizon Design System And Mobile Shell | Complete (shell) | Approved, accessible, adaptive app shell and component/state language built against mock data; DESIGN.md recorded |
+| 4 | Build Identity, Data, Secrets, And Usage Core | Complete (control plane + mobile auth) | Secure multi-user control plane and normalized snapshot pipeline live on Neon; mobile auth gate + offline cache |
 | 5 | Ship OpenCode Go Vertical Slice | Pending | First real provider works end-to-end with stale/error behavior |
 | 6 | Ship GitHub Copilot Connector | Pending | OAuth and dynamic Copilot entitlements work safely |
 | 7 | Ship OpenAI Codex Connector | Pending | Isolated App Server login, quota, and activity reads work |

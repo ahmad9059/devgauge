@@ -1,0 +1,10 @@
+- generic [ref=f1e8]:
+  - generic [ref=f1e14]:
+    - generic [ref=f1e15]:
+      - heading "Usage" [level=1] [ref=f1e16]
+      - button "Sync" [ref=f1e17] [cursor=pointer]
+    - generic [ref=f1e19]: Loading…
+  - tablist [ref=f1e47]:
+    - tab "Usage" [selected] [ref=f1e49] [cursor=pointer]
+    - tab "Connectors" [ref=f1e55] [cursor=pointer]
+    - tab "Settings" [ref=f1e61] [cursor=pointer]

@@ -11,7 +11,11 @@ export const apiEnvSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
   CORS_ORIGINS: z.string().default(""),
-  FEATURE_MOCK_TRANSPORT: z.string().default("false"),
+  DATABASE_URL: z.string().min(1).optional(),
+  ENC_MASTER_KEY: z.string().min(32).optional(),
+  AUTH_SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24 * 30),
+  MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().positive().default(15),
+  FEATURE_MOCK_TRANSPORT: z.string().default("true"),
   FLAG_PROVIDER_MUTATION_CODEX_RESET_CREDIT: z.string().default("false"),
   KILLSWITCH_PROVIDER_OPENCODE_GO: z.string().default("false"),
   KILLSWITCH_PROVIDER_GITHUB_COPILOT: z.string().default("false"),
@@ -34,7 +38,7 @@ export const validateApiEnv = (
   const env = validateEnvRecord(apiEnvSchema, source);
 
   if (env.NODE_ENV === "production") {
-    const required = ["DATABASE_URL", "REDIS_URL"] as const;
+    const required = ["DATABASE_URL", "ENC_MASTER_KEY", "REDIS_URL"] as const;
     const missing = required.filter((key) => !source[key]);
     if (missing.length > 0) {
       throw new EnvValidationError(
