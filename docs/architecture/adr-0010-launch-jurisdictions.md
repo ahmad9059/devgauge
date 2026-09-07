@@ -8,6 +8,7 @@ Owner sign-off locked the initial launch scope. Jurisdiction determines region, 
 ## Decision
 - Initial launch jurisdictions: **US and EU/EEA**.
 - Region, backup location, telemetry, auth provider, object storage, and other subprocessor choices must be compatible with these jurisdictions.
+- **Compute residency:** the Hetzner VPS is hosted in an EU datacenter, satisfying EU/EEA residency for compute; Neon, Cloudflare R2, and Upstash processing locations are recorded in the data-residency inventory and must remain EU/US-compatible.
 - Consent/opt-out, data export, and deletion SLA behavior target GDPR-compatible behavior from day one.
 - Retention: 13 months history (90-day high-resolution), encrypted backups expire within 14 days, deletion tombstones expire after 30 days. Legal holds require a separately documented, authorized exception.
 

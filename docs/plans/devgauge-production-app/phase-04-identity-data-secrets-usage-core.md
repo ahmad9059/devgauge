@@ -12,9 +12,9 @@ Implement the secure, multi-user control plane that every provider integration s
 
 ### In Scope
 
-- Managed OIDC mobile authentication and account/session lifecycle.
+- Open-source authentication (Better Auth self-hosted or Neon Auth) and account/session lifecycle.
 - PostgreSQL schema, migrations, ownership constraints, retention jobs, and row-level defense.
-- KMS envelope encryption for provider credentials and opaque Codex profiles.
+- Envelope encryption for provider credentials and opaque Codex profiles; the master key is a VPS deployment secret for MVP (managed KMS optional in Phase 10).
 - Connection state machine, OAuth transaction primitives, companion device primitives, refresh queue, locks, and idempotency.
 - Unified current/history APIs with mocked adapters behind explicit development flags.
 - Mobile API client, auth routing, secure session storage, offline snapshots, and account deletion/disconnect primitives.
@@ -29,8 +29,9 @@ Implement the secure, multi-user control plane that every provider integration s
 
 ### 3.1 Identity And Sessions
 
-- Configure Apple, Google, and email magic-link sign-in through the approved managed OIDC provider.
-- Use Authorization Code + PKCE and verified `devgauge://`/universal/app links; validate issuer, audience, nonce/state, expiry, and token signature.
+- Configure open-source authentication (Better Auth self-hosted, or Neon Auth) for Google and email magic-link sign-in; Authorization Code + PKCE with verified Android App Links.
+- Validate issuer, audience, nonce/state, expiry, and token signature; API authorization derives user identity only from a verified access token.
+- No Apple sign-in (Android-only product).
 - API authorization derives user identity only from a verified access token, never a request body/header user ID.
 - Store only app session/refresh material and locally generated mobile data-encryption keys in SecureStore; provider credentials never enter it. Support explicit sign-out, revoked session, reinstall, expired link, and account deletion.
 - Require recent authentication before exporting data, deleting the account, or revoking all devices.
@@ -63,7 +64,7 @@ Create migration-owned tables with UUID/ULID identifiers and UTC timestamps:
 
 ### 3.3 Secret Boundary
 
-- Generate a data-encryption key per credential/profile artifact; store only ciphertext and KMS-wrapped key.
+- Generate a data-encryption key per credential/profile artifact; store only ciphertext and the wrapped data key. The wrapping master key lives in the VPS secret store (deployment secret) for MVP.
 - Decrypt only inside the connector job scope; zero references and delete temporary files in `finally` cleanup.
 - Implement key rotation that rewraps data keys without exposing plaintext to operators.
 - Ensure disconnect/account deletion revokes upstream access where supported, destroys ciphertext/profile objects, clears caches/jobs, and writes a non-secret audit event.
@@ -140,6 +141,6 @@ Create migration-owned tables with UUID/ULID identifiers and UTC timestamps:
 
 ## 6. Open Questions
 
-- Which managed OIDC provider is approved after cost, mobile SDK, regional, and export requirements are compared?
+- Which open-source auth deployment is approved: self-hosted Better Auth vs. managed Neon Auth, after cost, Android SDK, regional, and export requirements are compared?
 - Does account deletion require immediate hard deletion or a short reversible grace period for non-secret profile data?
 - Is 13-month history included for every user or controlled by a future paid plan?

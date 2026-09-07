@@ -48,7 +48,7 @@ The connection UI cannot be one reusable form with provider logos swapped. It ne
 
 ## 3. Recommended Architecture - Confirmed Sound
 
-The recommended topology is a mobile app plus a TypeScript control-plane API, background scheduler, isolated connector workers, PostgreSQL/Redis persistence, encrypted Codex profile storage, and a Claude desktop companion. This honors the provider guide's stable app-facing adapter boundary (`docs/ai-coding-usage-provider-api-guide.md:816-871`) and keeps mobile UI independent from provider protocol churn.
+The recommended topology is an Android app plus a TypeScript control-plane API, background scheduler, isolated connector workers, Neon Postgres/Upstash persistence, encrypted Codex profile storage, and a Claude desktop companion. This honors the provider guide's stable app-facing adapter boundary (`docs/ai-coding-usage-provider-api-guide.md:816-871`) and keeps mobile UI independent from provider protocol churn.
 
 The implementation should start with OpenCode Go after the common platform because it provides the lowest-complexity real vertical slice. Copilot, Codex, and Claude each retain separate phases due to materially different trust and runtime boundaries.
 
@@ -82,7 +82,10 @@ All working defaults were confirmed or changed by the owner in the Phase 1 sign-
 - 13-month history with 90-day high-resolution data (accepted).
 - Backup retention shortened to 14 days and deletion tombstones shortened to 30 days (changed from defaults).
 - Codex reset-credit consumption promoted into V1 behind explicit confirmation and idempotency; provider platform is mutation-capable (changed from read-only).
-- Hosting locked to Fly.io (API + connector workers) with Neon Postgres and managed Redis.
+- Hosting locked to a Hetzner VPS (2 vCPU / 4 GB, owned) running the API + connector worker, with Neon Postgres, Upstash Redis, and Cloudflare R2 (changed from Fly.io).
+- Release platforms locked to Android only (Google Play + F-Droid); no iOS (changed).
+- Notifications locked to local-first (WorkManager) with optional UnifiedPush/ntfy; no FCM dependency in F-Droid builds.
+- Domain locked to `devgauge.devshub.xyz` now, own domain later.
 - Launch jurisdictions locked to US + EU/EEA.
 
 ## 7. Reference - Original Task Brief

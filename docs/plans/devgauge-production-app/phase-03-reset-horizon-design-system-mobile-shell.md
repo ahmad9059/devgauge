@@ -15,7 +15,7 @@ Turn the black Epic Games/Vercel reference into a product-specific, native mobil
 - Replace Expo starter branding and establish dark-first System/Dark/Light semantic tokens.
 - Build exactly three top-level routes, Usage, Connectors, and Settings, plus provider-detail and connection sub-routes against deterministic mock repositories.
 - Build shared provider/window, freshness, status, error, skeleton, chart, form, sheet, and empty-state components.
-- Establish iOS/Android-adaptive navigation, controls, safe areas, text scaling, motion, and touch behavior.
+- Establish Android-native (Material 3) navigation, controls, safe areas, text scaling, motion, and touch behavior.
 - Produce rendered phone/tablet evidence, accessibility checks, and the post-build `DESIGN.md` source of truth.
 
 ### Out Of Scope
@@ -32,7 +32,7 @@ Turn the black Epic Games/Vercel reference into a product-specific, native mobil
 - Use platform system typography for body/control roles and tabular platform-monospace numerals for percentages, counts, and countdowns. Do not import a fashionable display font merely to signal “developer tool.”
 - Reserve provider brand colors for official marks and direct series labels. Availability, warning, limited, unknown, and stale states each require text/icon/shape support in addition to color.
 - Use one elevation/material ladder: canvas, raised row, sheet/modal, blocking alert. Blur appears only for native bars/sheets where the platform uses material separation.
-- Use a 4/8 spacing scale, platform-specific 44pt/48dp minimum targets, and icon size/stroke tokens. Use SF Symbols on iOS and a coherent Material icon family on Android.
+- Use a 4/8 spacing scale, platform-specific 48dp minimum targets, and icon size/stroke tokens. Use a coherent Material icon family on Android.
 
 ### 3.2 Usage Screen: Four Provider Stages
 
@@ -79,8 +79,7 @@ Turn the black Epic Games/Vercel reference into a product-specific, native mobil
 ### 3.7 Navigation And Adaptation
 
 - Compact layouts use exactly three labeled top-level tabs: Usage, Connectors, Settings.
-- iOS uses standard stack/sheet transitions, safe areas, large titles on top-level routes, and an intact edge-back gesture.
-- Android uses a top app bar for context, predictive back, Material feedback, and a navigation rail on expanded widths.
+- Android uses a Material top app bar for context, predictive/gesture back, Material feedback, and a navigation rail on expanded widths.
 - Tablet layouts increase gutters and may place horizon/detail panes side-by-side; they never stretch phone rows edge-to-edge.
 - Landscape, small phone, large phone, tablet, iPad Split View, Android multi-window, continuous resize, and supported fold/unfold/hinge postures maintain readable hierarchy with no nested primary scroll regions.
 
@@ -99,8 +98,8 @@ Turn the black Epic Games/Vercel reference into a product-specific, native mobil
 
 ### 3.10 Finish Gate
 
-- Capture simulator/emulator screenshots from iOS and Android phone classes plus tablet/expanded, split/multi-window, and supported foldable widths in Dark and Light.
-- Run VoiceOver, TalkBack, large Dynamic Type/font scale, increased contrast, reduced motion, landscape, continuous resize, keyboard/IME, and offline review.
+- Capture Android emulator screenshots from phone and tablet/expanded, split/multi-window, and supported foldable widths in Dark and Light.
+- Run TalkBack, large font-scale, increased contrast, reduced motion, landscape, continuous resize, keyboard/IME, and offline review.
 - Compare every screen to the anti-goals, fix objective failures in one batch, confirm once, and document the built system in `DESIGN.md`.
 
 ## 4. Files Touched
@@ -132,11 +131,11 @@ Turn the black Epic Games/Vercel reference into a product-specific, native mobil
 - [ ] Every normalized field and state has a defined visual treatment, including null, unknown, unlimited, stale, and partial failure.
 - [ ] No primary screen is a generic equal-card KPI grid; the Reset Horizon and provider runway hierarchy remains visible.
 - [ ] Text contrast reaches 4.5:1 for normal text; meaningful non-text UI reaches 3:1.
-- [ ] All controls meet 44pt iOS and 48dp Android targets with at least 8dp separation where adjacent.
-- [ ] VoiceOver/TalkBack reading order, labels, values, and actions match the visual order.
-- [ ] Layout survives largest supported text size without hiding exact usage or recovery actions.
+- [ ] All controls meet 48dp Android touch targets with at least 8dp separation where adjacent.
+- [ ] TalkBack reading order, labels, values, and actions match the visual order.
+- [ ] Layout survives largest supported font scale without hiding exact usage or recovery actions.
 - [ ] Dark, Light, System, reduced motion, increased contrast, small phone, landscape, tablet, split/multi-window, foldable posture, and offline states pass.
-- [ ] Android predictive back and iOS edge-swipe back work through detail and connection flows.
+- [ ] Android predictive/gesture back works through detail and connection flows.
 - [ ] Official provider marks are used with correct proportions and clear space.
 - [ ] `DESIGN.md` describes the rendered, accepted system rather than pre-build intention.
 

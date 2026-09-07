@@ -8,6 +8,8 @@ Depends on: Phase 4 companion-device primitives; Phase 3 pairing UX
 
 Deliver a trustworthy cross-platform desktop companion that receives Claude Code's official local `statusLine` JSON, reconstructs a strict minimized payload, pairs with the user's DevGauge account, queues snapshots offline, and syncs them without ever reading or exporting Claude OAuth credentials, prompts, transcripts, file paths, or repository identity.
 
+The Claude companion is the **only on-device companion**: Codex and Copilot run server-side in the connector worker on the Hetzner VPS, so the desktop app's only job is Claude `statusLine` ingestion plus pairing/sync.
+
 ## 2. Scope
 
 ### In Scope

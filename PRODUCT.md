@@ -4,11 +4,11 @@
 
 ## Platform
 
-adaptive
+android
 
 ## Stack
 
-The existing client is an Expo SDK 57 application using React Native 0.86, React 19, TypeScript, and Expo Router. The production system will also require a TypeScript backend, isolated provider connector workers, and a cross-platform Claude Code companion. Exact backend infrastructure remains an implementation decision owned by the production plan.
+The client is an Expo SDK 57 application using React Native 0.86, React 19, TypeScript, and Expo Router — Android only. The production system is open source and runs on a Hetzner VPS (2 vCPU / 4 GB, owned) for the API and connector workers, with Neon Postgres, Upstash Redis, and Cloudflare R2 as managed services. Distribution is Google Play and F-Droid (no iOS). The live domain is `devgauge.devshub.xyz`, with an own domain planned later.
 
 ## Users
 
@@ -28,12 +28,12 @@ DevGauge is a quota decision instrument, not another generic analytics dashboard
 
 ## Operating Context
 
-- The mobile app is the daily monitoring surface on iOS and Android.
-- The mobile information architecture has exactly three top-level destinations: Usage, Connectors, and Settings.
-- Provider refreshes run through a backend so history and notifications work while the app is closed.
-- Codex and Copilot require backend-managed connector runtimes.
-- Claude Code usage is synchronized from a desktop companion without exporting Claude subscription OAuth credentials.
-- Connection setup may hand off to a browser, a device-code page, an API-key form, or a desktop pairing flow depending on the provider.
+- The Android app is the daily monitoring surface; no iOS support.
+- Provider refreshes run on a Hetzner VPS so history and notifications work while the app is closed.
+- Codex and Copilot run server-side in the connector worker on the VPS.
+- Claude Code usage is synchronized from a desktop companion without exporting Claude subscription OAuth credentials; this is the only on-device companion.
+- Connection setup may hand off to a browser, a device-code page, an API-key form, or the desktop companion depending on the provider.
+- Notifications are local-first (WorkManager) with optional UnifiedPush/ntfy, because F-Droid builds have no Google Play Services.
 
 ## Capabilities And Constraints
 
@@ -49,6 +49,8 @@ DevGauge is a quota decision instrument, not another generic analytics dashboard
 ## Brand Commitments
 
 - Product name: DevGauge.
+- Open source, Android-only, distributed on Google Play and F-Droid.
+- Live domain `devgauge.devshub.xyz`; own domain planned later.
 - The experience is dark-first and black-led, with selectable System, Dark, and Light appearances and with the visual restraint and precision associated with Epic Games and Vercel interfaces.
 - The supplied mobile references establish a preference for oversized white data hierarchy, immersive full-width sections, quiet near-black controls, restrained separators, modern line graphs, generous touch targets, and sparse use of high-chroma status color.
 - Usage presents Claude Code, Codex, OpenCode Go, and GitHub Copilot as stacked provider sections. Connectors mirrors that structure for provider connection status and actions. Settings owns appearance, app text sizing, notifications, privacy, legal, and support.
@@ -70,4 +72,4 @@ DevGauge is a quota decision instrument, not another generic analytics dashboard
 
 ## Accessibility And Inclusion
 
-The mobile experience must meet WCAG 2.2 AA-equivalent outcomes where applicable, preserve platform navigation and assistive-technology behavior, support Dynamic Type/font scaling and reduced motion, avoid color-only status meaning, and meet iOS and Android touch-target guidance.
+The mobile experience must meet WCAG 2.2 AA-equivalent outcomes where applicable, preserve Android platform navigation and assistive-technology behavior, support font scaling and reduced motion, avoid color-only status meaning, and meet Android touch-target guidance.

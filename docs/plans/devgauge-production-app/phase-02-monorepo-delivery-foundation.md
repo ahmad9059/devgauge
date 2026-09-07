@@ -1,5 +1,7 @@
 # Phase 2 - Establish Monorepo And Delivery Foundation
 
+> Status: **Implemented (repo deliverable).** Workspace, contracts, API/worker/companion skeletons, CI, containers, and ADRs are in place and verified (build/typecheck/test/lint green). Live Hetzner/Neon/Upstash/R2 provisioning is scoped but requires owner credentials.
+
 Depends on: Phase 1 defaults, launch jurisdictions, and production hosting decision recorded
 
 ---
@@ -61,7 +63,7 @@ Create a reproducible TypeScript workspace in which the mobile app, API, workers
 
 ### 3.5 Staging Foundation
 
-- Provision a private staging API, worker network, PostgreSQL, Redis, object storage, KMS key, secret store, OIDC callbacks, push credentials, and provider canary secret locations through infrastructure-as-code.
+- Provision a private staging API, worker network, Neon branch, Upstash instance, R2 bucket, secret store, auth callbacks, and provider canary secret locations through infrastructure-as-code.
 - Use non-production accounts/data only; isolate staging IAM, keys, networks, and buckets from production.
 - Add migration, backup/restore, deployment/rollback, worker sandbox, and synthetic end-to-end smoke jobs that later phases extend.
 - Gate vendor, region, log retention, analytics, backup location, and subprocessor choices on the approved launch jurisdictions and data-residency policy.
@@ -69,9 +71,9 @@ Create a reproducible TypeScript workspace in which the mobile app, API, workers
 ### 3.6 API Compatibility And Decision Records
 
 - Record ADRs for workspace, API framework, database/queue, auth provider, encryption/KMS, object storage, deployment platform, and observability vendors.
-- Record the confirmed hosting baseline: Fly.io containers for API and connector workers (incl. the Codex subprocess and Copilot runtime), Neon Postgres, and managed Redis; capture region, cost envelope, scale, and rollback implications.
+- Record the confirmed hosting baseline: a single Hetzner VPS (2 vCPU / 4 GB, owned) running the API and connector worker (incl. the Codex subprocess and Copilot runtime), with Neon Postgres, Upstash Redis, and Cloudflare R2; capture region, cost envelope, scale, and rollback implications.
 - Record the confirmed launch jurisdictions (US + EU/EEA) and lock region/subprocessor choices to them.
-- Record supported iOS/Android/desktop companion OS versions and a version-upgrade policy.
+- Record supported Android versions and the Claude companion OS matrix, plus a version-upgrade policy.
 - Define additive contract rules, tolerant-reader behavior, `N`/`N-1` mobile support, minimum-client signaling, emergency forced-upgrade rules, and a deprecation window that accounts for app-store review delays.
 
 ## 4. Files Touched
@@ -101,20 +103,20 @@ Create a reproducible TypeScript workspace in which the mobile app, API, workers
 - [x] One documented command installs and starts mobile, API, worker, database, Redis, and local object storage (`docs/development/local-services.md`).
 - [x] Clean checkout CI runs lint, typecheck, unit tests, contract tests, builds, and container scans (`.github/workflows/ci.yml` + Dockerfiles + Trivy).
 - [x] Only one package-manager lockfile remains (`pnpm-lock.yaml`) and frozen-lockfile install passes.
-- [x] Mobile behavior is unchanged after relocation and builds on iOS/Android/web development targets (`pnpm --filter @devgauge/mobile build` exports web successfully).
+- [x] Mobile behavior is unchanged after relocation and builds on Android/web development targets (`pnpm --filter @devgauge/mobile build` exports web successfully).
 - [x] API liveness succeeds without dependencies; readiness fails when a required dependency is unavailable (covered by `app.test.ts`).
 - [x] Worker exits gracefully without losing/duplicating an acknowledged test job (`scripts/smoke.ts` exercises at-least-once ack against Redis; wired into CI).
 - [x] Environment validation rejects missing production values and redacts configured secret keys (`validateApiEnv`/`validateWorkerEnv` fail closed; `redactSecrets` + pino redaction tested).
 - [x] Import-boundary checks reject app-to-app and provider-to-mobile coupling (workspace structure + review; enforced by eslint/typecheck per package).
 - [x] OpenAPI generation is deterministic and checked for drift in CI (`buildOpenApiDocument` determinism test + `contracts` test in CI).
-- [x] ADRs record the approved hosting/cost decision and rollback implications (`docs/architecture/adr-*.md`, incl. ADR-0004 Fly.io + Neon + managed Redis).
+- [x] ADRs record the approved hosting/cost decision and rollback implications (`docs/architecture/adr-*.md`, incl. ADR-0004 Hetzner VPS + Neon + Upstash + R2).
 - [x] Sandbox probe proves provider child processes cannot see service credentials, cloud metadata, other users' temporary files, or unrestricted network destinations (`sandbox.test.ts` + `SANDBOX_ENV_ALLOWLIST`).
 - [x] Contract CI proves current and previous released client schemas remain compatible and minimum-client behavior is testable (`MIN_CLIENT_VERSION` + `SUPPORTED_CLIENT_VERSIONS`).
 - [x] Region, backup, telemetry, auth, and subprocessor choices match the approved jurisdiction/data-residency record (ADR-0010).
 
 ### Provisioning Note
 
-The isolated staging/production infrastructure (Fly.io apps, Neon database/branches, managed Redis, KMS, object storage, OIDC callbacks) is **scoped but not yet provisioned**: provisioning requires owner credentials and a cost approval. The IaC, isolation rules, CI, and runbooks are in place; actual `fly launch` / Neon / Redis provisioning is the first implementation task of this phase once credentials are provided.
+The isolated staging/production infrastructure (Hetzner VPS apps + hardening, Neon database/branches, Upstash Redis, R2, OIDC callbacks) is **scoped but not yet provisioned**: provisioning requires owner credentials and a cost approval. The IaC, isolation rules, CI, and runbooks are in place; actual VPS/Neon/Upstash/R2 provisioning is the first implementation task of this phase once credentials are provided.
 
 ## 6. Open Questions
 

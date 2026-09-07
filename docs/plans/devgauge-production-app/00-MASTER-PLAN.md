@@ -54,7 +54,7 @@ The visual system is an **Operate** interface named **Reset Horizon**.
 - **Information order:** urgent state, remaining capacity, reset time, freshness, then historical detail.
 - **Signature interaction:** each provider stage promotes its most actionable allowance into an oversized figure and graph; tapping it expands into provider history while preserving spatial continuity.
 - **Visual world:** black and near-black stepped surfaces, oversized high-contrast white data, quiet separators, precise line/area graphs, tabular numbers, sparse status color, official provider marks, no decorative glow and no generic gradient chrome.
-- **Native behavior:** iOS uses safe-area-aware tab/stack/sheet conventions and keeps edge-swipe back; Android uses Material navigation, predictive back, insets, and adaptive rail navigation on expanded widths.
+- **Native behavior:** Android uses Material 3 navigation, predictive/gesture back, window insets, and adaptive rail navigation on expanded widths. No iOS conventions are targeted.
 
 The user-pinned three-screen structure and black Epic Games/Vercel direction take precedence over generated alternatives. The design exercise ran in degraded mode without external challenger boards; the plan therefore treats the two supplied references, `UI-UX-SCREEN-CONTRACT.md`, native platform conventions, and the product's quota mechanics as the visual authority.
 
@@ -89,23 +89,23 @@ Unknown values remain “Not provided”; the UI never converts percentages into
 ### 3.1 System Topology
 
 ```text
-Expo mobile app
-    |
-    | HTTPS + app session
-    v
-Control-plane API ---- PostgreSQL
-    |                 Redis job queue
-    |                 KMS-encrypted secrets/profile envelopes
-    v
-Connector workers
-    |-- OpenCode HTTP adapter
-    |-- Copilot SDK/CLI runtime
-    |-- Codex App Server process supervisor
-    `-- Claude companion ingest verifier
+Android app (Expo)  ---- HTTPS + session ---->
+                                            |
+Hetzner VPS (2 vCPU / 4 GB, owned)          |
+  |- apps/api (Fastify)                      |-- Neon Postgres (serverless)
+  |- apps/connector-worker (BullMQ)          |-- Upstash Redis (queue + locks)
+  |- reverse proxy / Cloudflare Tunnel       `-- Cloudflare R2 (profile artifacts, exports)
+      |
+      |-- OpenCode HTTP adapter
+      |-- Copilot SDK/CLI runtime
+      |-- Codex App Server process supervisor
+      `-- Claude companion ingest verifier
 
-Claude Code statusLine -> DevGauge companion -> ingest API
-Scheduler -> connector jobs -> normalized snapshots -> alert engine -> push service
+Claude Code statusLine -> DevGauge companion (user's desktop) -> ingest API
+Scheduler (worker + optional Upstash QStash) -> connector jobs -> snapshots -> local alerts
 ```
+
+Hosting: a single always-on Hetzner VPS owned by the project runs the API and connector worker; the database, queue, and object storage are serverless/managed (Neon, Upstash, Cloudflare R2). See ADR-0003, ADR-0004, ADR-0007.
 
 ### 3.2 Workspace Shape
 
@@ -131,8 +131,8 @@ The existing TypeScript choice and strict mode make shared runtime-validated con
 
 ### 3.3 Control Plane
 
-- Node.js current LTS, Fastify, Zod-generated OpenAPI, PostgreSQL, Redis/BullMQ, and a migration-owned data package.
-- Managed OIDC authentication for Apple, Google, and email magic link; the API validates access tokens and owns authorization.
+- Node.js current LTS, Fastify, Zod-generated OpenAPI, Neon Postgres, Upstash Redis/BullMQ, and a migration-owned data package.
+- Open-source authentication (Better Auth self-hosted or Neon Auth): Google + email magic link, Authorization Code + PKCE; the API validates tokens and owns authorization. No Apple sign-in.
 - Mobile calls only the DevGauge HTTPS API. Provider credentials are never returned to the app after submission.
 - Current snapshots use a read-optimized latest table; immutable historical snapshots support trends and alert evaluation.
 - Every provider response is schema-validated, normalized, version-tagged, and persisted independently from connection/error state.
@@ -152,7 +152,7 @@ The existing TypeScript choice and strict mode make shared runtime-validated con
 - TanStack Query owns server state; a small local store owns ephemeral UI preferences only.
 - Session secrets use `expo-secure-store`; provider secrets remain server-side. SecureStore is native-only encrypted storage and is excluded from Android backups, so re-authentication after reinstall is expected rather than silently restoring undecryptable data.
 - SQLCipher-backed SQLite retains last-known normalized snapshots for instant, honest offline startup. Its key is stored in SecureStore, both database and key are excluded from backup/device transfer, and cache rows contain no provider credentials.
-- Server refresh and alert evaluation are authoritative. Mobile background scheduling is best-effort only because iOS/Android timing is not guaranteed; opening the app triggers a freshness-aware refresh.
+- Server refresh and alert evaluation are authoritative. Android background scheduling is best-effort only because OS timing is battery-aware and not guaranteed; opening the app triggers a freshness-aware refresh.
 - Push payloads contain route IDs and non-sensitive status summaries, never credentials or raw provider payloads. Notification taps deep-link through Expo Router.
 
 ### 3.6 API Compatibility
@@ -164,7 +164,7 @@ The existing TypeScript choice and strict mode make shared runtime-validated con
 
 ### 3.7 Reference Production Infrastructure
 
-The logical architecture is cloud-portable. The default deployment target is a managed container platform with multi-AZ PostgreSQL, managed Redis, object storage, KMS, secret management, private worker networking, a WAF/rate-limited public API edge, and separate staging/production accounts. A concrete vendor and cost envelope must be approved before Phase 2 locks infrastructure-as-code.
+The production footprint is a single **Hetzner VPS (2 vCPU / 4 GB, already owned)** running the API + connector worker + reverse proxy, plus serverless/managed services: **Neon Postgres**, **Upstash Redis**, and **Cloudflare R2**. Exposure is a reverse proxy with Let's Encrypt TLS or a Cloudflare Tunnel (no public inbound ports). The VPS is disposable/stateless — the database and files live off-box, so recovery is re-provision + redeploy. Domain: `devgauge.devshub.xyz` now, own domain later. See ADR-0004.
 
 ## 4. Confirmed Sign-Off Decisions (Phase 1)
 
@@ -179,9 +179,10 @@ The following decisions were confirmed with the owner during the Phase 1 sign-of
 | History retention | 13 months; raw cadence 90 days, daily rollups afterward | Locked |
 | Backup/deletion retention | Encrypted operational backups expire within 14 days; pseudonymous deletion tombstones remain 30 days | Shortened from the 35/90 default per owner decision |
 | Provider mutation | Codex reset-credit consumption ships in V1 behind explicit confirmation and idempotency; platform is mutation-capable | Promoted from backlog B2 per owner decision |
-| Release platforms | iOS and Android phones first; tablet layouts supported; public web app deferred | Locked |
-| Hosting | Fly.io containers for API/connector workers; Neon Postgres; managed Redis | Locked per owner decision; infra-as-code locked in Phase 2 |
+| Release platforms | Android only (Google Play + F-Droid); no iOS; tablet layouts supported; public web app deferred | Locked per owner decision; F-Droid implies no Play Services/FCM dependency |
+| Hosting | Hetzner VPS (2 vCPU / 4 GB, owned) runs API + connector worker; Neon Postgres; Upstash Redis; Cloudflare R2; domain `devgauge.devshub.xyz` now, own domain later | Locked per owner decision |
 | Launch jurisdictions | US + EU/EEA | Determines residency, subprocessors, consent, retention, export, deletion obligations |
+| Notifications | Local notifications (WorkManager) by default; optional UnifiedPush/ntfy; no FCM in F-Droid builds | Locked per ADR-0012 |
 
 Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit user confirmation, idempotency keys, a dedicated audit event, and a security review pass before enablement.
 
@@ -199,9 +200,11 @@ Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit
 | R8 | Mobile background execution is delayed or killed | High | Server-side scheduler is authoritative; mobile cache and stale timestamps remain honest |
 | R9 | Notification fatigue | Medium | Explicit opt-in, quiet hours, dedupe, hysteresis, per-provider controls |
 | R10 | OpenCode source-backed endpoint changes or disappears | High | Adapter flag, contract canary, last-known-good data, status communication |
-| R11 | Companion packaging varies across macOS/Linux/Windows | Medium | Signed release artifacts, npm fallback, compatibility matrix, rollback channel |
+| R11 | Claude companion packaging varies across macOS/Linux/Windows | Medium | Signed release artifacts, npm fallback, compatibility matrix, rollback channel; this is the only on-device companion (Codex/Copilot run on the VPS) |
 | R12 | Starter branding/assets leak into release | Medium | Replace Expo starter icon/splash/colors and run asset inventory before beta |
 | R13 | Codex reset-credit consumption triggers unintended mutation | High | Explicit confirmation, idempotency key, post-consume refresh, audit event, rate limit, security review |
+| R14 | F-Droid builds have no Google Play Services (no FCM) | High | Local notifications via WorkManager by default; UnifiedPush/ntfy optional; no FCM-only path (ADR-0012) |
+| R15 | Single Hetzner VPS is a single point of failure / compromise | High | Disposable/stateless host, envelope-encrypted credentials, Cloudflare Tunnel, SSH key-only, failover = re-provision + redeploy |
 | B1 | Team workspaces and organization-level views | Backlog | Separate initiative after individual V1 data model proves stable |
 | B3 | Home-screen widgets/watch surfaces | Backlog | Consider after data freshness and privacy behavior are validated on devices |
 
@@ -231,7 +234,7 @@ Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit
 - Last-known-good usage, current connection health, and current refresh error remain separate states.
 - Time is stored in UTC; locale/time zone formatting happens at the presentation edge. Countdown tests use an injected clock.
 - New dependencies require license, maintenance, bundle, and native-build review. Provider runtimes and generated schemas are pinned.
-- Accessibility is part of component acceptance, not a final overlay: semantic roles, labels, focus order, Dynamic Type/font scale, reduced motion, 44pt iOS and 48dp Android touch targets, and non-color status cues.
+- Accessibility is part of component acceptance, not a final overlay: semantic roles, labels, focus order, Android font scaling, reduced motion, 48dp Android touch targets, and non-color status cues.
 - Native platform conventions win over visual imitation. The product may look related across platforms without forcing identical controls or navigation behavior.
 - Test fixtures are synthetic and secret-scanned. Contract tests cover valid, missing, extra, null, malformed, unauthorized, forbidden, rate-limited, and server-error payloads.
 - Feature flags and provider kill switches exist before a connector reaches beta.
@@ -248,12 +251,12 @@ The product is not “production-grade” because all screens render. V1 release
 - Provider refresh freshness meets the guide's cadence under normal upstream conditions (`docs/ai-coding-usage-provider-api-guide.md:874-883`).
 - No open critical/high security findings, no known credential logging path, and successful key-rotation/disconnect deletion drills.
 - Crash-free mobile sessions meet at least 99.8% during staged beta.
-- Core “connect -> see usage -> receive alert -> open detail -> disconnect” journeys pass on supported iOS and Android versions.
+- Core “connect -> see usage -> receive alert -> open detail -> disconnect” journeys pass on supported Android versions.
 - The compact mobile shell has exactly three top-level destinations, Usage, Connectors, and Settings, and no later feature adds a fourth tab.
-- VoiceOver, TalkBack, large text, both themes, increased contrast, reduced motion, offline mode, slow network, and denied notification permission are verified on device classes in scope.
-- App Store/Play privacy declarations match the actual telemetry and credential/data retention behavior.
+- TalkBack, large text, both themes, increased contrast, reduced motion, offline mode, slow network, and denied notification permission are verified on device classes in scope.
+- Google Play and F-Droid declarations match the actual telemetry, credential/data retention, and local-notification behavior; no Google Play Services dependency in the F-Droid build.
 - On-call alerts, dashboards, provider outage messaging, rollback, backup restore, and incident runbooks are exercised before general availability.
 
 ## 9. Next Step
 
-Phase 1 sign-off is complete and all decisions are locked in Section 4. Phase 2 now establishes the monorepo, environment matrix, local infrastructure, shared contracts, CI, and deployable service skeletons for the confirmed Fly.io + Neon Postgres + Redis hosting; it does not begin provider-specific behavior early.
+Phase 1 sign-off is complete and all decisions are locked in Section 4. Phase 2 has established the monorepo, environment matrix, local infrastructure, shared contracts, CI, and deployable service skeletons for the confirmed Hetzner VPS + Neon + Upstash + Cloudflare R2 hosting; it does not begin provider-specific behavior early.

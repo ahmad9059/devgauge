@@ -116,9 +116,8 @@ Settings has no promotional panels, data graphs, oversized hero art, or custom t
 - Small phones show one stage per page flow with predictable vertical scanning.
 - Large phones increase whitespace, not information density for its own sake.
 - Tablets may use a master/detail split inside Usage or Connectors while retaining the same three destinations.
-- Test landscape, iPad Split View, Android multi-window, continuous resize, and supported foldable hinge/posture states.
-- iOS preserves safe areas, tab/stack/sheet conventions, Dynamic Type, and edge-swipe back.
-- Android preserves window insets, Material controls, predictive back, and adaptive bottom-bar/navigation-rail behavior.
+- Test landscape, Android multi-window/split-screen, continuous resize, and supported foldable hinge/posture states.
+- **Android only:** preserve window insets, Material 3 controls, predictive/gesture back, TalkBack, font scaling, and adaptive bottom-bar/navigation-rail behavior. No iOS conventions are targeted.
 
 ## 9. Finish Rejection List
 

@@ -3,7 +3,7 @@
 Status: Accepted
 
 ## Context
-The API must validate every upstream provider payload, expose a stable client contract, and stay lightweight enough to run many instances on Fly.io.
+The API must validate every upstream provider payload, expose a stable client contract, and stay lightweight enough to run many instances on the Hetzner VPS.
 
 ## Decision
 - Fastify 5 as the HTTP framework (typed, plugin-oriented, first-class request IDs and logging).

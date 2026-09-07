@@ -49,11 +49,12 @@ Unify four working connectors into a coherent daily-use product: fast current ca
 - Default alert templates avoid exposing account/plan details on lock screens; users can choose generic or detailed previews.
 - Quiet hours use the user's IANA time zone, handle DST, and permit critical connection alerts to be independently enabled.
 
-### 3.4 Push Notifications
+### 3.4 Notifications (Local-First, No FCM)
 
 - Request notification permission only after explaining value and after the user creates/enables an alert, not on first launch.
-- Register Android channels before token retrieval; store project-bound push tokens per installation, rotate on change, and remove dead tokens from receipts.
-- Notification data contains an allowlisted internal route and entity IDs; route validation prevents arbitrary deep links.
+- **Local-first delivery:** the app refreshes via WorkManager (battery-aware) and evaluates alert thresholds from its cached data, showing notifications through `NotificationManager`. This is the default path because F-Droid builds have no Google Play Services.
+- Optional real push: register for **UnifiedPush** via a user-provided distributor (e.g., ntfy) so server-originated alerts reach the device without Google services (ADR-0012).
+- Notification content contains an allowlisted internal route and entity IDs; route validation prevents arbitrary deep links.
 - Cold-start and foreground notification responses route to the exact provider/window/alert detail and preserve auth gating.
 - Provide test notification, denied-permission guidance, quiet-hours preview, and per-provider controls.
 
@@ -70,8 +71,8 @@ Unify four working connectors into a coherent daily-use product: fast current ca
 
 - Load user-partitioned cached normalized data instantly and label its age; foreground revalidation never blanks it.
 - Use network awareness to suppress doomed refresh requests and offer a deliberate retry when connectivity returns.
-- Server jobs remain authoritative for provider polling and alerts. Expo background tasks may refresh DevGauge's own cache opportunistically but cannot be required for correctness because OS scheduling is delayed/restricted.
-- Persist registered task configuration safely, handle iOS expiration, and test Android terminated-app behavior where supported.
+- Server jobs remain authoritative for provider polling and alerts. WorkManager refreshes DevGauge's own cache and evaluates local alerts opportunistically but cannot be required for correctness because Android scheduling is battery-aware/delayed.
+- Persist registered task configuration safely and test Android terminated-app behavior where supported.
 
 ### 3.7 Product Analytics And Privacy
 
@@ -124,14 +125,14 @@ Unify four working connectors into a coherent daily-use product: fast current ca
 - [ ] History preserves unknown window IDs, reset discontinuities, missing intervals, source, and correct sampling labels.
 - [ ] Charts and accessible record alternatives communicate the same values and trend without color-only distinctions.
 - [ ] Threshold rules fire once per reset cycle, honor hysteresis/quiet hours/DST, and do not duplicate under job retries.
-- [ ] Notification permission is contextual; denial has a recovery path; dead tokens are removed from delivery receipts.
+- [ ] Notification permission is contextual; denial has a recovery path; local WorkManager refresh and optional UnifiedPush/ntfy paths work without Google Play Services.
 - [ ] Notification taps work from foreground, background, and cold start and cannot navigate to arbitrary routes.
 - [ ] Lock-screen previews follow the selected privacy level and never contain secrets or raw usage payloads.
 - [ ] Offline launch, slow network, reconnect, app resume, expired session, partial refresh, provider kill switch, and companion offline states pass.
 - [ ] Export/delete flows contain only the documented user data and complete within the published policy.
 - [ ] Product analytics schema rejects provider values and sensitive fields by construction.
 - [ ] All strings are externalized; long text, RTL readiness, locale numbers/time, and DST tests pass.
-- [ ] VoiceOver/TalkBack, largest text, reduced motion, increased contrast, keyboard/IME, phone/tablet, and landscape checks pass for every core journey.
+- [ ] TalkBack, largest text, reduced motion, increased contrast, keyboard/IME, phone/tablet, and landscape checks pass for every core journey.
 
 ## 6. Open Questions
 

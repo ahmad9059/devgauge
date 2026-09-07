@@ -1,12 +1,13 @@
-# ADR-0007: Object Storage (S3-Compatible)
+# ADR-0007: Object Storage (Cloudflare R2)
 
-Status: Accepted
+Status: Accepted (revised from generic S3-compatible)
 
 ## Context
-Codex profile artifacts and future exported/retained data need durable, encrypted object storage reachable from Fly.io workers.
+Encrypted Codex profile artifacts, exports, and future retained data need durable object storage reachable from the Hetzner VPS.
 
 ## Decision
-- Use S3-compatible object storage (local MinIO for development; the production provider is selected under ADR-0010's residency constraints).
+- Use **Cloudflare R2** (S3-compatible) for object storage: free tier (10 GB, free egress), fits the MVP cost target.
+- Local MinIO remains the development stand-in; production swaps to R2 with no code change (S3 API).
 - Buckets are private and per-environment; staging and production never share credentials or data.
 - Codex profile artifacts are stored encrypted and referenced by digest/version metadata (ADR-0006).
 
