@@ -44,7 +44,7 @@ DevGauge is a quota decision instrument, not another generic analytics dashboard
 - Support provider-specific metrics only when the provider actually exposes them; unavailable exact spend, token, identity, or model data must never be fabricated.
 - Never collect account passwords or export Claude Code OAuth credentials.
 - Treat provider contracts as versioned, fallible external dependencies behind validated adapters.
-- The V1 product is read-only with respect to provider quotas. Mutating actions such as consuming Codex reset credits are excluded until a later, explicitly confirmed release.
+- The V1 product is read-only with respect to provider quotas, except for Codex rate-limit reset-credit consumption, which ships in V1 behind explicit user confirmation, an idempotency key, a post-consume refresh, and a dedicated audit event. Other mutating actions remain excluded until a later, explicitly confirmed release.
 
 ## Brand Commitments
 

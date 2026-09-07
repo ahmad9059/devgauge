@@ -72,17 +72,18 @@ The implementation should start with OpenCode Go after the common platform becau
 - No provider credentials or real account data were requested.
 - No final `DESIGN.md` was written; that document must describe the rendered system after Phase 3 proves it.
 
-## 6. Sign-Off Needed Before Phase 2
+## 6. Sign-Off Completed Before Phase 2
 
-- Accept or change the individual-first V1 audience.
-- Accept dark-first with selectable System, Dark, and Light appearances.
-- Accept or change managed-SaaS deployment and backend-held provider credentials.
-- Accept or change 13-month history retention with 90-day high-resolution data.
-- Accept or change read-only provider behavior.
-- Select the production cloud/cost envelope before infrastructure-as-code is locked.
-- Confirm launch jurisdictions before selecting regions, auth, analytics, backups, and other subprocessors.
+All working defaults were confirmed or changed by the owner in the Phase 1 sign-off gate. The locked decisions are recorded in `00-MASTER-PLAN.md` Section 4:
 
-Absent changes, the defaults in `00-MASTER-PLAN.md` Section 4 apply.
+- Individual-first V1 audience (accepted).
+- Dark-first with System, Dark, and Light appearances (accepted).
+- Managed SaaS with backend-held provider credentials (accepted).
+- 13-month history with 90-day high-resolution data (accepted).
+- Backup retention shortened to 14 days and deletion tombstones shortened to 30 days (changed from defaults).
+- Codex reset-credit consumption promoted into V1 behind explicit confirmation and idempotency; provider platform is mutation-capable (changed from read-only).
+- Hosting locked to Fly.io (API + connector workers) with Neon Postgres and managed Redis.
+- Launch jurisdictions locked to US + EU/EEA.
 
 ## 7. Reference - Original Task Brief
 
@@ -97,4 +98,4 @@ Follow-up brief: the three top-level screens must follow the supplied rough Usag
 - [x] Unsafe Claude OAuth and undocumented Codex/Copilot endpoint paths were excluded.
 - [x] Product assumptions and design commitments were recorded in `PRODUCT.md`.
 - [x] Exactly ten implementation phases were defined.
-- [ ] User has reviewed or accepted the working defaults before Phase 2 implementation.
+- [x] Phase 1 sign-off decisions were confirmed and recorded (audience, appearance, hosting, jurisdictions, retention, mutation scope).

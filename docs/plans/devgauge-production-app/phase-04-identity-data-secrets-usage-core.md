@@ -59,7 +59,7 @@ Create migration-owned tables with UUID/ULID identifiers and UTC timestamps:
 - Enforce one active V1 connection per user/provider, while modeling identifiers so a later multi-account migration is possible.
 - Partition or lifecycle-manage history by captured month; retain high-resolution 90 days and daily rollups to 13 months.
 - Do not store raw upstream responses by default. Store schema/adapter version, normalized data, response digest, status code class, and redacted diagnostics.
-- Expire encrypted operational backups within 35 days. Maintain an append-only pseudonymous deletion ledger outside restorable application backups for 90 days after deletion; it contains only the minimum subject tombstone needed to prevent a later restore from resurrecting deleted data. Jurisdiction-approved legal holds require a separately documented exception path.
+- Expire encrypted operational backups within 14 days. Maintain an append-only pseudonymous deletion ledger outside restorable application backups for 30 days after deletion; it contains only the minimum subject tombstone needed to prevent a later restore from resurrecting deleted data. Jurisdiction-approved legal holds require a separately documented exception path.
 
 ### 3.3 Secret Boundary
 
@@ -134,7 +134,7 @@ Create migration-owned tables with UUID/ULID identifiers and UTC timestamps:
 - [ ] API authorization, input validation, rate limits, body limits, and error envelopes pass integration tests.
 - [ ] Migration rollback/restore is rehearsed on a copy of staging data before production deployment.
 - [ ] Restore reconciliation proves a user/credential deleted after the backup was taken cannot reappear in a restored environment.
-- [ ] Backup expiration at 35 days and deletion-ledger expiration at 90 days are automated, monitored, and consistent with the approved jurisdiction policy.
+- [ ] Backup expiration at 14 days and deletion-ledger expiration at 30 days are automated, monitored, and consistent with the approved jurisdiction policy.
 - [ ] Mobile cache remains unreadable without its SecureStore key; backup/device-transfer/reinstall/key-loss tests fail closed and recover through reauthentication/refetch.
 - [ ] Provider child-process probes cannot access service environment variables, cloud metadata, databases, queues, KMS, other user files, or unapproved network hosts.
 

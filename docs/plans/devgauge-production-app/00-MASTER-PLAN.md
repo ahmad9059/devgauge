@@ -166,22 +166,24 @@ The existing TypeScript choice and strict mode make shared runtime-validated con
 
 The logical architecture is cloud-portable. The default deployment target is a managed container platform with multi-AZ PostgreSQL, managed Redis, object storage, KMS, secret management, private worker networking, a WAF/rate-limited public API edge, and separate staging/production accounts. A concrete vendor and cost envelope must be approved before Phase 2 locks infrastructure-as-code.
 
-## 4. Key Decisions Requiring Sign-Off
+## 4. Confirmed Sign-Off Decisions (Phase 1)
 
-| Decision | Default In This Plan | Why |
+The following decisions were confirmed with the owner during the Phase 1 sign-off gate and are locked for implementation:
+
+| Decision | Confirmed Value | Notes |
 |---|---|---|
-| V1 audience | Individual accounts; team workspaces deferred | Keeps authorization and billing scope compatible with a ten-phase first release |
-| Appearance | Dark-first with System, Dark, and Light settings | Follows both the Epic-style reference and the supplied Settings wireframe |
-| Product model | Managed SaaS with mobile client and companion | Required for background refresh, history, secure connector runtimes, and alerts |
-| Provider secret placement | Backend only after connection submission | Enables alerts and centralizes encryption, revocation, audit, and redaction |
-| History retention | 13 months; raw cadence for 90 days, daily rollups afterward | Supports annual context without indefinite high-frequency retention |
-| Backup/deletion retention | Encrypted operational backups expire within 35 days; pseudonymous deletion tombstones remain 90 days | Prevents restored backups from resurrecting deleted data while bounding residual retention |
-| Provider mutation | Read-only V1 | Codex reset-credit consumption is explicitly optional and mutating (`docs/ai-coding-usage-provider-api-guide.md:319-334`) |
-| Release platforms | iOS and Android phones first; tablet layouts supported; public web app deferred | Matches the mobile brief while preserving Expo's adaptive architecture |
-| Hosting | Cloud-portable logical design; select a managed reference vendor before Phase 2 | Avoids embedding an unapproved cost/compliance assumption in code |
-| Launch jurisdictions | Must be fixed before Phase 2 vendor/region selection | Determines data residency, subprocessors, consent, retention, export, and deletion obligations |
+| V1 audience | Individual accounts; team workspaces deferred | Backlog B1 |
+| Appearance | Dark-first with System, Dark, and Light settings | Follows the Epic-style reference and supplied Settings wireframe |
+| Product model | Managed SaaS with mobile client and companion | Required for background refresh, history, connector runtimes, alerts |
+| Provider secret placement | Backend only after connection submission | Enables alerts; centralizes encryption, revocation, audit, redaction |
+| History retention | 13 months; raw cadence 90 days, daily rollups afterward | Locked |
+| Backup/deletion retention | Encrypted operational backups expire within 14 days; pseudonymous deletion tombstones remain 30 days | Shortened from the 35/90 default per owner decision |
+| Provider mutation | Codex reset-credit consumption ships in V1 behind explicit confirmation and idempotency; platform is mutation-capable | Promoted from backlog B2 per owner decision |
+| Release platforms | iOS and Android phones first; tablet layouts supported; public web app deferred | Locked |
+| Hosting | Fly.io containers for API/connector workers; Neon Postgres; managed Redis | Locked per owner decision; infra-as-code locked in Phase 2 |
+| Launch jurisdictions | US + EU/EEA | Determines residency, subprocessors, consent, retention, export, deletion obligations |
 
-If the user does not change these decisions before implementation, they are the working defaults.
+Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit user confirmation, idempotency keys, a dedicated audit event, and a security review pass before enablement.
 
 ## 5. Risk And Backlog Register
 
@@ -199,8 +201,8 @@ If the user does not change these decisions before implementation, they are the 
 | R10 | OpenCode source-backed endpoint changes or disappears | High | Adapter flag, contract canary, last-known-good data, status communication |
 | R11 | Companion packaging varies across macOS/Linux/Windows | Medium | Signed release artifacts, npm fallback, compatibility matrix, rollback channel |
 | R12 | Starter branding/assets leak into release | Medium | Replace Expo starter icon/splash/colors and run asset inventory before beta |
+| R13 | Codex reset-credit consumption triggers unintended mutation | High | Explicit confirmation, idempotency key, post-consume refresh, audit event, rate limit, security review |
 | B1 | Team workspaces and organization-level views | Backlog | Separate initiative after individual V1 data model proves stable |
-| B2 | Codex reset-credit consumption | Backlog | Requires explicit confirmation UX, idempotency, and separate security review |
 | B3 | Home-screen widgets/watch surfaces | Backlog | Consider after data freshness and privacy behavior are validated on devices |
 
 ## 6. Phase Map
@@ -254,4 +256,4 @@ The product is not “production-grade” because all screens render. V1 release
 
 ## 9. Next Step
 
-Review the defaults in Section 4. If unchanged, Phase 2 begins by establishing the monorepo, environment matrix, local infrastructure, shared contracts, CI, and deployable service skeletons; it does not begin provider-specific behavior early.
+Phase 1 sign-off is complete and all decisions are locked in Section 4. Phase 2 now establishes the monorepo, environment matrix, local infrastructure, shared contracts, CI, and deployable service skeletons for the confirmed Fly.io + Neon Postgres + Redis hosting; it does not begin provider-specific behavior early.

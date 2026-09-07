@@ -69,6 +69,8 @@ Create a reproducible TypeScript workspace in which the mobile app, API, workers
 ### 3.6 API Compatibility And Decision Records
 
 - Record ADRs for workspace, API framework, database/queue, auth provider, encryption/KMS, object storage, deployment platform, and observability vendors.
+- Record the confirmed hosting baseline: Fly.io containers for API and connector workers (incl. the Codex subprocess and Copilot runtime), Neon Postgres, and managed Redis; capture region, cost envelope, scale, and rollback implications.
+- Record the confirmed launch jurisdictions (US + EU/EEA) and lock region/subprocessor choices to them.
 - Record supported iOS/Android/desktop companion OS versions and a version-upgrade policy.
 - Define additive contract rules, tolerant-reader behavior, `N`/`N-1` mobile support, minimum-client signaling, emergency forced-upgrade rules, and a deprecation window that accounts for app-store review delays.
 

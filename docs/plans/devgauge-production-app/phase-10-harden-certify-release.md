@@ -67,7 +67,7 @@ Prove that DevGauge is safe, reliable, accessible, performant, operable, and sto
 ### 3.6 Privacy, Legal, And Store Readiness
 
 - Reconcile code-level data inventory with privacy policy, terms, retention/deletion statements, analytics consent, subprocess/provider disclosures, and app-store data safety/privacy forms.
-- Verify operational backups expire within 35 days, pseudonymous deletion tombstones expire after 90 days, and any jurisdiction-approved legal-hold exception is isolated, authorized, and disclosed.
+- Verify operational backups expire within 14 days, pseudonymous deletion tombstones expire after 30 days, and any jurisdiction-approved legal-hold exception is isolated, authorized, and disclosed.
 - Verify official provider marks and names follow current brand guidelines and do not imply endorsement.
 - Prepare support URL, privacy URL, account deletion path, export path, reviewer test account/process, and provider-specific reviewer notes.
 - Complete iOS privacy manifests/entitlements and Android permissions/data-safety declarations; remove unnecessary capabilities.
