@@ -1,10 +1,11 @@
 import { createLogger } from "@devgauge/config";
-import { CODEX_JOB_NAMES } from "@devgauge/contracts";
+import { CODEX_JOB_NAMES, PRODUCT_JOB_NAMES } from "@devgauge/contracts";
 import { closeDb, createDb } from "@devgauge/database";
 
 import { codexAccountDeleteProcessor, codexDisconnectProcessor, codexLoginProcessor, codexRefreshProcessor, codexResetCreditProcessor } from "./jobs/codex.js";
 import { validateWorkerEnv } from "./env.js";
 import { echoJobProcessor, refreshJobProcessor } from "./jobs/refresh.js";
+import { rollupRetentionProcessor } from "./jobs/retention.js";
 import { createQueue, createRedisConnection, createWorkerRuntime } from "./queue.js";
 import { createObjectStorage } from "./object-storage.js";
 
@@ -32,6 +33,7 @@ const { close: closeWorker } = createWorkerRuntime(
       [CODEX_JOB_NAMES.disconnect]: codexDisconnectProcessor(codexContext),
       [CODEX_JOB_NAMES.deleteAccount]: codexAccountDeleteProcessor(codexContext),
     } : {}),
+    ...(codexContext ? { [PRODUCT_JOB_NAMES.rollupRetention]: rollupRetentionProcessor } : {}),
   },
   logger
 );

@@ -106,13 +106,26 @@ export function ConnectScreen(): React.JSX.Element {
     setStep("action");
   };
 
-  const verify = (): void => {
+  const verify = async (): Promise<void> => {
     if (provider === "opencode-go" && apiKey.trim().length === 0) {
       setError(true);
       return;
     }
     setStep("verifying");
-    setTimeout(() => setStep("success"), 1400);
+    setMessage(null);
+    try {
+      if (provider === "opencode-go") {
+        await api.connectProvider("opencode-go", apiKey.trim());
+      } else {
+        // Claude Code pairing is completed by the desktop companion; the
+        // provider appears once the first snapshot syncs.
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      setStep("success");
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "Could not connect this provider.");
+      setStep("action");
+    }
   };
 
   const done = (): void => router.replace("/connectors");

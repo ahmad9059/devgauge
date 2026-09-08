@@ -1,7 +1,12 @@
 import { createDocument } from "zod-openapi";
 import * as z from "zod";
 
-import { errorEnvelopeSchema, providerConnectionSchema, providerUsageSchema } from "./index.js";
+import { alertEventsResponseSchema, alertsResponseSchema } from "./alerts.js";
+import { errorEnvelopeSchema } from "./errors.js";
+import { historySeriesResponseSchema } from "./history.js";
+import { providerConnectionSchema } from "./connections.js";
+import { providerUsageSchema } from "./usage.js";
+import { usageReadResponseSchema } from "./api.js";
 
 // Components are registered by tagging schemas with OpenAPI metadata.
 const ProviderUsage = providerUsageSchema.meta({
@@ -18,6 +23,19 @@ const ErrorEnvelope = errorEnvelopeSchema.meta({
   id: "ErrorEnvelope",
   description: "Standard API error envelope.",
 });
+
+const UsageReadResponse = usageReadResponseSchema.meta({
+  id: "UsageReadResponse",
+  description: "Current usage read model envelope with revision and server time.",
+});
+
+const HistorySeries = historySeriesResponseSchema.meta({
+  id: "HistorySeries",
+  description: "Cursor-paginated history series for one provider/window.",
+});
+
+const Alerts = alertsResponseSchema.meta({ id: "Alerts", description: "User alert rules." });
+const AlertEvents = alertEventsResponseSchema.meta({ id: "AlertEvents", description: "Recent alert events." });
 
 /**
  * Deterministic OpenAPI 3.1 document built from the same Zod schemas that
@@ -39,11 +57,34 @@ export const buildOpenApiDocument = (): ReturnType<typeof createDocument> =>
           responses: {
             "200": {
               description: "Current usage read model",
-              content: { "application/json": { schema: ProviderUsage } },
+              content: { "application/json": { schema: UsageReadResponse } },
             },
             "401": {
               description: "Unauthenticated",
               content: { "application/json": { schema: ErrorEnvelope } },
+            },
+          },
+        },
+      },
+      "/v1/usage/{provider}": {
+        get: {
+          summary: "Latest normalized usage for one provider",
+          tags: ["Usage"],
+          responses: {
+            "200": {
+              description: "Single provider usage snapshot",
+              content: { "application/json": { schema: ProviderUsage } },
+            },
+          },
+        },
+      },
+      "/v1/usage/{provider}/refresh": {
+        post: {
+          summary: "Queue or run a provider refresh",
+          tags: ["Usage"],
+          responses: {
+            "200": {
+              description: "Refresh completed or queued",
             },
           },
         },
@@ -58,6 +99,46 @@ export const buildOpenApiDocument = (): ReturnType<typeof createDocument> =>
               content: {
                 "application/json": { schema: z.array(ProviderConnection) },
               },
+            },
+          },
+        },
+      },
+      "/v1/history/{provider}": {
+        get: {
+          summary: "Cursor-paginated history series for one provider/window",
+          tags: ["History"],
+          responses: {
+            "200": {
+              description: "History series",
+              content: { "application/json": { schema: HistorySeries } },
+            },
+            "401": {
+              description: "Unauthenticated",
+              content: { "application/json": { schema: ErrorEnvelope } },
+            },
+          },
+        },
+      },
+      "/v1/alerts": {
+        get: {
+          summary: "List user alert rules",
+          tags: ["Alerts"],
+          responses: {
+            "200": {
+              description: "Alert rules",
+              content: { "application/json": { schema: Alerts } },
+            },
+          },
+        },
+      },
+      "/v1/alert-events": {
+        get: {
+          summary: "Recent alert events",
+          tags: ["Alerts"],
+          responses: {
+            "200": {
+              description: "Alert events",
+              content: { "application/json": { schema: AlertEvents } },
             },
           },
         },

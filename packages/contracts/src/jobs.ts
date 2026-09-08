@@ -6,6 +6,11 @@ export const CODEX_JOB_NAMES = {
   deleteAccount: "codex-account-delete",
 } as const;
 
+export const PRODUCT_JOB_NAMES = {
+  evaluateAlerts: "evaluate-alerts",
+  rollupRetention: "rollup-retention",
+} as const;
+
 export interface ProviderJobData {
   userId: string;
   connectionId: string;

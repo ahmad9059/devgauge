@@ -9,4 +9,5 @@ export * from "./Button";
 export * from "./ListRow";
 export * from "./EmptyState";
 export * from "./SectionHeader";
+export * from "./ScreenHeader";
 export * from "../theme";

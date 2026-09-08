@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 
-import { buildOpenApiDocument } from "@devgauge/contracts";
+import { buildOpenApiDocument, PRODUCT_JOB_NAMES } from "@devgauge/contracts";
 
 import type { ApiEnv } from "./env.js";
 import { registerErrorHandling } from "./plugins/errors.js";
@@ -21,6 +21,9 @@ import { buildUsageRoutes } from "./routes/usage.js";
 import { buildGithubOauthRoutes } from "./routes/github-oauth.js";
 import { buildCompanionRoutes } from "./routes/companion.js";
 import { buildCodexRoutes } from "./routes/codex.js";
+import { buildHistoryRoutes } from "./routes/history.js";
+import { buildAlertRoutes } from "./routes/alerts.js";
+import { buildDataRightsRoutes } from "./routes/data-rights.js";
 
 export interface BuildAppOptions {
   env: ApiEnv;
@@ -106,6 +109,20 @@ export const buildApp = async (options: BuildAppOptions): Promise<FastifyInstanc
     buildGithubOauthRoutes(app, env);
     buildCompanionRoutes(app);
     buildCodexRoutes(app, env);
+    buildHistoryRoutes(app);
+    buildAlertRoutes(app);
+    buildDataRightsRoutes(app);
+    if (app.providerQueue) {
+      await app.providerQueue.upsertJobScheduler(
+        "retention-daily",
+        { pattern: "0 3 * * *" },
+        {
+          name: PRODUCT_JOB_NAMES.rollupRetention,
+          data: { requestId: "scheduled-retention", idempotencyKey: "daily-retention", userId: "", connectionId: "" },
+          opts: { attempts: 3, backoff: { type: "exponential", delay: 60_000 }, removeOnComplete: 100, removeOnFail: 500 },
+        }
+      );
+    }
   }
 
   return app;

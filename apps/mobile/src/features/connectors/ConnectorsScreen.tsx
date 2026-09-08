@@ -1,32 +1,42 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ScrollView, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { ProviderConnection } from "@devgauge/contracts";
 
 import { AppText, EmptyState, Skeleton, Surface, useTheme } from "../../components";
-import { providerConnections } from "../../data/mock-usage-repository";
+import { useFocusEffect } from "expo-router";
+import { api } from "../../api/client";
+import { orderConnections } from "../../data/repository";
 import { ConnectionStage } from "./ConnectionStage";
 
 export function ConnectorsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [connections, setConnections] = useState<ProviderConnection[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void providerConnections()
-      .then((data) => {
-        if (!cancelled) setConnections(data);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setLoading(true);
+      void api
+        .connections()
+        .then((data) => {
+          if (!cancelled) setConnections(orderConnections(data.connections));
+        })
+        .catch(() => {
+          if (!cancelled) setError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
 
   const contentWidth = Math.min(width, 640);
   const connectedCount = connections.filter((c) => c.state === "connected").length;
@@ -58,9 +68,24 @@ export function ConnectorsScreen(): React.JSX.Element {
             </Surface>
           ))}
         </ScrollView>
-      ) : connections.length === 0 ? (
+      ) : error ? (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <EmptyState title="Nothing here yet" body="Connections will appear here." />
+          <EmptyState
+            title="Couldn&rsquo;t load connectors"
+            body="Check your connection and pull to retry."
+            actionLabel="Retry"
+            onAction={() => {
+              setError(false);
+              setLoading(true);
+              void api.connections().then((data) => {
+                setConnections(orderConnections(data.connections));
+                setLoading(false);
+              }).catch(() => {
+                setError(true);
+                setLoading(false);
+              });
+            }}
+          />
         </View>
       ) : (
         <ScrollView

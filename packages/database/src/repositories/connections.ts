@@ -81,12 +81,12 @@ export const updateConnectionState = async (
     update provider_connections
     set state = ${input.state},
         refresh_state = ${input.refreshState},
-        plan = coalesce(${input.plan ?? null}, plan),
-        adapter_version = coalesce(${input.adapterVersion ?? null}, adapter_version),
-        last_verified_at = coalesce(${input.lastVerifiedAt ?? null}, last_verified_at),
-        last_error_code = coalesce(${input.lastErrorCode ?? null}, last_error_code),
-        last_error_message = coalesce(${input.lastErrorMessage ?? null}, last_error_message),
-        last_error_at = coalesce(${input.lastErrorAt ?? null}, last_error_at),
+        plan = ${input.plan === undefined ? db`plan` : input.plan},
+        adapter_version = ${input.adapterVersion === undefined ? db`adapter_version` : input.adapterVersion},
+        last_verified_at = ${input.lastVerifiedAt === undefined ? db`last_verified_at` : input.lastVerifiedAt},
+        last_error_code = ${input.lastErrorCode === undefined ? db`last_error_code` : input.lastErrorCode},
+        last_error_message = ${input.lastErrorMessage === undefined ? db`last_error_message` : input.lastErrorMessage},
+        last_error_at = ${input.lastErrorAt === undefined ? db`last_error_at` : input.lastErrorAt},
         updated_at = now()
     where id = ${input.id} and user_id = ${input.userId}
     returning *

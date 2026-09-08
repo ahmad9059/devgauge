@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { ProviderUsage } from "@devgauge/contracts";
 import type { Db } from "@devgauge/database";
-import { insertActivityDaily, insertSnapshot, insertWindows, setLatestUsage } from "@devgauge/database";
+import { evaluateUsageAlerts, insertActivityDaily, insertSnapshot, insertWindows, setLatestUsage } from "@devgauge/database";
 
 export const persistCodexUsage = async (
   db: Db,
@@ -46,6 +46,12 @@ export const persistCodexUsage = async (
     provider: "codex",
     connectionId: input.connectionId,
     snapshotId,
+  });
+  await evaluateUsageAlerts(db, {
+    userId: input.userId,
+    connectionId: input.connectionId,
+    snapshotId,
+    usage: input.usage,
   });
   return snapshotId;
 };

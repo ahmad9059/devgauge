@@ -1,6 +1,6 @@
 # DevGauge Production Application
 
-> Status: **Implementation in progress.** Phases 1-8 are implemented and Phase 7 is migrated to production; controlled real-entitlement staging canaries remain pending before beta enablement.
+> Status: **Implementation in progress.** Phases 1-9 are implemented (Phase 7 and 9 migrated to production); controlled real-entitlement staging canaries and Phase 10 hardening remain pending before beta enablement.
 >
 > Source request: build an exactly ten-phase, production-grade plan for connecting OpenAI Codex, Claude Code, OpenCode Go, and GitHub Copilot, tracking every honestly available usage signal, and delivering a premium mobile experience with the supplied three-screen Usage/Connectors/Settings structure and an Epic Games/Vercel visual standard. The provider contract source is `docs/ai-coding-usage-provider-api-guide.md`; durable product truth is recorded in `PRODUCT.md`; the image references are transcribed in `UI-UX-SCREEN-CONTRACT.md`.
 
@@ -220,7 +220,7 @@ Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit
 | 6 | Ship GitHub Copilot Connector | Complete | GitHub OAuth + dynamic Copilot entitlements work safely (sandbox verified; real-seat canary pending) |
 | 7 | Ship OpenAI Codex Connector | Pending | Isolated App Server login, quota, and activity reads work |
 | 8 | Ship Claude Code Companion | Complete (core + backend) | Minimized statusLine snapshots pair and sync safely; packaging/keyring deferred to release |
-| 9 | Complete History, Alerts, And Product Experience | Pending | All providers become one coherent daily-use product |
+| 9 | Complete History, Alerts, And Product Experience | Complete (core + in-app; OS notifications in Phase 10) | All providers become one coherent daily-use product |
 | 10 | Harden, Certify, And Release | Pending | Security, reliability, accessibility, performance, operations, and stores pass |
 
 ## 7. Cross-Cutting Engineering Rules

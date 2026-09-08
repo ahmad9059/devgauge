@@ -9,3 +9,5 @@ export * from "./openapi.js";
 export * from "./auth.js";
 export * from "./api.js";
 export * from "./jobs.js";
+export * from "./history.js";
+export * from "./alerts.js";

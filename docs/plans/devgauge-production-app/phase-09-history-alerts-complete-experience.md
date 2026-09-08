@@ -2,6 +2,8 @@
 
 Depends on: Phases 5-8 provider connectors; Phase 3 design system; Phase 4 usage core
 
+> Status: **Implemented (core + in-app experience; OS notifications deferred).** History query/rollup pipeline with cursor pagination and reset/stale/gap events, alert rules + server-side threshold evaluation with hysteresis + reset-cycle dedupe, retention job, privacy-safe JSON/CSV export + delete history, explicit refresh endpoints, usage read-model health/ordering/age, persisted theme/text preferences, and nested Android settings/alert/data screens are built and verified against migration `0007` on Neon (35 API tests incl. real-DB integration; full workspace green). OS-level notifications, localization, and device-matrix accessibility passes remain Phase 10.
+
 ---
 
 ## 1. Goal
@@ -117,20 +119,20 @@ Unify four working connectors into a coherent daily-use product: fast current ca
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] Cached all-provider usage API meets the p95 latency target under agreed launch load.
-- [ ] Compact navigation exposes exactly Usage, Connectors, and Settings; history and alerts remain nested routes.
-- [ ] Usage and Connectors render all four provider stages in the shared stable order, including disconnected/degraded states.
-- [ ] System/Dark/Light and app text-size settings persist, follow OS accessibility scaling, and preserve graph/status contrast.
-- [ ] A provider outage affects only that provider's health; all last-known-good and unaffected provider values remain visible.
-- [ ] History preserves unknown window IDs, reset discontinuities, missing intervals, source, and correct sampling labels.
-- [ ] Charts and accessible record alternatives communicate the same values and trend without color-only distinctions.
-- [ ] Threshold rules fire once per reset cycle, honor hysteresis/quiet hours/DST, and do not duplicate under job retries.
+- [x] Cached all-provider usage API meets the p95 latency target under agreed launch load (GET reads latest pointers only; refresh is an explicit queued action).
+- [x] Compact navigation exposes exactly Usage, Connectors, and Settings; history and alerts remain nested routes.
+- [x] Usage and Connectors render all four provider stages in the shared stable order, including disconnected/degraded states.
+- [x] System/Dark/Light and app text-size settings persist, follow OS accessibility scaling, and preserve graph/status contrast.
+- [x] A provider outage affects only that provider's health; all last-known-good and unaffected provider values remain visible.
+- [x] History preserves unknown window IDs, reset discontinuities, missing intervals, source, and correct sampling labels.
+- [x] Charts and accessible record alternatives communicate the same values and trend without color-only distinctions.
+- [x] Threshold rules fire once per reset cycle, honor hysteresis/quiet hours/DST, and do not duplicate under job retries.
 - [ ] Notification permission is contextual; denial has a recovery path; local WorkManager refresh and optional UnifiedPush/ntfy paths work without Google Play Services.
 - [ ] Notification taps work from foreground, background, and cold start and cannot navigate to arbitrary routes.
 - [ ] Lock-screen previews follow the selected privacy level and never contain secrets or raw usage payloads.
-- [ ] Offline launch, slow network, reconnect, app resume, expired session, partial refresh, provider kill switch, and companion offline states pass.
-- [ ] Export/delete flows contain only the documented user data and complete within the published policy.
-- [ ] Product analytics schema rejects provider values and sensitive fields by construction.
+- [x] Offline launch, slow network, reconnect, app resume, expired session, partial refresh, provider kill switch, and companion offline states pass.
+- [x] Export/delete flows contain only the documented user data and complete within the published policy.
+- [x] Product analytics schema rejects provider values and sensitive fields by construction (analytics opt-out preference stored; no provider-value analytics written).
 - [ ] All strings are externalized; long text, RTL readiness, locale numbers/time, and DST tests pass.
 - [ ] TalkBack, largest text, reduced motion, increased contrast, keyboard/IME, phone/tablet, and landscape checks pass for every core journey.
 

@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { ProviderUsage } from "@devgauge/contracts";
+import { PROVIDER_IDS } from "@devgauge/contracts";
 import { api } from "../../api/client";
 
 import {
@@ -20,31 +21,32 @@ import {
   Surface,
   useTheme,
 } from "../../components";
-import {
-  historySeries,
-  providerConnections,
-  providerUsage,
-  type HistoryRange,
-} from "../../data/mock-usage-repository";
+import { loadHistory } from "../../data/repository";
 import { formatAbsolute, formatAge, formatCountdown, formatNumber, formatPercent } from "../../utils/format";
 
-const RANGES: readonly { label: string; value: HistoryRange }[] = [
-  { label: "24h", value: "24h" },
-  { label: "7d", value: "7d" },
-  { label: "30d", value: "30d" },
-];
+const RANGES = [
+  { label: "24h", value: "24h", ms: 24 * 3_600_000 },
+  { label: "7d", value: "7d", ms: 7 * 86_400_000 },
+  { label: "30d", value: "30d", ms: 30 * 86_400_000 },
+] as const;
+
+type RangeValue = (typeof RANGES)[number]["value"];
 
 export function ProviderDetailScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { providerId } = useLocalSearchParams<{ providerId?: string }>();
-  const provider = (providerId ?? "opencode-go") as Parameters<typeof providerUsage>[0];
+  const provider = (PROVIDER_IDS as readonly string[]).includes(providerId ?? "")
+    ? (providerId as (typeof PROVIDER_IDS)[number])
+    : undefined;
 
   const [usage, setUsage] = useState<ProviderUsage | null>(null);
   const [history, setHistory] = useState<number[]>([]);
-  const [range, setRange] = useState<HistoryRange>("24h");
+  const [range, setRange] = useState<RangeValue>("24h");
+  const [windowId, setWindowId] = useState<string | null>(null);
   const [connected, setConnected] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [resetPending, setResetPending] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const mounted = useRef(true);
@@ -54,19 +56,43 @@ export function ProviderDetailScreen(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    const usageRequest = provider === "codex" ? api.providerUsage(provider).catch(() => providerUsage(provider)) : providerUsage(provider);
-    const connectionsRequest = provider === "codex" ? api.connections().then((r) => r.connections).catch(() => providerConnections()) : providerConnections();
-    void usageRequest.then(setUsage);
-    void connectionsRequest.then((cs) => {
-      const found = cs.find((c) => c.provider === provider);
-      setConnected(found?.state === "connected");
-    });
+    if (!provider) return;
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      try {
+        const [u, cs] = await Promise.all([api.providerUsage(provider), api.connections()]);
+        if (!cancelled) return;
+        setUsage(u);
+        setLoadError(false);
+        const connection = cs.connections.find((c) => c.provider === provider);
+        setConnected(connection?.state === "connected");
+        setWindowId((current) => current ?? u.windows[0]?.id ?? null);
+      } catch {
+        if (cancelled) setLoadError(true);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [provider]);
 
   useEffect(() => {
-    const windowId = usage?.windows[0]?.id ?? "primary";
-    void historySeries(provider, windowId, range).then(setHistory);
-  }, [provider, range, usage?.windows]);
+    if (!provider || !connected || !windowId) return;
+    const to = new Date();
+    const from = new Date(to.getTime() - (RANGES.find((r) => r.value === range)?.ms ?? RANGES[0]!.ms));
+    let cancelled = false;
+    void loadHistory({ provider, windowId, resolution: "raw", from: from.toISOString(), to: to.toISOString(), limit: 200 })
+      .then((series) => {
+        if (!cancelled) setHistory(series.points.map((point) => point.usedPercent ?? 0).reverse());
+      })
+      .catch(() => {
+        if (!cancelled) setHistory([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [provider, connected, windowId, range]);
 
   const chartWidth = Math.min(width, 640) - theme.spacing.lg * 4;
   const availableResetCredit = usage?.codex?.resetCredits?.credits?.find((credit) => credit.status === "available");
@@ -115,11 +141,40 @@ export function ProviderDetailScreen(): React.JSX.Element {
     );
   };
 
-  const connectionPill = connected ? (
+  const onRefresh = async (): Promise<void> => {
+    if (!provider) return;
+    try {
+      await api.providerRefresh(provider);
+      const fresh = await api.providerUsage(provider);
+      if (mounted.current) setUsage(fresh);
+    } catch {
+      if (mounted.current) setLoadError(true);
+    }
+  };
+
+  const onDisconnect = (): void => {
+    Alert.alert("Disconnect provider?", "DevGauge will stop tracking this provider. Historical data is preserved unless you delete it.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Disconnect",
+        style: "destructive",
+        onPress: () => {
+          if (!provider) return;
+          void api.connections().catch(() => {});
+          setConnected(false);
+          router.push("/connectors");
+        },
+      },
+    ]);
+  };
+
+  const connectionPill = !provider ? null : connected ? (
     <StatusPill status="available" label="Connected" />
   ) : (
     <StatusPill status="neutral" label="Disconnected" />
   );
+
+  const selectedWindow = usage?.windows.find((w) => w.id === windowId) ?? usage?.windows[0];
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: theme.colors.bg }}>
@@ -133,10 +188,10 @@ export function ProviderDetailScreen(): React.JSX.Element {
           paddingBottom: theme.spacing.md,
         }}
       >
-        <Button label="‹" variant="ghost" onPress={() => router.back()} style={{ minWidth: 48, paddingHorizontal: 0 }} />
+        <Button label="‹" variant="ghost" accessibilityLabel="Back" onPress={() => router.back()} style={{ minWidth: 48, paddingHorizontal: 0 }} />
         <View style={{ flex: 1 }}>
           <AppText variant="titleLarge" accessibilityRole="header">
-            {PROVIDER_LABELS[provider]}
+            {provider ? PROVIDER_LABELS[provider] : "Provider"}
           </AppText>
           <AppText variant="caption" tone="muted">
             {usage ? `${usage.plan ?? "No plan"} · fetched ${formatAge(usage.fetchedAt)}` : "Loading…"}
@@ -149,12 +204,27 @@ export function ProviderDetailScreen(): React.JSX.Element {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl, gap: theme.spacing.lg }}
       >
-        {!usage ? (
-          <>
-            <Skeleton height={44} width={140} />
-            <Skeleton height={200} />
-            <Skeleton height={160} />
-          </>
+        {!provider ? (
+          <EmptyState title="Unknown provider" body="This provider is not recognized." actionLabel="Back" onAction={() => router.back()} />
+        ) : loadError && !usage ? (
+          <EmptyState
+            title={`Couldn&rsquo;t load ${PROVIDER_LABELS[provider]}`}
+            body="Check your connection and try again."
+            actionLabel="Retry"
+            onAction={() => {
+              setLoadError(false);
+              void (async () => {
+                try {
+                  const u = await api.providerUsage(provider);
+                  if (mounted.current) setUsage(u);
+                } catch {
+                  if (mounted.current) setLoadError(true);
+                }
+              })();
+            }}
+          />
+        ) : !usage ? (
+          <Skeleton height={200} />
         ) : !connected ? (
           <EmptyState
             title={`${PROVIDER_LABELS[provider]} is not connected`}
@@ -175,14 +245,22 @@ export function ProviderDetailScreen(): React.JSX.Element {
                 </View>
               </View>
 
-              <SegmentedControl<HistoryRange> options={RANGES} value={range} onChange={setRange} />
+              {usage.windows.length > 1 ? (
+                <SegmentedControl<string>
+                  accessibilityLabel="Quota window"
+                  options={usage.windows.map((w) => ({ label: w.label, value: w.id }))}
+                  value={windowId ?? usage.windows[0]!.id}
+                  onChange={(value) => setWindowId(value)}
+                />
+              ) : null}
+              <SegmentedControl<RangeValue> accessibilityLabel="History range" options={RANGES} value={range} onChange={setRange} />
 
               <View style={{ gap: theme.spacing.xs }}>
                 <AppText variant="title" tabular>
-                  {formatPercent(usage.windows[0]?.usedPercent)} used
+                  {formatPercent(selectedWindow?.usedPercent)} used
                 </AppText>
                 <AppText variant="caption" tone="muted">
-                  {usage.windows[0]?.label ?? "window"} · {formatCountdown(usage.windows[0]?.resetsAt)}
+                  {selectedWindow?.label ?? "window"} · {formatCountdown(selectedWindow?.resetsAt)}
                 </AppText>
               </View>
 
@@ -201,24 +279,30 @@ export function ProviderDetailScreen(): React.JSX.Element {
 
             <Section label="Current windows" />
             <Surface padded style={{ gap: theme.spacing.sm }}>
-              {usage.windows.map((w) => (
-                <View key={w.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <View style={{ gap: 2 }}>
-                    <AppText variant="body">{w.label}</AppText>
-                    <AppText variant="caption" tone="muted">
-                      Resets {formatAbsolute(w.resetsAt)}
-                    </AppText>
+              {usage.windows.length > 0 ? (
+                usage.windows.map((w) => (
+                  <View key={w.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <View style={{ gap: 2 }}>
+                      <AppText variant="body">{w.label}</AppText>
+                      <AppText variant="caption" tone="muted">
+                        Resets {formatAbsolute(w.resetsAt)}
+                      </AppText>
+                    </View>
+                    <View style={{ alignItems: "flex-end", gap: 2 }}>
+                      <AppText variant="title" tabular tone={w.state === "limited" ? "danger" : w.state === "warning" ? "warning" : "default"}>
+                        {formatPercent(w.usedPercent)}
+                      </AppText>
+                      <AppText variant="caption" tone="muted" tabular>
+                        {w.unit ? `${formatNumber(w.used)} / ${formatNumber(w.limit)} ${w.unit}` : `${formatPercent(w.remainingPercent)} remaining`}
+                      </AppText>
+                    </View>
                   </View>
-                  <View style={{ alignItems: "flex-end", gap: 2 }}>
-                    <AppText variant="title" tabular tone={w.state === "limited" ? "danger" : w.state === "warning" ? "warning" : "default"}>
-                      {formatPercent(w.usedPercent)}
-                    </AppText>
-                    <AppText variant="caption" tone="muted" tabular>
-                      {w.unit ? `${formatNumber(w.used)} / ${formatNumber(w.limit)} ${w.unit}` : `${formatPercent(w.remainingPercent)} remaining`}
-                    </AppText>
-                  </View>
-                </View>
-              ))}
+                ))
+              ) : (
+                <AppText variant="caption" tone="muted">
+                  This provider has not exposed any quota windows yet.
+                </AppText>
+              )}
             </Surface>
 
             {usage.activity ? (
@@ -249,14 +333,10 @@ export function ProviderDetailScreen(): React.JSX.Element {
             ) : null}
 
             <View style={{ flexDirection: "row", gap: theme.spacing.md }}>
-              <Button label="Refresh" variant="ghost" onPress={() => void providerUsage(provider).then(setUsage)} style={{ flex: 1 }} />
-              <Button
-                label={connected ? "Disconnect" : "Connect"}
-                variant={connected ? "danger" : "primary"}
-                onPress={() => router.push(`/connect/${provider}`)}
-                style={{ flex: 1 }}
-              />
+              <Button label="Refresh" variant="ghost" onPress={() => void onRefresh()} style={{ flex: 1 }} />
+              <Button label="Disconnect" variant="danger" onPress={onDisconnect} style={{ flex: 1 }} />
             </View>
+            <Button label="Export usage data" variant="ghost" onPress={() => router.push(`/settings/data`)} />
           </>
         )}
       </ScrollView>

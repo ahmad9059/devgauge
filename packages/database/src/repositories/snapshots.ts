@@ -203,14 +203,17 @@ export const listHistory = async (
   db: Db,
   input: { userId: string; provider?: string; beforeId?: string; limit: number }
 ): Promise<HistoryEntry[]> => {
-  const limit = Math.min(Math.max(input.limit, 1), 100);
+  const limit = Math.min(Math.max(input.limit, 1), 100) + 1;
 
   const rows = await db`
     select id, fetched_at, provider
     from usage_snapshots
     where user_id = ${input.userId}
       ${input.provider ? db`and provider = ${input.provider}` : db``}
-      ${input.beforeId ? db`and id::text < ${input.beforeId}` : db``}
+      ${input.beforeId ? db`and (fetched_at, id) < (
+        select fetched_at, id from usage_snapshots
+        where id = ${input.beforeId} and user_id = ${input.userId}
+      )` : db``}
     order by fetched_at desc, id desc
     limit ${limit}
   `;

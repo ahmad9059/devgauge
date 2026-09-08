@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AccessibilityInfo, useColorScheme } from "react-native";
 
 import { getTheme, type AppearanceMode, type ThemeTokens } from "./tokens";
+import { readPreferences, writePreferences } from "../storage/preferences";
 
 export interface AppTextScale {
   /** Multiplier applied on top of system font scaling (never reduces below the OS floor). */
@@ -32,7 +33,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
   const systemScheme = useColorScheme();
   const [appearance, setAppearanceState] = useState<AppearanceMode>("system");
   const [textScale, setTextScaleState] = useState<number>(1);
+  const [hydrated, setHydrated] = useState(false);
   const [reduceMotion, setReduceMotion] = useState<boolean>(false);
+
+  // Restore persisted appearance choices before first paint.
+  useEffect(() => {
+    let cancelled = false;
+    void readPreferences().then((prefs) => {
+      if (cancelled) return;
+      setAppearanceState(prefs.appearance);
+      setTextScaleState(prefs.textScale);
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Reflect OS reduce-motion and subscribe to changes.
+  useEffect(() => {
+    let mounted = true;
+    const update = (enabled: boolean): void => {
+      if (mounted) setReduceMotion(enabled);
+    };
+    AccessibilityInfo.isReduceMotionEnabled().then(update).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", update);
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
 
   const resolvedMode: "dark" | "light" =
     appearance === "system" ? (systemScheme === "light" ? "light" : "dark") : appearance;
@@ -42,15 +72,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
   const setAppearance = useCallback((mode: AppearanceMode) => setAppearanceState(mode), []);
   const setTextScale = useCallback((scale: number) => setTextScaleState(scale), []);
 
-  // Reflect OS reduce-motion preference; screen transitions stay instant/crossfade.
-  AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
+  // Persist appearance + text scale together once hydrated.
+  useEffect(() => {
+    if (!hydrated) return;
+    void writePreferences({ appearance, textScale });
+  }, [appearance, textScale, hydrated]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({ theme, appearance, setAppearance, textScale, setTextScale, reduceMotion }),
     [theme, appearance, setAppearance, textScale, setTextScale, reduceMotion]
   );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={value}>{hydrated ? children : children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {

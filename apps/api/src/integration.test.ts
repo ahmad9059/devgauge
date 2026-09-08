@@ -143,8 +143,8 @@ describeIntegration("control plane integration (real DB)", () => {
       payload: { credential: "test-history-key" },
     });
     // Two refreshes → two snapshots.
-    await app.inject({ method: "GET", url: "/v1/usage/opencode-go", headers });
-    await app.inject({ method: "GET", url: "/v1/usage/opencode-go", headers });
+    await app.inject({ method: "POST", url: "/v1/usage/opencode-go/refresh", headers });
+    await app.inject({ method: "POST", url: "/v1/usage/opencode-go/refresh", headers });
 
     const page = await app.inject({ method: "GET", url: "/v1/usage/opencode-go/history?limit=1", headers });
     expect(page.statusCode).toBe(200);
@@ -163,6 +163,73 @@ describeIntegration("control plane integration (real DB)", () => {
 
     const after = await app.inject({ method: "GET", url: "/v1/me", headers });
     expect(after.statusCode).toBe(401);
+  });
+
+  itSlow("alert rules create, list, and delete for the owning user", async () => {
+    const token = await signUp(`it-alert-${Date.now()}@devgauge.test`);
+    const headers = { authorization: `Bearer ${token}` };
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/alerts",
+      headers,
+      payload: { kind: "consumed_threshold", threshold: 80, provider: "codex", windowId: null, hysteresis: 5, enabled: true, critical: false, preview: "generic", quietHours: null },
+    });
+    expect(created.statusCode).toBe(201);
+    const rule = created.json() as { id: string; kind: string };
+    expect(rule.kind).toBe("consumed_threshold");
+
+    const list = await app.inject({ method: "GET", url: "/v1/alerts", headers });
+    expect(list.statusCode).toBe(200);
+    const rules = (list.json() as { alerts: Array<{ id: string }> }).alerts;
+    expect(rules.some((item) => item.id === rule.id)).toBe(true);
+
+    const del = await app.inject({ method: "DELETE", url: `/v1/alerts/${rule.id}`, headers });
+    expect(del.statusCode).toBe(200);
+  });
+
+  itSlow("usage refresh queues and returns provider health without leaking other users", async () => {
+    const aToken = await signUp(`it-refresh-a-${Date.now()}@devgauge.test`);
+    const bToken = await signUp(`it-refresh-b-${Date.now()}@devgauge.test`);
+    const aHeaders = { authorization: `Bearer ${aToken}` };
+
+    const connect = await app.inject({
+      method: "POST",
+      url: "/v1/connections/opencode-go/connect",
+      headers: aHeaders,
+      payload: { credential: "sk-canary-usage-health" },
+    });
+    expect(connect.statusCode).toBe(200);
+
+    const refresh = await app.inject({ method: "POST", url: "/v1/usage/opencode-go/refresh", headers: aHeaders });
+    expect([200, 202]).toContain(refresh.statusCode);
+
+    const bHistory = await app.inject({ method: "GET", url: "/v1/history/opencode-go?resolution=raw", headers: { authorization: `Bearer ${bToken}` } });
+    expect(bHistory.statusCode).toBe(200);
+    expect((bHistory.json() as { points: unknown[] }).points.length).toBe(0);
+    expect(JSON.stringify(bHistory.json())).not.toContain("sk-canary-usage-health");
+  });
+
+  itSlow("data export returns normalized JSON with no credentials", async () => {
+    const token = await signUp(`it-export-${Date.now()}@devgauge.test`);
+    const headers = { authorization: `Bearer ${token}` };
+
+    const connect = await app.inject({
+      method: "POST",
+      url: "/v1/connections/opencode-go/connect",
+      headers,
+      payload: { credential: "sk-canary-export-secret" },
+    });
+    expect(connect.statusCode).toBe(200);
+
+    const exportJson = await app.inject({ method: "GET", url: "/v1/data/export?provider=opencode-go&format=json", headers });
+    expect(exportJson.statusCode).toBe(200);
+    const text = JSON.stringify(exportJson.json());
+    expect(text).not.toContain("sk-canary-export-secret");
+
+    const exportCsv = await app.inject({ method: "GET", url: "/v1/data/export?provider=opencode-go&format=csv", headers });
+    expect(exportCsv.statusCode).toBe(200);
+    expect(exportCsv.body).toContain("provider,window_id");
   });
 });
 
@@ -320,6 +387,13 @@ describeCopilot("github-copilot sandbox (real DB)", () => {
     const code = (magicRequest.json() as { code: string }).code;
     const verify = await app.inject({ method: "POST", url: "/v1/auth/magic-link/verify", payload: { email, code } });
     const userToken = (verify.json() as { token: string }).token;
+
+    const refresh = await app.inject({
+      method: "POST",
+      url: "/v1/usage/github-copilot/refresh",
+      headers: { authorization: `Bearer ${userToken}` },
+    });
+    expect(refresh.statusCode).toBe(200);
 
     const usage = await app.inject({
       method: "GET",

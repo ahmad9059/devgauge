@@ -1,20 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter , useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { ProviderConnection, ProviderUsage } from "@devgauge/contracts";
 
-import {
-  AppText,
-  Button,
-  EmptyState,
-  Skeleton,
-  Surface,
-  useTheme,
-} from "../../components";
-import { providerConnections, providerUsageList } from "../../data/mock-usage-repository";
-import { readUsageCache, writeUsageCache } from "../../storage/usage-cache";
+import { AppText, Button, EmptyState, Skeleton, Surface, useTheme } from "../../components";
+import { orderedProviders, loadUsage } from "../../data/repository";
 import { formatAge } from "../../utils/format";
 import { ProviderStage } from "./ProviderStage";
 
@@ -23,63 +15,48 @@ export function UsageScreen(): React.JSX.Element {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [usage, setUsage] = useState<ProviderUsage[]>([]);
+  const [usage, setUsage] = useState<Record<string, ProviderUsage>>({});
   const [connections, setConnections] = useState<ProviderConnection[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   const [fromCache, setFromCache] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const mounted = useRef(true);
+
+  useEffect(() => () => {
+    mounted.current = false;
+  }, []);
 
   const load = useCallback(async (background = false) => {
     if (background) setRefreshing(true);
-    setError(false);
-    try {
-      const [u, c] = await Promise.all([providerUsageList(), providerConnections()]);
-      setUsage(u);
-      setConnections(c);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    const result = await loadUsage({ cancelled: !mounted.current });
+    if (!mounted.current) return;
+    setLoading(result.usage.kind === "loading");
+    setUsage(result.usage.data);
+    setConnections(result.connections);
+    setFromCache(result.usage.fromCache);
+    if (result.usage.kind === "retained-error" || result.usage.kind === "blocking-error") {
+      setSyncError(result.usage.error ?? "Could not reach DevGauge");
+    } else {
+      setSyncError(null);
     }
+    if (background) setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    // Render cached data instantly when present (honest offline startup).
-    void readUsageCache().then((cached) => {
-      if (cancelled || !cached) return;
-      setUsage(cached.providers);
-      setFromCache(true);
-    });
-    void providerUsageList()
-      .then((u) => {
-        if (cancelled) return;
-        setUsage(u);
-        setFromCache(false);
-        void writeUsageCache(u);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    void providerConnections()
-      .then((c) => {
-        if (!cancelled) setConnections(c);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
 
   const connectionByProvider = new Map(connections.map((c) => [c.provider, c]));
-  const connectedCount = usage.filter((u) => connectionByProvider.get(u.provider)?.state === "connected").length;
-  const lastSync = usage.find((u) => u.fetchedAt)?.fetchedAt;
+  const connectedCount = orderedProviders().filter(
+    (provider) => connectionByProvider.get(provider)?.state === "connected"
+  ).length;
+  const lastSync = orderedProviders()
+    .map((provider) => usage[provider]?.fetchedAt)
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1);
 
   const contentWidth = Math.min(width, 640);
 
@@ -107,8 +84,13 @@ export function UsageScreen(): React.JSX.Element {
         <AppText variant="caption" tone="muted">
           {loading
             ? "Loading…"
-            : `${connectedCount} of 4 providers · last sync ${formatAge(lastSync)}${fromCache ? " · offline cache" : ""}`}
+            : `${connectedCount} of 4 providers · last sync ${lastSync ? formatAge(lastSync) : "—"}${fromCache ? " · offline cache" : ""}`}
         </AppText>
+        {syncError ? (
+          <AppText variant="caption" tone="warning">
+            Offline — showing saved data. {syncError}
+          </AppText>
+        ) : null}
       </View>
 
       {loading ? (
@@ -130,24 +112,6 @@ export function UsageScreen(): React.JSX.Element {
             </Surface>
           ))}
         </ScrollView>
-      ) : error ? (
-        <View style={{ flex: 1, justifyContent: "center" }}>
-          <EmptyState
-            title="Couldn&rsquo;t load usage"
-            body="Check your connection and try again."
-            actionLabel="Retry"
-            onAction={() => void load()}
-          />
-        </View>
-      ) : connectedCount === 0 ? (
-        <View style={{ flex: 1, justifyContent: "center" }}>
-          <EmptyState
-            title="No providers connected"
-            body="Connect a provider to start tracking your AI coding usage."
-            actionLabel="Open Connectors"
-            onAction={() => router.push("/connectors")}
-          />
-        </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -159,24 +123,36 @@ export function UsageScreen(): React.JSX.Element {
             alignSelf: "center",
           }}
         >
-          {usage.map((u) => {
+          {connectedCount === 0 ? (
+            <View style={{ paddingVertical: theme.spacing.xxl }}>
+              <EmptyState
+                title="No providers connected"
+                body="Connect a provider to start tracking your AI coding usage."
+                actionLabel="Open Connectors"
+                onAction={() => router.push("/connectors")}
+              />
+            </View>
+          ) : null}
+          {orderedProviders().map((provider) => {
+            const providerUsage = usage[provider];
+            if (!providerUsage && connectedCount === 0) return null;
             const connection =
-              connectionByProvider.get(u.provider) ??
+              connectionByProvider.get(provider) ??
               ({
-                provider: u.provider,
+                provider,
                 state: "disconnected",
                 refresh: "idle",
                 plan: null,
                 adapterVersion: "",
                 lastVerifiedAt: null,
                 lastError: null,
-                updatedAt: u.fetchedAt,
+                updatedAt: new Date().toISOString(),
               } satisfies ProviderConnection);
             return (
               <ProviderStage
-                key={u.provider}
-                provider={u.provider}
-                usage={u}
+                key={provider}
+                provider={provider}
+                usage={providerUsage}
                 connection={connection}
                 onOpenDetail={(p) => router.push(`/provider/${p}`)}
                 onGoConnect={() => router.push("/connectors")}

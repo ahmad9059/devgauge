@@ -1,4 +1,13 @@
-import type { ProviderConnection, ProviderUsage } from "@devgauge/contracts";
+import type {
+  AlertEvent,
+  AlertRule,
+  AlertRuleInput,
+  HistoryResolution,
+  HistorySeriesResponse,
+  ProviderConnection,
+  ProviderId,
+  ProviderUsage,
+} from "@devgauge/contracts";
 
 import { getSessionToken } from "../storage/secure";
 
@@ -103,6 +112,15 @@ export const api = {
   usage: (): Promise<UsageReadResponse> => request("/v1/usage"),
   providerUsage: (provider: string): Promise<ProviderUsage> => request(`/v1/usage/${provider}`),
   connections: (): Promise<{ connections: ProviderConnection[] }> => request("/v1/connections"),
+  connectProvider: (provider: string, credential?: string): Promise<{ connection: ProviderConnection }> =>
+    request(`/v1/connections/${provider}/connect`, {
+      method: "POST",
+      body: JSON.stringify(credential ? { credential } : {}),
+    }),
+  disconnectProvider: (provider: string): Promise<{ connection: ProviderConnection }> =>
+    request(`/v1/connections/${provider}/disconnect`, { method: "POST" }),
+  disconnectCodex: (): Promise<{ connection: ProviderConnection }> =>
+    request("/v1/connections/codex/disconnect", { method: "POST" }),
 
   startCodexLogin: (resumeAttemptId?: string): Promise<CodexLoginAttempt> =>
     request("/v1/connections/codex/device-login", {
@@ -124,4 +142,51 @@ export const api = {
     outcome: "reset" | "alreadyRedeemed" | "nothingToReset" | "noCredit" | null;
     errorCode: string | null;
   }> => request(`/v1/connections/codex/reset-credit/${attemptId}`),
+
+  providerRefresh: (provider: string): Promise<{ status: string; jobId: string | null }> =>
+    request(`/v1/usage/${provider}/refresh`, { method: "POST" }),
+
+  historySeries: (query: {
+    provider: ProviderId;
+    windowId?: string;
+    resolution: HistoryResolution;
+    from: string;
+    to: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<HistorySeriesResponse> => {
+    const params = new URLSearchParams({
+      resolution: query.resolution,
+      from: query.from,
+      to: query.to,
+      limit: String(query.limit ?? 100),
+    });
+    if (query.windowId) params.set("windowId", query.windowId);
+    if (query.cursor) params.set("cursor", query.cursor);
+    return request(`/v1/history/${query.provider}?${params.toString()}`);
+  },
+
+  alerts: (): Promise<{ alerts: AlertRule[] }> => request("/v1/alerts"),
+  createAlert: (input: AlertRuleInput): Promise<AlertRule> =>
+    request("/v1/alerts", { method: "POST", body: JSON.stringify(input) }),
+  updateAlert: (id: string, input: AlertRuleInput): Promise<AlertRule> =>
+    request(`/v1/alerts/${id}`, { method: "PUT", body: JSON.stringify(input) }),
+  deleteAlert: (id: string): Promise<{ ok: boolean }> =>
+    request(`/v1/alerts/${id}`, { method: "DELETE" }),
+  alertEvents: (): Promise<{ events: AlertEvent[] }> => request("/v1/alert-events"),
+  acknowledgeAlertEvent: (id: string): Promise<{ ok: boolean }> =>
+    request(`/v1/alert-events/${id}/acknowledge`, { method: "POST" }),
+
+  dataExportUrl: (provider: string, format: "csv" | "json"): string =>
+    `${apiBaseUrl()}/v1/data/export?provider=${provider}&format=${format}`,
+  deleteHistory: (provider?: string): Promise<{ ok: boolean; deletedSnapshots: number }> =>
+    request("/v1/data/history", { method: "DELETE", body: JSON.stringify({ confirmed: true, ...(provider ? { provider } : {}) }) }),
+
+  deleteAccount: (): Promise<{ ok: boolean; pending?: boolean }> =>
+    request("/v1/me", { method: "DELETE" }),
+
+  companionDevices: (): Promise<{ devices: { id: string; label: string; lastSeenAt: string; revokedAt: string | null }[] }> =>
+    request("/v1/companion/devices"),
+  revokeCompanionDevice: (deviceId: string): Promise<{ ok: boolean }> =>
+    request(`/v1/companion/devices/${deviceId}/revoke`, { method: "POST" }),
 };

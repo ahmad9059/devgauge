@@ -4,6 +4,7 @@ import type { FastifyInstance } from "fastify";
 
 import { errorEnvelopeSchema } from "@devgauge/contracts";
 import {
+  evaluateUsageAlerts,
   consumePairingCode,
   createPairingCode,
   findActiveCompanionByCredential,
@@ -128,6 +129,12 @@ export const buildCompanionRoutes = (app: FastifyInstance): void => {
       provider: "claude-code",
       connectionId: connection.id,
       snapshotId,
+    });
+    await evaluateUsageAlerts(app.db, {
+      userId: device.userId,
+      connectionId: connection.id,
+      snapshotId,
+      usage,
     });
 
     return { ok: true, snapshotId, serverTime: new Date().toISOString() };

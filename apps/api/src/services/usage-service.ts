@@ -1,8 +1,9 @@
-import type { ProviderId, ProviderUsage } from "@devgauge/contracts";
+import { PROVIDER_DISPLAY_ORDER, type ProviderId, type ProviderUsage } from "@devgauge/contracts";
 
 import type { Db } from "@devgauge/database";
 import {
   getConnection,
+  evaluateUsageAlerts,
   getLatestSnapshotIdsByUser,
   getSnapshotWithWindows,
   insertActivityDaily,
@@ -92,6 +93,12 @@ export const refreshProviderUsage = async (
       connectionId: connection.id,
       snapshotId,
     });
+    await evaluateUsageAlerts(db, {
+      userId: input.userId,
+      connectionId: connection.id,
+      snapshotId,
+      usage,
+    });
     await updateConnectionState(db, {
       id: connection.id,
       userId: input.userId,
@@ -126,9 +133,14 @@ export const getUsageReadModel = async (db: Db, userId: string): Promise<Provide
   const providers: ProviderUsage[] = [];
   for (const row of latest) {
     const usage = await getSnapshotWithWindows(db, row.snapshotId, userId);
-    if (usage) providers.push(usage);
+    if (usage) {
+      providers.push({
+        ...usage,
+        stale: usage.stale || Date.now() - new Date(usage.fetchedAt).getTime() > 20 * 60_000,
+      });
+    }
   }
-  return providers;
+  return providers.sort((a, b) => PROVIDER_DISPLAY_ORDER.indexOf(a.provider) - PROVIDER_DISPLAY_ORDER.indexOf(b.provider));
 };
 
 export interface HistoryPage {
@@ -142,13 +154,14 @@ export const getHistory = async (
   db: Db,
   input: { userId: string; provider?: string; beforeId?: string; limit: number }
 ): Promise<HistoryPage> => {
-  const entries = await listHistory(db, input);
+  const cappedLimit = Math.min(Math.max(input.limit, 1), 100);
+  const entries = await listHistory(db, { ...input, limit: cappedLimit });
   const items: ProviderUsage[] = [];
-  for (const entry of entries) {
+  for (const entry of entries.slice(0, cappedLimit)) {
     const usage = await getSnapshotWithWindows(db, entry.snapshotId, input.userId);
     if (usage) items.push(usage);
   }
-  const hasMore = items.length === input.limit;
-  const nextCursor = hasMore ? entries[entries.length - 1]?.snapshotId ?? null : null;
+  const hasMore = entries.length > cappedLimit;
+  const nextCursor = hasMore ? entries[cappedLimit - 1]?.snapshotId ?? null : null;
   return { items, nextCursor, hasMore };
 };
