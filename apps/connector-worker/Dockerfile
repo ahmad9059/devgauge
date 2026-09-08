@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 RUN corepack enable && corepack prepare pnpm@11.3.0 --activate
 WORKDIR /repo
 
@@ -18,7 +18,7 @@ COPY . .
 RUN pnpm --filter @devgauge/connector-worker... build
 RUN pnpm --filter @devgauge/connector-worker deploy --prod /out
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 ENV NODE_ENV=production
 ENV CODEX_BINARY_PATH=/usr/local/bin/codex
 WORKDIR /app
