@@ -10,6 +10,7 @@ import { registerErrorHandling } from "./plugins/errors.js";
 import { registerDatabase } from "./plugins/database.js";
 import { registerCrypto } from "./plugins/crypto.js";
 import { registerAuth } from "./plugins/auth.js";
+import { registerProviderQueue } from "./plugins/queue.js";
 import { buildHealthRoutes, type DependencyCheck } from "./routes/health.js";
 import { buildVersionRoutes } from "./routes/version.js";
 import { buildAuthRoutes } from "./routes/auth.js";
@@ -19,6 +20,7 @@ import { buildConnectionsRoutes } from "./routes/connections.js";
 import { buildUsageRoutes } from "./routes/usage.js";
 import { buildGithubOauthRoutes } from "./routes/github-oauth.js";
 import { buildCompanionRoutes } from "./routes/companion.js";
+import { buildCodexRoutes } from "./routes/codex.js";
 
 export interface BuildAppOptions {
   env: ApiEnv;
@@ -45,8 +47,10 @@ export const buildApp = async (options: BuildAppOptions): Promise<FastifyInstanc
           "*.access_token",
           "*.refreshToken",
           "*.refresh_token",
-          "*.deviceCode",
-          "*.device_code",
+           "*.deviceCode",
+           "*.device_code",
+          "*.userCode",
+          "*.user_code",
           "*.password",
           "*.credential",
           "*.credentialEnvelope",
@@ -93,6 +97,7 @@ export const buildApp = async (options: BuildAppOptions): Promise<FastifyInstanc
     await app.register(registerDatabase, { env });
     await app.register(registerCrypto, { env });
     await app.register(registerAuth);
+    await app.register(registerProviderQueue, { env });
     buildAuthRoutes(app, env);
     buildMeRoutes(app);
     buildProvidersRoutes(app);
@@ -100,6 +105,7 @@ export const buildApp = async (options: BuildAppOptions): Promise<FastifyInstanc
     buildUsageRoutes(app, env);
     buildGithubOauthRoutes(app, env);
     buildCompanionRoutes(app);
+    buildCodexRoutes(app, env);
   }
 
   return app;

@@ -5,6 +5,7 @@ import {
   getConnection,
   insertAudit,
   insertTombstone,
+  updateConnectionState,
   upsertConnection,
   upsertEnvelope,
 } from "@devgauge/database";
@@ -45,6 +46,12 @@ export const disconnectConnection = async (
   const connection = await getConnection(db, input.userId, input.provider);
   if (!connection) return;
   await deleteEnvelope(db, connection.id);
+  await updateConnectionState(db, {
+    id: connection.id,
+    userId: input.userId,
+    state: input.provider === "codex" ? "revoking" : "disconnected",
+    refreshState: "idle",
+  });
   await insertTombstone(db, "credential", `${input.userId}:${input.provider}`);
   await insertAudit(db, {
     userId: input.userId,

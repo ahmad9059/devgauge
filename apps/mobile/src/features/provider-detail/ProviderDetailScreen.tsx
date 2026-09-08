@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { ScrollView, View, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { ProviderUsage } from "@devgauge/contracts";
+import { api } from "../../api/client";
 
 import {
   AppText,
@@ -43,10 +44,19 @@ export function ProviderDetailScreen(): React.JSX.Element {
   const [history, setHistory] = useState<number[]>([]);
   const [range, setRange] = useState<HistoryRange>("24h");
   const [connected, setConnected] = useState(true);
+  const [resetPending, setResetPending] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const mounted = useRef(true);
+
+  useEffect(() => () => {
+    mounted.current = false;
+  }, []);
 
   useEffect(() => {
-    void providerUsage(provider).then(setUsage);
-    void providerConnections().then((cs) => {
+    const usageRequest = provider === "codex" ? api.providerUsage(provider).catch(() => providerUsage(provider)) : providerUsage(provider);
+    const connectionsRequest = provider === "codex" ? api.connections().then((r) => r.connections).catch(() => providerConnections()) : providerConnections();
+    void usageRequest.then(setUsage);
+    void connectionsRequest.then((cs) => {
       const found = cs.find((c) => c.provider === provider);
       setConnected(found?.state === "connected");
     });
@@ -58,6 +68,51 @@ export function ProviderDetailScreen(): React.JSX.Element {
   }, [provider, range, usage?.windows]);
 
   const chartWidth = Math.min(width, 640) - theme.spacing.lg * 4;
+  const availableResetCredit = usage?.codex?.resetCredits?.credits?.find((credit) => credit.status === "available");
+  const availableResetCount = usage?.codex?.resetCredits?.availableCount ?? 0;
+
+  const awaitResetOutcome = async (attemptId: string): Promise<void> => {
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const status = await api.codexResetCreditStatus(attemptId);
+      if (!mounted.current) return;
+      if (status.status === "failed") throw new Error("The reset credit was not redeemed. Your previous usage remains unchanged.");
+      if (status.status === "completed") {
+        const messages = {
+          reset: "Reset credit used. Your updated Codex limits are now available.",
+          alreadyRedeemed: "This request was already completed. No second credit was used.",
+          nothingToReset: "No eligible rate-limit window currently needs a reset.",
+          noCredit: "No earned reset credit is currently available.",
+        } as const;
+        setResetMessage(status.outcome ? messages[status.outcome] : "Reset request completed.");
+        const refreshed = await api.providerUsage("codex");
+        if (mounted.current) setUsage(refreshed);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+    throw new Error("Reset verification is taking longer than expected. Check again shortly.");
+  };
+
+  const confirmResetCredit = (): void => {
+    Alert.alert(
+      "Use a reset credit?",
+      "This redeems one earned credit and changes your ChatGPT/Codex allowance. DevGauge will refresh your limits before reporting success.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Use credit",
+          onPress: () => {
+            setResetPending(true);
+            setResetMessage(null);
+            void api.consumeCodexResetCredit(globalThis.crypto.randomUUID(), availableResetCredit?.id)
+              .then((attempt) => awaitResetOutcome(attempt.attemptId))
+              .catch((cause) => setResetMessage(cause instanceof Error ? cause.message : "Could not redeem this credit."))
+              .finally(() => setResetPending(false));
+          },
+        },
+      ]
+    );
+  };
 
   const connectionPill = connected ? (
     <StatusPill status="available" label="Connected" />
@@ -169,11 +224,25 @@ export function ProviderDetailScreen(): React.JSX.Element {
               <>
                 <Section label="Activity" />
                 <Surface padded style={{ gap: theme.spacing.md }}>
-                  <Metric label="Lifetime tokens" value={formatNumber(usage.activity.lifetimeTokens)} />
-                  <Metric label="Peak daily tokens" value={formatNumber(usage.activity.peakDailyTokens)} />
-                  <Metric label="Current streak" value={`${usage.activity.currentStreakDays} days`} />
-                  <Metric label="Longest streak" value={`${usage.activity.longestStreakDays} days`} />
-                  <Metric label="Longest turn" value={`${Math.round((usage.activity.longestRunningTurnSec ?? 0) / 60)}m`} />
+                  <Metric label="Lifetime tokens" value={usage.activity.lifetimeTokens === null ? "Not provided" : formatNumber(usage.activity.lifetimeTokens)} />
+                  <Metric label="Peak daily tokens" value={usage.activity.peakDailyTokens === null ? "Not provided" : formatNumber(usage.activity.peakDailyTokens)} />
+                  <Metric label="Current streak" value={usage.activity.currentStreakDays === null ? "Not provided" : `${usage.activity.currentStreakDays} days`} />
+                  <Metric label="Longest streak" value={usage.activity.longestStreakDays === null ? "Not provided" : `${usage.activity.longestStreakDays} days`} />
+                  <Metric label="Longest turn" value={usage.activity.longestRunningTurnSec === null ? "Not provided" : `${Math.round(usage.activity.longestRunningTurnSec / 60)}m`} />
+                </Surface>
+              </>
+            ) : null}
+
+            {provider === "codex" && availableResetCount > 0 ? (
+              <>
+                <Section label="Earned reset" />
+                <Surface padded style={{ gap: theme.spacing.md }}>
+                  <AppText variant="body">{availableResetCredit?.title ?? `${availableResetCount} reset credit${availableResetCount === 1 ? "" : "s"} available`}</AppText>
+                  <AppText variant="caption" tone="muted">
+                    {availableResetCredit?.description ?? "Use only when you want to reset an eligible Codex rate-limit window."}
+                  </AppText>
+                  {resetMessage ? <AppText variant="caption" tone={resetMessage.startsWith("Could") ? "danger" : "available"}>{resetMessage}</AppText> : null}
+                  <Button label={resetPending ? "Requesting…" : "Use a reset credit"} disabled={resetPending} onPress={confirmResetCredit} />
                 </Surface>
               </>
             ) : null}

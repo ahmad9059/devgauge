@@ -1,0 +1,10 @@
+{
+  "codexVersion": "0.153.4",
+  "linuxX64Sha256": "56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da",
+  "schemaSha256": "eceec59c97b0c6b036095fa062df9c417a90d0d7bffa47d4a41ec064716c8bcf",
+  "generatedFileCount": 1010,
+  "commands": [
+    "codex app-server generate-ts --out <dir>/ts",
+    "codex app-server generate-json-schema --out <dir>/json"
+  ]
+}

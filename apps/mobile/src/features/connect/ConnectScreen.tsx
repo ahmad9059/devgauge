@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { ScrollView, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Linking, ScrollView, TextInput, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppText, Button, PROVIDER_LABELS, ProviderMark, Surface, useTheme } from "../../components";
+import { api, type CodexLoginAttempt } from "../../api/client";
+import { clearCodexLoginAttemptId, readCodexLoginAttemptId, writeCodexLoginAttemptId } from "../../storage/codex-login";
 
 type Step = "intro" | "action" | "verifying" | "success";
 
@@ -35,9 +38,71 @@ export function ConnectScreen(): React.JSX.Element {
   const [step, setStep] = useState<Step>("intro");
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [codexAttempt, setCodexAttempt] = useState<CodexLoginAttempt | null>(null);
 
-  const start = (): void => {
+  useEffect(() => {
+    if (provider !== "codex") return;
+    let active = true;
+    void readCodexLoginAttemptId().then(async (attemptId) => {
+      if (!active || !attemptId) return;
+      setStep("verifying");
+      const status = await api.codexLoginStatus(attemptId).catch(() => null);
+      if (active && status) setCodexAttempt(status);
+    });
+    return () => {
+      active = false;
+    };
+  }, [provider]);
+
+  useEffect(() => {
+    if (provider !== "codex" || !codexAttempt?.attemptId) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async (attemptId: string): Promise<void> => {
+      try {
+        const status = await api.codexLoginStatus(attemptId);
+        if (!active) return;
+        setCodexAttempt(status);
+        if (status.status === "code_ready") setStep("action");
+        if (status.status === "connected") {
+          await clearCodexLoginAttemptId();
+          setStep("success");
+          return;
+        }
+        if (["failed", "cancelled", "expired"].includes(status.status)) {
+          await clearCodexLoginAttemptId();
+          setMessage(status.status === "expired" ? "This code expired. Start again for a new code." : "Connection was not completed. Try again.");
+          setStep("intro");
+          return;
+        }
+        timer = setTimeout(() => void poll(attemptId), 2_000);
+      } catch {
+        if (active) timer = setTimeout(() => void poll(attemptId), 3_000);
+      }
+    };
+    timer = setTimeout(() => void poll(codexAttempt.attemptId), 1_000);
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [codexAttempt?.attemptId, provider]);
+
+  const start = async (): Promise<void> => {
     setError(false);
+    setMessage(null);
+    if (provider === "codex") {
+      setStep("verifying");
+      try {
+        const attempt = await api.startCodexLogin();
+        setCodexAttempt(attempt);
+        await writeCodexLoginAttemptId(attempt.attemptId);
+      } catch (cause) {
+        setMessage(cause instanceof Error ? cause.message : "Could not start Codex login.");
+        setStep("intro");
+      }
+      return;
+    }
     setStep("action");
   };
 
@@ -51,6 +116,12 @@ export function ConnectScreen(): React.JSX.Element {
   };
 
   const done = (): void => router.replace("/connectors");
+  const cancelCodex = async (): Promise<void> => {
+    if (codexAttempt) await api.cancelCodexLogin(codexAttempt.attemptId).catch(() => undefined);
+    await clearCodexLoginAttemptId();
+    setCodexAttempt(null);
+    setStep("intro");
+  };
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: theme.colors.bg }}>
@@ -83,7 +154,8 @@ export function ConnectScreen(): React.JSX.Element {
               <AppText variant="caption" tone="muted">
                 Privacy: {EXPLANATION[provider]?.privacy}
               </AppText>
-              <Button label="Start" onPress={start} />
+              {message ? <AppText variant="caption" tone="danger">{message}</AppText> : null}
+              <Button label="Start" onPress={() => void start()} />
               <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
             </View>
           )}
@@ -126,14 +198,25 @@ export function ConnectScreen(): React.JSX.Element {
               {provider === "codex" && (
                 <View style={{ gap: theme.spacing.sm, alignItems: "center" }}>
                   <AppText variant="display" tabular style={{ letterSpacing: 4 }}>
-                    ABCD-1234
+                    {codexAttempt?.userCode ?? "Preparing"}
                   </AppText>
                   <AppText variant="body" tone="secondary">
                     Open the verification page and enter this code.
                   </AppText>
                   <AppText variant="caption" tone="muted">
-                    Expires in 14:59 · auth.openai.com/codex/device
+                    Expires {codexAttempt ? new Date(codexAttempt.expiresAt).toLocaleTimeString() : "soon"}
                   </AppText>
+                  <Button
+                    label="Copy code"
+                    variant="ghost"
+                    disabled={!codexAttempt?.userCode}
+                    onPress={() => void Clipboard.setStringAsync(codexAttempt?.userCode ?? "")}
+                  />
+                  <Button
+                    label="Open verification page"
+                    disabled={!codexAttempt?.verificationUrl}
+                    onPress={() => void Linking.openURL(codexAttempt?.verificationUrl ?? "")}
+                  />
                 </View>
               )}
 
@@ -149,7 +232,7 @@ export function ConnectScreen(): React.JSX.Element {
                 </AppText>
               )}
 
-              <Button label="Continue" onPress={verify} />
+              {provider !== "codex" ? <Button label="Continue" onPress={verify} /> : null}
               <Button label="Back" variant="ghost" onPress={() => setStep("intro")} />
             </View>
           )}
@@ -157,9 +240,9 @@ export function ConnectScreen(): React.JSX.Element {
           {step === "verifying" && (
             <View style={{ gap: theme.spacing.md, alignItems: "center" }}>
               <AppText variant="body" tone="secondary">
-                Verifying connection…
+                {provider === "codex" ? "Waiting for Codex login…" : "Verifying connection…"}
               </AppText>
-              <Button label="Cancel" variant="ghost" onPress={() => setStep("intro")} />
+              <Button label="Cancel" variant="ghost" onPress={() => provider === "codex" ? void cancelCodex() : setStep("intro")} />
             </View>
           )}
 

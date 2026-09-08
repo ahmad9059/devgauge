@@ -14,6 +14,8 @@ export interface SnapshotInsert {
   capturedAt: string | null;
   stale: boolean;
   responseStatus: number | null;
+  activity?: ProviderUsage["activity"];
+  providerMetadata?: ProviderUsage["codex"];
 }
 
 export interface LatestUsageRow {
@@ -30,12 +32,14 @@ export const insertSnapshot = async (
   const rows = await db`
     insert into usage_snapshots (
       user_id, connection_id, provider, plan, content_hash, source, adapter_version,
-      fetched_at, captured_at, stale, response_status
+      fetched_at, captured_at, stale, response_status, activity_summary, provider_metadata
     )
     values (
       ${input.userId}, ${input.connectionId}, ${input.provider}, ${input.plan},
       ${input.contentHash}, ${input.source}, ${input.adapterVersion},
-      ${input.fetchedAt}, ${input.capturedAt}, ${input.stale}, ${input.responseStatus}
+      ${input.fetchedAt}, ${input.capturedAt}, ${input.stale}, ${input.responseStatus},
+      ${input.activity ? db.json(input.activity as unknown as Parameters<typeof db.json>[0]) : null},
+      ${input.providerMetadata ? db.json(input.providerMetadata as unknown as Parameters<typeof db.json>[0]) : null}
     )
     returning id
   `;
@@ -120,6 +124,8 @@ export const getSnapshotWithWindows = async (
         capturedAt: Date | null;
         source: string;
         stale: boolean;
+        activitySummary: ProviderUsage["activity"] | null;
+        providerMetadata: ProviderUsage["codex"] | null;
       }
     | undefined;
   if (!snapshot) return undefined;
@@ -144,6 +150,8 @@ export const getSnapshotWithWindows = async (
     capturedAt: snapshot.capturedAt ? snapshot.capturedAt.toISOString() : null,
     source: snapshot.source as ProviderUsage["source"],
     stale: snapshot.stale,
+    activity: snapshot.activitySummary,
+    codex: snapshot.providerMetadata,
   };
 };
 
@@ -168,6 +176,20 @@ export const windowsForSnapshot = async (db: Db, snapshotId: string): Promise<Wi
     where snapshot_id = ${snapshotId}
     order by resets_at nulls last
   `;
+};
+
+export const getLatestCodexMetadata = async (
+  db: Db,
+  userId: string,
+  connectionId: string
+): Promise<NonNullable<ProviderUsage["codex"]> | undefined> => {
+  const rows = await db`
+    select s.provider_metadata
+    from latest_provider_usage l
+    join usage_snapshots s on s.id = l.snapshot_id
+    where l.user_id = ${userId} and l.connection_id = ${connectionId} and l.provider = 'codex'
+  `;
+  return (rows[0] as unknown as { providerMetadata: NonNullable<ProviderUsage["codex"]> } | undefined)?.providerMetadata;
 };
 
 export interface HistoryEntry {

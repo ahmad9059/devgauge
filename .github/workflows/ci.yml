@@ -29,6 +29,8 @@ jobs:
         run: pnpm typecheck
       - name: Test
         run: pnpm test
+      - name: Codex generated schema drift check
+        run: pnpm --filter @devgauge/provider-codex schema:check
       - name: OpenAPI drift check
         run: pnpm --filter @devgauge/contracts test
 

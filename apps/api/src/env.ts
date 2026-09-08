@@ -12,6 +12,8 @@ export const apiEnvSchema = z.object({
     .default("info"),
   CORS_ORIGINS: z.string().default(""),
   DATABASE_URL: z.string().min(1).optional(),
+  REDIS_URL: z.string().min(1).optional(),
+  QUEUE_REFRESH_NAME: z.string().min(1).default("refresh"),
   ENC_MASTER_KEY: z.string().min(32).optional(),
   AUTH_SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24 * 30),
   MAGIC_LINK_TTL_MINUTES: z.coerce.number().int().positive().default(15),

@@ -8,3 +8,4 @@ export * from "./fixtures.js";
 export * from "./openapi.js";
 export * from "./auth.js";
 export * from "./api.js";
+export * from "./jobs.js";

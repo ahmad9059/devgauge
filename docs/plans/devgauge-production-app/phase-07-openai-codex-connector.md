@@ -1,5 +1,7 @@
 # Phase 7 - Ship OpenAI Codex Connector
 
+> Status: **Implementation complete locally; release gates pending.** The pinned `0.153.4` App Server handshake/account-read canary, generated-schema drift gate, isolated process supervisor, encrypted profile artifacts, device login, quota/activity normalization, reset-credit workflow, API/worker wiring, and mobile states are implemented. Applying migration `0006_codex_operations.sql` to production and the controlled authenticated-account canary remain pending approval/access.
+
 Depends on: Phase 4 secret/profile primitives; Phase 6 isolated runtime controls
 
 ---
@@ -114,17 +116,17 @@ Integrate the official Codex App Server protocol through a hardened process supe
 
 - [ ] Binary is pinned, checksum-verified, schema-generated, SBOM-listed, and canary-tested.
 - [ ] Device-code login survives app background/termination, supports cancel, and cannot bind to the wrong DevGauge user.
-- [ ] App Server initialization order, request-ID routing, notification dispatch, malformed JSON, timeout, and process cleanup tests pass.
+- [x] App Server initialization order, request-ID routing, notification dispatch, malformed JSON, timeout, and process cleanup tests pass.
 - [ ] Concurrent jobs cannot access, overwrite, log, or infer another user's profile artifact.
 - [ ] Profile plaintext is absent after job cleanup and encrypted artifact deletion is verifiable on disconnect/account deletion.
 - [ ] Dynamic limit IDs and actual durations survive normalization, persistence, API, and UI without hard-coded primary/secondary assumptions.
 - [ ] Live rate-limit updates and scheduled reads deduplicate correctly.
-- [ ] Quota remains available when the separate activity read fails or returns null.
-- [ ] No ChatGPT password, host-supplied token, internal endpoint, or public App Server socket exists.
-- [ ] Reset credits are only ever consumed after explicit user confirmation; an idempotency key prevents duplicate redemption; every documented outcome maps to a distinct, correct UI result.
-- [ ] A successful reset-credit consume immediately triggers a validated quota refresh and the post-consume state is persisted.
-- [ ] A failed consume never corrupts the last-known-good usage read model; consume attempts are rate-limited and leave a dedicated audit event.
-- [ ] Reset-credit consumption is disabled by the provider mutation feature flag and kill switch, and these fail closed.
+- [x] Quota remains available when the separate activity read fails or returns null.
+- [x] No ChatGPT password, host-supplied token, internal endpoint, or public App Server socket exists.
+- [x] Reset credits are only ever consumed after explicit user confirmation; an idempotency key prevents duplicate redemption; every documented outcome maps to a distinct, correct UI result.
+- [x] A successful reset-credit consume immediately triggers a validated quota refresh and the post-consume state is persisted.
+- [x] A failed consume never corrupts the last-known-good usage read model; consume attempts are rate-limited and leave a dedicated audit event.
+- [x] Reset-credit consumption is disabled by the provider mutation feature flag and kill switch, and these fail closed.
 - [ ] Device codes, auth/profile contents, and sensitive process output do not appear in logs, traces, analytics, or crash reports.
 - [ ] Kill switch stops new process launches while cached data remains visible with an incident message.
 - [ ] Foreground/background cadence, live-update dedupe, jitter, retry instructions, activity isolation, circuit breaker, contract drift, and kill switch pass fake-clock tests.

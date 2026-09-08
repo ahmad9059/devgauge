@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
-import { historyResponseSchema, providerIdSchema, usageProviderResponseSchema, usageReadResponseSchema } from "@devgauge/contracts";
+import { CODEX_JOB_NAMES, historyResponseSchema, providerIdSchema, usageProviderResponseSchema, usageReadResponseSchema } from "@devgauge/contracts";
 import { errorEnvelopeSchema } from "@devgauge/contracts";
 import { getConnection } from "@devgauge/database";
 
@@ -34,6 +34,23 @@ export const buildUsageRoutes = (app: FastifyInstance, env: ApiEnv): void => {
     }
     const connection = await getConnection(app.db, auth.userId, parsed.data);
     if (connection?.state === "connected") {
+      if (parsed.data === "codex" && env.FEATURE_MOCK_TRANSPORT !== "true") {
+        if (env.KILLSWITCH_PROVIDER_CODEX !== "true" && app.providerQueue) {
+          const idempotencyKey = `foreground-${Math.floor(Date.now() / (5 * 60_000))}`;
+          await app.providerQueue.add(CODEX_JOB_NAMES.refresh, {
+            userId: auth.userId,
+            connectionId: connection.id,
+            requestId: request.id,
+            idempotencyKey,
+          }, {
+            jobId: `codex-refresh-${connection.id}-${idempotencyKey}`,
+            attempts: 3,
+            backoff: { type: "exponential", delay: 1_000 },
+            removeOnComplete: 100,
+            removeOnFail: 500,
+          });
+        }
+      } else {
       // Freshness-aware refresh on read; real adapter when mock transport is off.
       await refreshProviderUsage(app.db, {
         userId: auth.userId,
@@ -45,6 +62,7 @@ export const buildUsageRoutes = (app: FastifyInstance, env: ApiEnv): void => {
           copilotRuntimeMode: env.COPILOT_RUNTIME_MODE,
         },
       });
+      }
     }
     const providers = await getUsageReadModel(app.db, auth.userId);
     const found = providers.find((p) => p.provider === parsed.data);

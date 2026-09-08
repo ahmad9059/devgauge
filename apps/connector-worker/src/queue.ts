@@ -4,17 +4,11 @@ import { Redis } from "ioredis";
 
 import type { Logger } from "@devgauge/config";
 import { createLogger } from "@devgauge/config";
+import type { ProviderJobData } from "@devgauge/contracts";
 
 import type { WorkerEnv } from "./env.js";
 
-export interface RefreshJobData {
-  userId: string;
-  connectionId: string;
-  provider: string;
-  requestId: string;
-  idempotencyKey: string;
-  attempt: number;
-}
+export type RefreshJobData = ProviderJobData;
 
 /**
  * BullMQ v6 cannot dynamically load its optional `ioredis` dependency in a

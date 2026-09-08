@@ -108,9 +108,9 @@ describeIntegration("control plane integration (real DB)", () => {
 
     await app.inject({
       method: "POST",
-      url: "/v1/connections/codex/connect",
+      url: "/v1/connections/codex/device-login",
       headers: { authorization: `Bearer ${aToken}` },
-      payload: { credential: "a-secret" },
+      payload: {},
     });
 
     const aConn = await app.inject({
@@ -138,15 +138,15 @@ describeIntegration("control plane integration (real DB)", () => {
 
     await app.inject({
       method: "POST",
-      url: "/v1/connections/codex/connect",
+      url: "/v1/connections/opencode-go/connect",
       headers,
-      payload: { credential: "x" },
+      payload: { credential: "test-history-key" },
     });
     // Two refreshes → two snapshots.
-    await app.inject({ method: "GET", url: "/v1/usage/codex", headers });
-    await app.inject({ method: "GET", url: "/v1/usage/codex", headers });
+    await app.inject({ method: "GET", url: "/v1/usage/opencode-go", headers });
+    await app.inject({ method: "GET", url: "/v1/usage/opencode-go", headers });
 
-    const page = await app.inject({ method: "GET", url: "/v1/usage/codex/history?limit=1", headers });
+    const page = await app.inject({ method: "GET", url: "/v1/usage/opencode-go/history?limit=1", headers });
     expect(page.statusCode).toBe(200);
     const body = page.json();
     expect(body.items.length).toBe(1);

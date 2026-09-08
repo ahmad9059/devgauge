@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
-import { connectResponseSchema, connectionsResponseSchema, providerIdSchema } from "@devgauge/contracts";
+import { CODEX_JOB_NAMES, connectResponseSchema, connectionsResponseSchema, providerIdSchema } from "@devgauge/contracts";
 import { errorEnvelopeSchema } from "@devgauge/contracts";
 import { getConnection, listConnectionsByUser, upsertConnection } from "@devgauge/database";
 import { ProviderError } from "@devgauge/provider-core";
@@ -30,12 +30,14 @@ export const buildConnectionsRoutes = (app: FastifyInstance, env: ApiEnv): void 
       );
     }
     const apiKey = (request.body as { credential?: string } | undefined)?.credential;
-    if (parsed.data === "github-copilot") {
+    if (parsed.data === "github-copilot" || parsed.data === "codex") {
       return reply.code(400).send(
         errorEnvelopeSchema.parse({
           error: {
             code: "invalid_input",
-            message: "GitHub Copilot uses OAuth. Start at /v1/connections/github-copilot/authorize",
+            message: parsed.data === "codex"
+              ? "Codex uses device login. Start at /v1/connections/codex/device-login"
+              : "GitHub Copilot uses OAuth. Start at /v1/connections/github-copilot/authorize",
             requestId: request.id,
           },
         })
@@ -99,6 +101,25 @@ export const buildConnectionsRoutes = (app: FastifyInstance, env: ApiEnv): void 
           error: { code: "invalid_input", message: "Unknown provider", requestId: request.id },
         })
       );
+    }
+    if (parsed.data === "codex" && app.providerQueue) {
+      const connection = await getConnection(app.db, auth.userId, "codex");
+      if (connection) {
+        await app.providerQueue.removeJobScheduler(`codex-background-${connection.id}`);
+        const idempotencyKey = globalThis.crypto.randomUUID();
+        await app.providerQueue.add(CODEX_JOB_NAMES.disconnect, {
+          userId: auth.userId,
+          connectionId: connection.id,
+          requestId: request.id,
+          idempotencyKey,
+        }, {
+          jobId: `codex-disconnect-${connection.id}-${idempotencyKey}`,
+          attempts: 3,
+          backoff: { type: "exponential", delay: 1_000 },
+          removeOnComplete: 100,
+          removeOnFail: 500,
+        });
+      }
     }
     await disconnectConnection(app.db, { userId: auth.userId, provider: parsed.data });
     const connection = await getConnection(app.db, auth.userId, parsed.data);

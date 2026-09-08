@@ -11,3 +11,5 @@ export * from "./repositories/magic-links.js";
 export * from "./repositories/oauth.js";
 export * from "./repositories/pairing.js";
 export * from "./repositories/companion-devices.js";
+export * from "./repositories/profile-artifacts.js";
+export * from "./repositories/codex-operations.js";

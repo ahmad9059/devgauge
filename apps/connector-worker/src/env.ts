@@ -9,6 +9,16 @@ export const workerEnvSchema = z.object({
   QUEUE_REFRESH_NAME: z.string().min(1).default("refresh"),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
   JOB_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
+  DATABASE_URL: z.string().min(1).optional(),
+  ENC_MASTER_KEY: z.string().min(32).optional(),
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().min(1).default("auto"),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  CODEX_BINARY_PATH: z.string().min(1).default("codex"),
+  CODEX_TEMP_DIR: z.string().min(1).optional(),
+  CODEX_LOGIN_TIMEOUT_MS: z.coerce.number().int().positive().default(15 * 60_000),
   KILLSWITCH_PROVIDER_OPENCODE_GO: z.string().default("false"),
   KILLSWITCH_PROVIDER_GITHUB_COPILOT: z.string().default("false"),
   KILLSWITCH_PROVIDER_CODEX: z.string().default("false"),
@@ -27,7 +37,15 @@ export const validateWorkerEnv = (
   const env = validateEnvRecord(workerEnvSchema, source);
 
   if (env.NODE_ENV === "production") {
-    const required = ["REDIS_URL"] as const;
+    const required = [
+      "REDIS_URL",
+      "DATABASE_URL",
+      "ENC_MASTER_KEY",
+      "S3_ENDPOINT",
+      "S3_BUCKET",
+      "S3_ACCESS_KEY_ID",
+      "S3_SECRET_ACCESS_KEY",
+    ] as const;
     const missing = required.filter((key) => !source[key]);
     if (missing.length > 0) {
       throw new EnvValidationError(

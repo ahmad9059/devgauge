@@ -1,4 +1,4 @@
-import type { ProviderUsage } from "@devgauge/contracts";
+import type { ProviderConnection, ProviderUsage } from "@devgauge/contracts";
 
 import { getSessionToken } from "../storage/secure";
 
@@ -16,6 +16,16 @@ export interface UsageReadResponse {
   serverTime: string;
   providers: ProviderUsage[];
   stale: boolean;
+}
+
+export interface CodexLoginAttempt {
+  attemptId: string;
+  status: "queued" | "code_ready" | "connected" | "failed" | "cancelled" | "expired";
+  verificationUrl?: string | null;
+  userCode?: string | null;
+  expiresAt: string;
+  plan?: string | null;
+  errorCode?: string | null;
 }
 
 export class ApiError extends Error {
@@ -91,4 +101,27 @@ export const api = {
   me: (): Promise<{ id: string; email: string }> => request("/v1/me"),
 
   usage: (): Promise<UsageReadResponse> => request("/v1/usage"),
+  providerUsage: (provider: string): Promise<ProviderUsage> => request(`/v1/usage/${provider}`),
+  connections: (): Promise<{ connections: ProviderConnection[] }> => request("/v1/connections"),
+
+  startCodexLogin: (resumeAttemptId?: string): Promise<CodexLoginAttempt> =>
+    request("/v1/connections/codex/device-login", {
+      method: "POST",
+      body: JSON.stringify(resumeAttemptId ? { resumeAttemptId } : {}),
+    }),
+  codexLoginStatus: (attemptId: string): Promise<CodexLoginAttempt> =>
+    request(`/v1/connections/codex/device-login/${attemptId}`),
+  cancelCodexLogin: (attemptId: string): Promise<{ cancelled: boolean }> =>
+    request(`/v1/connections/codex/device-login/${attemptId}/cancel`, { method: "POST" }),
+  consumeCodexResetCredit: (idempotencyKey: string, creditId?: string): Promise<{ attemptId: string; status: string }> =>
+    request("/v1/connections/codex/reset-credit", {
+      method: "POST",
+      body: JSON.stringify({ confirmed: true, idempotencyKey, ...(creditId ? { creditId } : {}) }),
+    }),
+  codexResetCreditStatus: (attemptId: string): Promise<{
+    attemptId: string;
+    status: "queued" | "running" | "completed" | "failed";
+    outcome: "reset" | "alreadyRedeemed" | "nothingToReset" | "noCredit" | null;
+    errorCode: string | null;
+  }> => request(`/v1/connections/codex/reset-credit/${attemptId}`),
 };

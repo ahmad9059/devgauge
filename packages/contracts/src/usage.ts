@@ -62,6 +62,33 @@ export const dailyUsageBucketSchema = z.object({
 
 export type DailyUsageBucket = z.infer<typeof dailyUsageBucketSchema>;
 
+export const codexResetCreditSchema = z.object({
+  id: z.string(),
+  resetType: z.string(),
+  status: z.string(),
+  grantedAt: z.string().datetime({ offset: true }),
+  expiresAt: z.string().datetime({ offset: true }).nullable(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+});
+
+export const codexUsageMetadataSchema = z.object({
+  limitGroups: z.array(z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+    reachedReason: z.string().nullable(),
+    creditBalance: z.string().nullable(),
+    hasCredits: z.boolean().nullable(),
+    unlimitedCredits: z.boolean().nullable(),
+  })),
+  resetCredits: z.object({
+    availableCount: z.number().int().nonnegative(),
+    credits: z.array(codexResetCreditSchema).nullable(),
+  }).nullable(),
+});
+
+export type CodexUsageMetadata = z.infer<typeof codexUsageMetadataSchema>;
+
 export const sourceSchema = z.enum(["official-api", "official-local", "source-backed", "experimental"]);
 
 export type UsageSource = z.infer<typeof sourceSchema>;
@@ -76,6 +103,7 @@ export const providerUsageSchema = z.object({
   windows: z.array(usageWindowSchema),
   activity: activitySummarySchema.nullable().optional(),
   dailyUsage: z.array(dailyUsageBucketSchema).nullable().optional(),
+  codex: codexUsageMetadataSchema.nullable().optional(),
   fetchedAt: z.string().datetime({ offset: true }),
   capturedAt: z.string().datetime({ offset: true }).nullable().optional(),
   source: sourceSchema,

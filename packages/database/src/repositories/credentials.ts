@@ -24,9 +24,8 @@ export const upsertEnvelope = async (
   const rows = await db`
     insert into credential_envelopes (connection_id, credential_type, ciphertext, wrapped_data_key, key_version)
     values (${input.connectionId}, ${input.credentialType}, ${input.ciphertext}, ${input.wrappedDataKey}, ${input.keyVersion})
-    on conflict (connection_id)
-    do update set credential_type = excluded.credential_type,
-                  ciphertext = excluded.ciphertext,
+    on conflict (connection_id, credential_type)
+    do update set ciphertext = excluded.ciphertext,
                   wrapped_data_key = excluded.wrapped_data_key,
                   key_version = excluded.key_version,
                   updated_at = now()
@@ -37,10 +36,15 @@ export const upsertEnvelope = async (
 
 export const findEnvelopeByConnection = async (
   db: Db,
-  connectionId: string
+  connectionId: string,
+  credentialType?: string
 ): Promise<EnvelopeRow | undefined> => {
   const rows = await db`
-    select * from credential_envelopes where connection_id = ${connectionId}
+    select * from credential_envelopes
+    where connection_id = ${connectionId}
+      ${credentialType ? db`and credential_type = ${credentialType}` : db``}
+    order by updated_at desc
+    limit 1
   `;
   return rows[0] as unknown as EnvelopeRow | undefined;
 };

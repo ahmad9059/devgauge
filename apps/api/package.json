@@ -21,10 +21,13 @@
     "@devgauge/provider-opencode-go": "workspace:*",
     "@devgauge/provider-github-copilot": "workspace:*",
     "@devgauge/provider-claude-code": "workspace:*",
+    "@devgauge/provider-codex": "workspace:*",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
     "fastify": "^5.12.3",
     "fastify-plugin": "^5.0.1",
+    "bullmq": "^6.3.4",
+    "ioredis": "^5.6.0",
     "pino": "^10.3.1",
     "zod": "^4.5.4"
   }
