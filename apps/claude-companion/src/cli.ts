@@ -7,8 +7,10 @@ import {
   installCommand,
   pairCommand,
   statusCommand,
+  syncCommand,
   uninstallCommand,
 } from "./commands.js";
+import type { CommandResult } from "./exit.js";
 import { ExitCode } from "./exit.js";
 
 const program = new Command();
@@ -18,6 +20,21 @@ program
   .description("DevGauge companion for Claude Code (minimized statusLine sync).")
   .version("0.1.0")
   .option("--json", "emit structured JSON output");
+
+const emit = (result: CommandResult): void => {
+  const json = program.opts().json === true;
+  if (json) {
+    const { code, message, data } = result;
+    console.log(JSON.stringify({ code, message, data }));
+  } else {
+    console.log(result.message);
+  }
+  process.exitCode = result.code;
+};
+
+const run = async (fn: () => Promise<CommandResult>): Promise<void> => {
+  emit(await fn());
+};
 
 program
   .command("pair")
@@ -29,37 +46,37 @@ program
       process.exitCode = ExitCode.UsageError;
       return;
     }
-    emit(pairCommand(options));
+    void run(() => pairCommand({ code: options.code }));
   });
 
-program.command("ingest").description("Read one statusLine JSON document from stdin (Phase 8)").action(() => {
-  emit(ingestCommand());
-});
+program
+  .command("ingest")
+  .description("Read one statusLine JSON document from stdin and sync it")
+  .action(() => void run(ingestCommand));
 
-program.command("install").description("Preview and merge the Claude statusLine command (Phase 8)").action(() => {
-  emit(installCommand());
-});
+program
+  .command("sync")
+  .description("Flush the offline queue to the server")
+  .action(() => void run(syncCommand));
 
-program.command("uninstall").description("Remove DevGauge-owned Claude configuration (Phase 8)").action(() => {
-  emit(uninstallCommand());
-});
+program
+  .command("install")
+  .description("Show the Claude Code statusLine configuration to add")
+  .action(() => void run(installCommand));
 
-program.command("status").description("Report pairing, queue, and version state").action(() => {
-  emit(statusCommand());
-});
+program
+  .command("uninstall")
+  .description("Remove DevGauge-owned configuration and credentials")
+  .action(() => void run(uninstallCommand));
 
-program.command("doctor").description("Check companion health and configuration").action(() => {
-  emit(doctorCommand());
-});
+program
+  .command("status")
+  .description("Report pairing, queue, and version state")
+  .action(() => void run(statusCommand));
 
-const emit = (result: ReturnType<typeof pairCommand>): void => {
-  const json = program.opts().json === true;
-  if (json) {
-    console.log(JSON.stringify({ ...result, data: result.data }));
-  } else {
-    console.log(result.message);
-  }
-  process.exitCode = result.code;
-};
+program
+  .command("doctor")
+  .description("Check companion health and configuration")
+  .action(() => void run(doctorCommand));
 
 void program.parseAsync(process.argv);

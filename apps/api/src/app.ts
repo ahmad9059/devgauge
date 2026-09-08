@@ -17,6 +17,8 @@ import { buildMeRoutes } from "./routes/me.js";
 import { buildProvidersRoutes } from "./routes/providers.js";
 import { buildConnectionsRoutes } from "./routes/connections.js";
 import { buildUsageRoutes } from "./routes/usage.js";
+import { buildGithubOauthRoutes } from "./routes/github-oauth.js";
+import { buildCompanionRoutes } from "./routes/companion.js";
 
 export interface BuildAppOptions {
   env: ApiEnv;
@@ -94,8 +96,10 @@ export const buildApp = async (options: BuildAppOptions): Promise<FastifyInstanc
     buildAuthRoutes(app, env);
     buildMeRoutes(app);
     buildProvidersRoutes(app);
-    buildConnectionsRoutes(app);
-    buildUsageRoutes(app);
+    buildConnectionsRoutes(app, env);
+    buildUsageRoutes(app, env);
+    buildGithubOauthRoutes(app, env);
+    buildCompanionRoutes(app);
   }
 
   return app;

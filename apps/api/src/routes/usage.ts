@@ -4,11 +4,12 @@ import { historyResponseSchema, providerIdSchema, usageProviderResponseSchema, u
 import { errorEnvelopeSchema } from "@devgauge/contracts";
 import { getConnection } from "@devgauge/database";
 
+import type { ApiEnv } from "../env.js";
 import { getHistory, getUsageReadModel, refreshProviderUsage } from "../services/usage-service.js";
 
-const ADAPTER_VERSION = "phase4-mock-0.1.0";
+const ADAPTER_VERSION = "provider-adapter-0.1.0";
 
-export const buildUsageRoutes = (app: FastifyInstance): void => {
+export const buildUsageRoutes = (app: FastifyInstance, env: ApiEnv): void => {
   app.get("/v1/usage", { preHandler: app.requireAuth }, async (request) => {
     const auth = request.auth!;
     const providers = await getUsageReadModel(app.db, auth.userId);
@@ -33,11 +34,16 @@ export const buildUsageRoutes = (app: FastifyInstance): void => {
     }
     const connection = await getConnection(app.db, auth.userId, parsed.data);
     if (connection?.state === "connected") {
-      // Mock transport: refresh on read so the vertical slice stays live.
+      // Freshness-aware refresh on read; real adapter when mock transport is off.
       await refreshProviderUsage(app.db, {
         userId: auth.userId,
         provider: parsed.data,
         adapterVersion: ADAPTER_VERSION,
+        ctx: {
+          crypto: app.crypto,
+          mockTransport: env.FEATURE_MOCK_TRANSPORT === "true",
+          copilotRuntimeMode: env.COPILOT_RUNTIME_MODE,
+        },
       });
     }
     const providers = await getUsageReadModel(app.db, auth.userId);

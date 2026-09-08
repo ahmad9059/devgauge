@@ -53,9 +53,18 @@ importers:
       '@devgauge/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@devgauge/provider-claude-code':
+        specifier: workspace:*
+        version: link:../../packages/provider-claude-code
       '@devgauge/provider-core':
         specifier: workspace:*
         version: link:../../packages/provider-core
+      '@devgauge/provider-github-copilot':
+        specifier: workspace:*
+        version: link:../../packages/provider-github-copilot
+      '@devgauge/provider-opencode-go':
+        specifier: workspace:*
+        version: link:../../packages/provider-opencode-go
       '@fastify/cors':
         specifier: ^11.3.0
         version: 11.3.0
@@ -80,6 +89,12 @@ importers:
       '@devgauge/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@devgauge/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@devgauge/provider-claude-code':
+        specifier: workspace:*
+        version: link:../../packages/provider-claude-code
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -232,11 +247,50 @@ importers:
         specifier: ^3.4.7
         version: 3.4.9
 
+  packages/provider-claude-code:
+    dependencies:
+      '@devgauge/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@devgauge/provider-core':
+        specifier: workspace:*
+        version: link:../provider-core
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
+
   packages/provider-core:
     dependencies:
       '@devgauge/contracts':
         specifier: workspace:*
         version: link:../contracts
+
+  packages/provider-github-copilot:
+    dependencies:
+      '@devgauge/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@devgauge/provider-core':
+        specifier: workspace:*
+        version: link:../provider-core
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
+
+  packages/provider-opencode-go:
+    dependencies:
+      '@devgauge/config':
+        specifier: workspace:*
+        version: link:../config
+      '@devgauge/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@devgauge/provider-core':
+        specifier: workspace:*
+        version: link:../provider-core
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
 
 packages:
 

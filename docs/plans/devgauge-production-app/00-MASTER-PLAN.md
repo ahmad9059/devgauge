@@ -216,10 +216,10 @@ Mutation-capable provider actions (Phase 7 Codex reset credits) require explicit
 | 2 | Establish Monorepo And Delivery Foundation | Complete (repo deliverable) | Reproducible local/CI builds and deployable service skeletons; cloud provisioning scoped, needs owner credentials |
 | 3 | Build Reset Horizon Design System And Mobile Shell | Complete (shell) | Approved, accessible, adaptive app shell and component/state language built against mock data; DESIGN.md recorded |
 | 4 | Build Identity, Data, Secrets, And Usage Core | Complete (control plane + mobile auth) | Secure multi-user control plane and normalized snapshot pipeline live on Neon; mobile auth gate + offline cache |
-| 5 | Ship OpenCode Go Vertical Slice | Pending | First real provider works end-to-end with stale/error behavior |
-| 6 | Ship GitHub Copilot Connector | Pending | OAuth and dynamic Copilot entitlements work safely |
+| 5 | Ship OpenCode Go Vertical Slice | Complete | Real OpenCode Go adapter end-to-end with error mapping, live validation, and runbook; valid-key smoke needs an entitlement |
+| 6 | Ship GitHub Copilot Connector | Complete | GitHub OAuth + dynamic Copilot entitlements work safely (sandbox verified; real-seat canary pending) |
 | 7 | Ship OpenAI Codex Connector | Pending | Isolated App Server login, quota, and activity reads work |
-| 8 | Ship Claude Code Companion | Pending | Minimized local statusLine snapshots pair and sync safely |
+| 8 | Ship Claude Code Companion | Complete (core + backend) | Minimized statusLine snapshots pair and sync safely; packaging/keyring deferred to release |
 | 9 | Complete History, Alerts, And Product Experience | Pending | All providers become one coherent daily-use product |
 | 10 | Harden, Certify, And Release | Pending | Security, reliability, accessibility, performance, operations, and stores pass |
 

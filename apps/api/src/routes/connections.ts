@@ -3,12 +3,15 @@ import type { FastifyInstance } from "fastify";
 import { connectResponseSchema, connectionsResponseSchema, providerIdSchema } from "@devgauge/contracts";
 import { errorEnvelopeSchema } from "@devgauge/contracts";
 import { getConnection, listConnectionsByUser, upsertConnection } from "@devgauge/database";
+import { ProviderError } from "@devgauge/provider-core";
+import { fetchOpenCodeGoUsage } from "@devgauge/provider-opencode-go";
 
+import type { ApiEnv } from "../env.js";
 import { connectConnection, disconnectConnection } from "../services/connection-service.js";
 import { toConnectionDto } from "../services/mappers.js";
 import { refreshProviderUsage } from "../services/usage-service.js";
 
-export const buildConnectionsRoutes = (app: FastifyInstance): void => {
+export const buildConnectionsRoutes = (app: FastifyInstance, env: ApiEnv): void => {
   app.get("/v1/connections", { preHandler: app.requireAuth }, async (request) => {
     const auth = request.auth!;
     const rows = await listConnectionsByUser(app.db, auth.userId);
@@ -26,11 +29,48 @@ export const buildConnectionsRoutes = (app: FastifyInstance): void => {
         })
       );
     }
-    const credential = (request.body as { credential?: string } | undefined)?.credential;
+    const apiKey = (request.body as { credential?: string } | undefined)?.credential;
+    if (parsed.data === "github-copilot") {
+      return reply.code(400).send(
+        errorEnvelopeSchema.parse({
+          error: {
+            code: "invalid_input",
+            message: "GitHub Copilot uses OAuth. Start at /v1/connections/github-copilot/authorize",
+            requestId: request.id,
+          },
+        })
+      );
+    }
+    if (!apiKey) {
+      return reply.code(400).send(
+        errorEnvelopeSchema.parse({
+          error: { code: "invalid_input", message: "Credential is required", requestId: request.id },
+        })
+      );
+    }
+
+    // When mock transport is off, validate the real OpenCode Go key before
+    // storing it. Errors map to provider_unauthorized / entitlement_required.
+    if (parsed.data === "opencode-go" && env.FEATURE_MOCK_TRANSPORT !== "true") {
+      try {
+        await fetchOpenCodeGoUsage({ apiKey });
+      } catch (error) {
+        if (error instanceof ProviderError) {
+          const status = error.code === "entitlement_required" ? 403 : 401;
+          return reply.code(status).send(
+            errorEnvelopeSchema.parse({
+              error: { code: error.code, message: error.message, requestId: request.id },
+            })
+          );
+        }
+        throw error;
+      }
+    }
+
     await connectConnection(app.db, app.crypto, {
       userId: auth.userId,
       provider: parsed.data,
-      credential: credential ?? "placeholder-credential",
+      credential: apiKey,
       credentialType: `${parsed.data}:api_key`,
     });
     const connection = await upsertConnection(app.db, { userId: auth.userId, provider: parsed.data });
@@ -38,7 +78,12 @@ export const buildConnectionsRoutes = (app: FastifyInstance): void => {
     await refreshProviderUsage(app.db, {
       userId: auth.userId,
       provider: parsed.data,
-      adapterVersion: "phase4-mock-0.1.0",
+      adapterVersion: "provider-adapter-0.1.0",
+      ctx: {
+        crypto: app.crypto,
+        mockTransport: env.FEATURE_MOCK_TRANSPORT === "true",
+        copilotRuntimeMode: env.COPILOT_RUNTIME_MODE,
+      },
     });
     const refreshed = await getConnection(app.db, auth.userId, parsed.data);
     return connectResponseSchema.parse({ connection: toConnectionDto(refreshed ?? connection) });

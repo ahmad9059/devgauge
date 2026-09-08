@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@devgauge/config": "workspace:*",
+    "@devgauge/contracts": "workspace:*",
+    "@devgauge/provider-claude-code": "workspace:*",
     "commander": "^15.0.0"
   }
 }

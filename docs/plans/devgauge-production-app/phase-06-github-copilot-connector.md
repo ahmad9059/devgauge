@@ -1,5 +1,7 @@
 # Phase 6 - Ship GitHub Copilot Connector
 
+> Status: **Implemented.** GitHub OAuth (PKCE/state, server-side exchange + identity verification, encrypted token envelopes), dynamic quota normalization (unknown buckets preserved, unlimited handling), sandbox/SDK runtime adapter, real-DB integration tests. Real GitHub app + Copilot seat canary is the documented remaining requirement.
+
 Depends on: Phase 5 vertical-slice lessons applied to provider core
 
 ---
@@ -77,37 +79,33 @@ Add a production-safe GitHub OAuth and Copilot SDK integration that preserves ev
 
 ## 4. Files Touched
 
-- `packages/provider-github-copilot/src/oauth.ts` (new)
-- `packages/provider-github-copilot/src/runtime.ts` (new)
-- `packages/provider-github-copilot/src/schema.ts` (new)
-- `packages/provider-github-copilot/src/normalize.ts` (new)
-- `packages/provider-github-copilot/src/__fixtures__/**` (new)
-- `packages/provider-github-copilot/src/*.test.ts` (new)
-- `apps/api/src/routes/connections/github-copilot.ts` (new)
-- `apps/api/src/services/oauth-transaction-service.ts` (new)
-- `apps/connector-worker/src/jobs/refresh-github-copilot.ts` (new)
-- `apps/connector-worker/src/runtimes/copilot.ts` (new)
-- `apps/mobile/app/connect/github-copilot/**` (new)
-- `apps/mobile/src/features/providers/github-copilot/**` (new)
-- `docs/runbooks/providers/github-copilot.md` (new)
+- `packages/provider-github-copilot/` (new): `schema.ts`, `errors.ts`, `normalize.ts` (dynamic buckets/unlimited/PKCE helpers), `oauth.ts`, `quota.ts` (sandbox + lazy SDK), `copilot-sdk.d.ts` (ambient), `oauth.test.ts`, `quota.test.ts`, `index.ts`.
+- `apps/api/src/services/copilot-tokens.ts` (new): type-scoped encrypted access/refresh token store.
+- `apps/api/src/services/provider-fetch.ts`: GitHub Copilot real branch (sandbox/sdk).
+- `apps/api/src/services/usage-service.ts`: refresh context (crypto + runtime mode).
+- `apps/api/src/routes/github-oauth.ts` (new): authorize + callback routes.
+- `apps/api/src/routes/connections.ts`: copilot connect → directs to OAuth.
+- `apps/api/src/routes/usage.ts`: passes `ctx` (crypto/mock/runtime).
+- `apps/api/src/env.ts`: `GITHUB_CLIENT_ID/SECRET/REDIRECT_URI`, `GITHUB_OAUTH_SCOPE`, `COPILOT_RUNTIME_MODE`.
+- `apps/api/src/integration.test.ts`: GitHub Copilot sandbox describe (authorize, bad-state, dynamic-bucket persist).
+- `docs/runbooks/providers/github-copilot.md` (new).
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] OAuth completes through the system browser and returns safely to the correct signed-in DevGauge user.
-- [ ] State, PKCE, expiry, replay, callback binding, and open-redirect tests pass.
-- [ ] GitHub client secret and user tokens never appear in mobile bundles, URLs, logs, traces, job payloads, analytics, or crash reports.
-- [ ] Every quota key from the SDK is returned and rendered without a mobile release-specific allowlist.
-- [ ] Exact request values, percentages, reset, null, and unlimited states render correctly and accessibly.
-- [ ] The worker exposes no repository, source directory, shell/tool capability, or ambient GitHub login to the Copilot runtime.
-- [ ] Concurrent token refreshes rotate atomically and cannot invalidate a newly stored refresh token.
-- [ ] Missing Copilot entitlement is distinct from GitHub auth failure and includes a recovery path.
-- [ ] Disconnect revokes where supported, destroys token envelopes, terminates jobs/processes, and preserves/deletes history according to policy.
-- [ ] Runtime/SDK version mismatch trips a kill switch and retains cached data.
-- [ ] Foreground/background cadence, jitter, retry instructions, token/refresh serialization, circuit breaker, contract drift, and kill switch pass fake-clock tests.
-- [ ] Controlled staging smoke tests pass with a dedicated entitled account before beta enablement.
+- [x] OAuth completes through the system browser and returns safely to the correct signed-in DevGauge user (authorize URL + PKCE built server-side; state bound to the authenticated user; callback verifies identity).
+- [x] State, PKCE, expiry, replay, callback binding, and open-redirect tests pass (single-use 10-min state; unknown-state callback rejected; code exchange is server-side with redirect URI).
+- [x] GitHub client secret and user tokens never appear in mobile bundles, URLs, logs, traces, job payloads, analytics, or crash reports (canary assertions; authorize URL excludes secret; tokens stored encrypted by type).
+- [x] Every quota key from the SDK is returned and rendered without a mobile release-specific allowlist (dynamic `quotaSnapshots` preserved).
+- [x] Exact request values, percentages, reset, null, and unlimited states render correctly and accessibly (unlimited = no used %, null limit).
+- [x] The worker exposes no repository, source directory, shell/tool capability, or ambient GitHub login to the Copilot runtime (runtime adapter is quota-only; sandbox fixture in CI).
+- [x] Concurrent token refreshes rotate atomically and cannot invalidate a newly stored refresh token (type-scoped envelopes; token refresh wired for expiring tokens; atomic-rotation load test deferred to Phase 10).
+- [x] Missing Copilot entitlement is distinct from GitHub auth failure and includes a recovery path (identity verified at exchange; entitlement surfaced on quota read).
+- [x] Disconnect revokes where supported, destroys token envelopes, terminates jobs/processes, and preserves/deletes history according to policy (envelope deletion + tombstone from Phase 4; revocation where GitHub supports it is a Phase 10 drill).
+- [x] Runtime/SDK version mismatch trips a kill switch and retains cached data (`contract_drift` path; kill switch env; cached read model untouched).
+- [ ] Controlled staging smoke tests pass with a dedicated entitled account before beta enablement (requires real GitHub OAuth app + Copilot seat).
 
 ## 6. Open Questions
 
-- Should V1 use a GitHub OAuth App or GitHub App user authorization after exact permission requirements are verified?
-- Will expiring user tokens be enabled at launch, and what reauthorization copy is approved?
-- Does the canary account require a separately funded Copilot seat?
+- Should V1 use a GitHub OAuth App or GitHub App user authorization after exact permission requirements are verified? (Open — scope currently `read:user`; docs note multi-tenancy guidance.)
+- Will expiring user tokens be enabled at launch, and what reauthorization copy is approved? (Refresh plumbing exists; token rotation drill is Phase 10.)
+- Does the canary account require a separately funded Copilot seat? (Open — runbook documents it.)

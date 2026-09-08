@@ -12,18 +12,31 @@ import {
   setLatestUsage,
   updateConnectionState,
 } from "@devgauge/database";
+import { ProviderError } from "@devgauge/provider-core";
 
+import type { CryptoService } from "../plugins/crypto.js";
 import { contentHashOf } from "./mappers.js";
-import { fetchMockUsage } from "./mock-provider.js";
+import { fetchConnectionUsage, type ProviderFetcherContext } from "./provider-fetch.js";
+
+export interface RefreshContext {
+  crypto?: CryptoService;
+  mockTransport?: boolean;
+  copilotRuntimeMode?: "sandbox" | "sdk";
+}
 
 /**
- * Refreshes one provider connection through the mock adapter (Phase 4) and
- * persists a normalized snapshot. A failed refresh updates health but never
- * clears the latest valid snapshot.
+ * Refreshes one provider connection and persists a normalized snapshot.
+ * A failed refresh updates health but never clears the latest valid snapshot.
+ * Contract drift and transient failures are distinguished on the connection.
  */
 export const refreshProviderUsage = async (
   db: Db,
-  input: { userId: string; provider: ProviderId; adapterVersion: string }
+  input: {
+    userId: string;
+    provider: ProviderId;
+    adapterVersion: string;
+    ctx?: RefreshContext;
+  }
 ): Promise<void> => {
   const connection = await getConnection(db, input.userId, input.provider);
   if (!connection) return;
@@ -37,7 +50,16 @@ export const refreshProviderUsage = async (
   });
 
   try {
-    const usage = fetchMockUsage(input.provider);
+    const fetcherCtx: ProviderFetcherContext | undefined = input.ctx?.crypto
+      ? {
+          db,
+          crypto: input.ctx.crypto,
+          mockTransport: input.ctx.mockTransport ?? true,
+          copilotRuntimeMode: input.ctx.copilotRuntimeMode ?? "sandbox",
+        }
+      : undefined;
+    const usage = fetcherCtx ? await fetchConnectionUsage(fetcherCtx, connection) : usageFallback(input.provider);
+
     const snapshotId = await insertSnapshot(db, {
       userId: input.userId,
       connectionId: connection.id,
@@ -81,17 +103,22 @@ export const refreshProviderUsage = async (
       lastErrorAt: null,
     });
   } catch (error) {
+    const contract = error instanceof ProviderError && error.code === "contract_drift";
+    const transient = error instanceof ProviderError && error.retryable;
     await updateConnectionState(db, {
       id: connection.id,
       userId: input.userId,
       state: "connected",
-      refreshState: "transient_failed",
-      lastErrorCode: "transient_upstream",
-      lastErrorMessage: error instanceof Error ? error.message : "Refresh failed",
+      refreshState: contract ? "contract_failed" : transient ? "transient_failed" : "permanent_failed",
+      lastErrorCode: error instanceof ProviderError ? error.code : "internal",
+      lastErrorMessage: error instanceof Error ? error.message.slice(0, 500) : "Refresh failed",
       lastErrorAt: new Date(),
     });
   }
 };
+
+import { fetchMockUsage } from "./mock-provider.js";
+const usageFallback = (provider: ProviderId): ProviderUsage => fetchMockUsage(provider);
 
 /** Builds the current all-provider usage read model from latest snapshots. */
 export const getUsageReadModel = async (db: Db, userId: string): Promise<ProviderUsage[]> => {

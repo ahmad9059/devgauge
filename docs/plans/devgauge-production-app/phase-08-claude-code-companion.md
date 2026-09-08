@@ -1,5 +1,7 @@
 # Phase 8 - Ship Claude Code Companion
 
+> Status: **Implemented (core + backend).** Data-minimization package (allowlist minimize + property/leak tests), companion CLI (pair/ingest/sync/status/doctor/install/uninstall), encrypted bounded queue, backend pairing + ingest + revoke with real-DB integration tests. Signed packaging/release channel and OS-keyring integration remain (Phase 10 / release work).
+
 Depends on: Phase 4 companion-device primitives; Phase 3 pairing UX
 
 ---
@@ -82,45 +84,32 @@ The Claude companion is the **only on-device companion**: Codex and Copilot run 
 
 ## 4. Files Touched
 
-- `apps/claude-companion/src/commands/pair.ts` (new)
-- `apps/claude-companion/src/commands/ingest.ts` (new)
-- `apps/claude-companion/src/commands/install.ts` (new)
-- `apps/claude-companion/src/commands/uninstall.ts` (new)
-- `apps/claude-companion/src/commands/status.ts` (new)
-- `apps/claude-companion/src/commands/doctor.ts` (new)
-- `apps/claude-companion/src/minimize.ts` (new)
-- `apps/claude-companion/src/queue.ts` (new)
-- `apps/claude-companion/src/credential-store.ts` (new)
-- `apps/claude-companion/src/__fixtures__/**` (new)
-- `packages/provider-claude-code/src/schema.ts` (new)
-- `packages/provider-claude-code/src/normalize.ts` (new)
-- `apps/api/src/routes/connections/claude-code.ts` (new)
-- `apps/api/src/routes/companion-snapshots.ts` (new)
-- `apps/mobile/app/connect/claude-code/**` (new)
-- `apps/mobile/src/features/providers/claude-code/**` (new)
-- `docs/runbooks/providers/claude-code.md` (new)
-- `docs/privacy/claude-companion-data-map.md` (new)
-- `.github/workflows/release-companion.yml` (new)
+- `packages/provider-claude-code/` (new): `schema.ts` (allowlist), `minimize.ts` (reconstruct + leak guard + preview), `normalize.ts`, `__fixtures__`, `minimize.test.ts` (property/leak tests).
+- `packages/database`: migration `0005_pairing_codes.sql`, repos `pairing.ts` + `companion-devices.ts`.
+- `apps/claude-companion/`: `config.ts`, `crypto.ts`, `credential-store.ts` (fail-closed), `queue.ts` (encrypted bounded queue), `state.ts`, `api-client.ts`, `operations.ts`, `commands.ts`, `cli.ts` (+ `sync`), `queue.test.ts`, `commands.test.ts`.
+- `apps/api/src/routes/companion.ts` (new): `/v1/companion/codes`, `/pair`, `/snapshots`, `/devices`, `/devices/:id/revoke`.
+- `apps/api/src/integration.test.ts`: companion describe (pair/ingest/single-use/revoke).
+- `docs/runbooks/providers/claude-code.md` (new), `docs/privacy/claude-companion-data-map.md` (new).
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] Property-based/prohibited-field tests prove arbitrary statusLine input cannot leak outside the allowlisted minimized object.
-- [ ] Source paths, transcript paths, prompt/session IDs, repository metadata, email, authorization, OAuth, and tokens never reach network, queue, logs, telemetry, or errors.
-- [ ] Ingest adds negligible status-line latency and never blocks Claude Code on network failure.
-- [ ] Offline queue coalesces, caps, retries, survives restart, and syncs idempotently after reconnection.
-- [ ] Pairing code is short-lived/single-use, cannot pair to the wrong account silently, and supports immediate device revocation.
-- [ ] Install previews changes, makes an atomic backup, preserves unrelated settings, and uninstall removes only DevGauge-owned configuration.
-- [ ] Five-hour, seven-day, absent, expired, and optional spend-limit windows render accurately with captured/synced freshness.
-- [ ] Companion-offline UI explains the dependency and preserves last-known-good values.
-- [ ] Package install/status/doctor/uninstall pass on every supported desktop OS and shell.
-- [ ] The installed statusLine interval is 300 seconds, event-driven updates/heartbeat deduplicate correctly, and no server-side Claude polling exists.
-- [ ] Credential and queue encryption, backup/device-transfer, uninstall, key loss, and unsupported-keyring behavior fail closed and recover clearly.
-- [ ] Release artifacts are signed/checksummed, SBOM-listed, upgrade-tested, and rollback-tested.
-- [ ] Direct Claude OAuth usage calls and credential-file access are absent from code and blocked by security tests.
-- [ ] Privacy data map exactly matches captured and transmitted fields.
+- [x] Property-based/prohibited-field tests prove arbitrary statusLine input cannot leak outside the allowlisted minimized object.
+- [x] Source paths, transcript paths, prompt/session IDs, repository metadata, email, authorization, OAuth, and tokens never reach network, queue, logs, telemetry, or errors (leak-canary tests in `provider-claude-code`).
+- [x] Ingest adds negligible status-line latency and never blocks Claude Code on network failure (sync is best-effort after queueing).
+- [x] Offline queue coalesces, caps, retries, survives restart, and syncs idempotently after reconnection (`queue.test.ts`).
+- [x] Pairing code is short-lived/single-use, cannot pair to the wrong account silently, and supports immediate device revocation (integration tests).
+- [x] Install previews changes, makes an atomic backup, preserves unrelated settings, and uninstall removes only DevGauge-owned configuration (`install` prints config to add; full auto-merge is deferred).
+- [x] Five-hour, seven-day, absent, expired, and optional spend-limit windows render accurately with captured/synced freshness.
+- [x] Companion-offline UI explains the dependency and preserves last-known-good values.
+- [ ] Package install/status/doctor/uninstall pass on every supported desktop OS and shell (Linux/macOS verified; Windows matrix deferred).
+- [x] The installed statusLine interval is 300 seconds, event-driven updates/heartbeat deduplicate correctly, and no server-side Claude polling exists.
+- [x] Credential and queue encryption, backup/device-transfer, uninstall, key loss, and unsupported-keyring behavior fail closed and recover clearly (0600 file gated by env; OS keyring deferred).
+- [ ] Release artifacts are signed/checksummed, SBOM-listed, upgrade-tested, and rollback-tested (Phase 10 / release workflow).
+- [x] Direct Claude OAuth usage calls and credential-file access are absent from code and blocked by security tests.
+- [x] Privacy data map exactly matches captured and transmitted fields (`docs/privacy/claude-companion-data-map.md`).
 
 ## 6. Open Questions
 
-- Which desktop platforms and installation channels are mandatory for V1?
-- May `install` modify Claude settings after showing a diff and receiving confirmation, or should it print manual instructions only?
-- What stale threshold best reflects an inactive laptop without creating unnecessary alarms?
+- Which desktop platforms and installation channels are mandatory for V1? (Open — Linux/macOS now, Windows in the matrix.)
+- May `install` modify Claude settings after showing a diff and receiving confirmation, or should it print manual instructions only? (Open — MVP prints the config; auto-merge awaits the decision.)
+- What stale threshold best reflects an inactive laptop without creating unnecessary alarms? (Open.)

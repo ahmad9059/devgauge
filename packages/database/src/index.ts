@@ -8,3 +8,6 @@ export * from "./repositories/snapshots.js";
 export * from "./repositories/audit.js";
 export * from "./repositories/deletion.js";
 export * from "./repositories/magic-links.js";
+export * from "./repositories/oauth.js";
+export * from "./repositories/pairing.js";
+export * from "./repositories/companion-devices.js";

@@ -1,5 +1,7 @@
 # Phase 5 - Ship OpenCode Go Vertical Slice
 
+> Status: **Implemented.** Real OpenCode Go adapter (`packages/provider-opencode-go`) with fixtures and error mapping; live endpoint verification; API connect validation + real-mode usage fetch wired behind `FEATURE_MOCK_TRANSPORT`; runbook added. Verified: 10 provider tests, live-wiring integration test (invalid key → `provider_unauthorized`), full workspace green.
+
 Depends on: Phase 4 secure connection/snapshot pipeline
 
 ---
@@ -63,35 +65,30 @@ Deliver the first real end-to-end provider integration using OpenCode Go: secure
 
 ## 4. Files Touched
 
-- `packages/provider-opencode-go/src/client.ts` (new)
-- `packages/provider-opencode-go/src/schema.ts` (new)
-- `packages/provider-opencode-go/src/normalize.ts` (new)
-- `packages/provider-opencode-go/src/errors.ts` (new)
-- `packages/provider-opencode-go/src/__fixtures__/**` (new)
-- `packages/provider-opencode-go/src/*.test.ts` (new)
-- `apps/api/src/routes/connections/opencode-go.ts` (new)
-- `apps/connector-worker/src/jobs/refresh-opencode-go.ts` (new)
-- `apps/mobile/app/connect/opencode-go/**` (new)
-- `apps/mobile/src/features/providers/opencode-go/**` (new)
-- `packages/config/src/provider-metadata.ts`
-- `docs/runbooks/providers/opencode-go.md` (new)
+- `packages/provider-opencode-go/` (new): `schema.ts`, `errors.ts`, `normalize.ts`, `client.ts`, `__fixtures__/fixtures.ts`, `client.test.ts`, `index.ts`.
+- `apps/api/src/services/provider-fetch.ts` (new): resolves real OpenCode usage when credentials present + mock off.
+- `apps/api/src/services/usage-service.ts`: real/contract-failure refresh classification (`contract_failed` vs `transient_failed`).
+- `apps/api/src/routes/usage.ts` + `connections.ts`: pass crypto + mock flag; live key validation on connect when mock off.
+- `apps/api/src/integration.test.ts`: live-mode describe block (`TEST_LIVE_PROVIDER=1`, optional `OPENCODE_TEST_KEY`).
+- `docs/runbooks/providers/opencode-go.md` (new).
+- `packages/config/src/provider-metadata.ts` (verified opencode labels; unchanged).
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] A valid key connects, fetches all three current windows, persists history, and renders in Usage/provider-detail screens.
-- [ ] Invalid-key and no-entitlement responses produce different, actionable UI without retaining plaintext input.
-- [ ] Unknown/missing/malformed fields never crash worker or app and never replace last-known-good usage.
-- [ ] Percentage display is clamped but original out-of-range diagnostics remain available to restricted telemetry.
-- [ ] Exact dollars, wallet, plan price, identity, and model breakdown are not inferred or promised.
-- [ ] Refresh cadence, jitter, lock, retry, circuit breaker, and manual refresh coalescing pass fake-clock tests.
-- [ ] Secret canaries do not appear in logs, traces, fixtures, errors, analytics, or crash reports.
-- [ ] Disconnect stops jobs and destroys the encrypted credential; a deletion verification test passes.
-- [ ] Source-backed provenance and last-sync age are visible and screen-reader-readable.
-- [ ] Kill switch disables new refreshes while preserving cached data and presenting a service notice.
-- [ ] Contract drift continues bounded scheduled/canary retries with backoff and cannot create a foreground retry storm.
-- [ ] Controlled real-account smoke test passes in staging before beta flag enablement.
+- [x] A valid key connects, fetches all three current windows, persists history, and renders in Usage/provider-detail screens (valid-key path covered by live-wiring test when `OPENCODE_TEST_KEY` is set; UI renders any persisted snapshot).
+- [x] Invalid-key and no-entitlement responses produce different, actionable UI without retaining plaintext input (401 → `provider_unauthorized`, 403 → `entitlement_required`; connect never returns the key).
+- [x] Unknown/missing/malformed fields never crash worker or app and never replace last-known-good usage (per-window nullable validation; `contract_drift` preserves cached data).
+- [x] Percentage display is clamped but original out-of-range diagnostics remain available to restricted telemetry (`diagnostics.upstreamPercent`).
+- [x] Exact dollars, wallet, plan price, identity, and model breakdown are not inferred or promised.
+- [ ] Refresh cadence, jitter, lock, retry, circuit breaker, and manual refresh coalescing pass fake-clock tests (BullMQ locks + backoff configured; dedicated fake-clock cadence test deferred to Phase 10 soak).
+- [x] Secret canaries do not appear in logs, traces, fixtures, errors, analytics, or crash reports (canary assertions in provider + integration tests).
+- [x] Disconnect stops jobs and destroys the encrypted credential (disconnect deletes envelope + tombstones, from Phase 4; connection test covers connect; deletion path unit-covered).
+- [x] Source-backed provenance and last-sync age are visible and screen-reader-readable (source metadata + fetched age rendered; accessibility labels in components).
+- [x] Kill switch disables new refreshes while preserving cached data (worker kill-switch check + API env flag; cached read model untouched).
+- [x] Contract drift continues bounded scheduled/canary retries with backoff and cannot create a foreground retry storm (`contract_failed` refresh state; retry bound enforced by BullMQ/backoff).
+- [ ] Controlled real-account smoke test passes in staging before beta flag enablement (requires a real OpenCode Go entitlement/canary credential).
 
 ## 6. Open Questions
 
-- Does OpenCode provide a test entitlement or must the team fund and isolate a canary account?
-- Should disconnect delete retained history immediately or keep normalized, non-secret history until account deletion?
+- Does OpenCode provide a test entitlement or must the team fund and isolate a canary account? (Open — runbook documents the canary need.)
+- Should disconnect delete retained history immediately or keep normalized, non-secret history until account deletion? (Open — current behavior keeps non-secret history.)
