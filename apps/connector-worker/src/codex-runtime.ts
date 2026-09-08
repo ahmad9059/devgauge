@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Db, ProfileArtifactRow } from "@devgauge/database";
-import { getOwnedProfileArtifact, saveProfileArtifact } from "@devgauge/database";
+import { clearPreviousProfileArtifact, getOwnedProfileArtifact, saveProfileArtifact } from "@devgauge/database";
 import { createCryptoService } from "@devgauge/provider-core";
 import type { ArchivedProfile } from "@devgauge/provider-codex";
 
@@ -24,6 +24,15 @@ export const createCodexProfileContext = async (
   const current = await getOwnedProfileArtifact(db, input.connectionId, input.userId);
   let artifact: ArchivedProfile | undefined;
   if (current) {
+    if (current.previousObjectKey) {
+      await storage.delete(current.previousObjectKey);
+      await clearPreviousProfileArtifact(db, {
+        connectionId: input.connectionId,
+        userId: input.userId,
+        artifactVersion: current.artifactVersion,
+        objectKey: current.previousObjectKey,
+      });
+    }
     const ciphertext = await storage.get(current.objectKey);
     artifact = {
       bytes: crypto.open({
@@ -59,7 +68,15 @@ export const createCodexProfileContext = async (
         if (!saved) await storage.delete(objectKey).catch(() => undefined);
       }
       if (!saved) throw new Error("Codex profile changed during this job");
-      if (current && current.objectKey !== objectKey) await storage.delete(current.objectKey);
+      if (saved.previousObjectKey) {
+        await storage.delete(saved.previousObjectKey);
+        await clearPreviousProfileArtifact(db, {
+          connectionId: input.connectionId,
+          userId: input.userId,
+          artifactVersion: saved.artifactVersion,
+          objectKey: saved.previousObjectKey,
+        });
+      }
     },
   };
 };

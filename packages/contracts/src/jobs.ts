@@ -3,6 +3,7 @@ export const CODEX_JOB_NAMES = {
   refresh: "codex-refresh",
   resetCredit: "codex-reset-credit",
   disconnect: "codex-disconnect",
+  deleteAccount: "codex-account-delete",
 } as const;
 
 export interface ProviderJobData {

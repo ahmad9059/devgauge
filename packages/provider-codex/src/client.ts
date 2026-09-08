@@ -6,6 +6,7 @@ import {
   deviceCodeLoginResultSchema,
   loginStatusSchema,
   rateLimitsReadResultSchema,
+  rateLimitsUpdatedNotificationSchema,
   usageReadResultSchema,
   type ConsumeCreditOutcome,
   type DeviceCodeLoginResult,
@@ -51,20 +52,30 @@ export const awaitLoginCompletion = (
 ): Promise<LoginStatus> =>
   new Promise((resolve, reject) => {
     let unsubscribe = (): void => undefined;
-    const timer = setTimeout(() => {
+    let unsubscribeClose = (): void => undefined;
+    const cleanup = (): void => {
       unsubscribe();
+      unsubscribeClose();
+    };
+    const timer = setTimeout(() => {
+      cleanup();
       reject(ProviderError.transientUpstream("Codex device login timed out"));
     }, timeoutMs);
     unsubscribe = session.onNotification("account/login/completed", (params) => {
       const parsed = loginStatusSchema.safeParse(params);
       if (!parsed.success || parsed.data.loginId !== loginId) return;
       clearTimeout(timer);
-      unsubscribe();
+      cleanup();
       resolve({
         loginId: parsed.data.loginId,
         success: parsed.data.success,
         error: parsed.data.error ?? null,
       });
+    });
+    unsubscribeClose = session.onClosed((error) => {
+      clearTimeout(timer);
+      cleanup();
+      reject(error);
     });
   });
 
@@ -89,6 +100,14 @@ export const readUsage = async (session: CodexSession): Promise<UsageResult> =>
     usageReadResultSchema,
     "account/usage/read"
   );
+
+export const onRateLimitsUpdated = (
+  session: CodexSession,
+  handler: (rateLimits: RateLimitsResult["rateLimits"]) => void
+): (() => void) => session.onNotification("account/rateLimits/updated", (params) => {
+  const parsed = rateLimitsUpdatedNotificationSchema.safeParse(params);
+  if (parsed.success) handler(parsed.data.rateLimits);
+});
 
 /** A valid quota read succeeds even when the optional activity read fails. */
 export const refreshCodexUsage = async (session: CodexSession): Promise<CodexRefreshResult> => {

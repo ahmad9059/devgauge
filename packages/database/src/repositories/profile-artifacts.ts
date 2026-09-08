@@ -5,6 +5,7 @@ export interface ProfileArtifactRow {
   userId: string;
   connectionId: string;
   objectKey: string;
+  previousObjectKey: string | null;
   digest: string;
   wrappedDataKey: Uint8Array;
   keyVersion: number;
@@ -49,7 +50,8 @@ export const saveProfileArtifact = async (
       ${input.wrappedDataKey}, ${input.keyVersion}, 1, ${input.sizeBytes}, 'ready'
     )
     on conflict (connection_id) do update
-      set object_key = excluded.object_key,
+      set previous_object_key = provider_profile_artifacts.object_key,
+          object_key = excluded.object_key,
           digest = excluded.digest,
           wrapped_data_key = excluded.wrapped_data_key,
           key_version = excluded.key_version,
@@ -61,6 +63,20 @@ export const saveProfileArtifact = async (
     returning *
   `;
   return rows[0] as unknown as ProfileArtifactRow | undefined;
+};
+
+export const clearPreviousProfileArtifact = async (
+  db: Db,
+  input: { connectionId: string; userId: string; artifactVersion: number; objectKey: string }
+): Promise<void> => {
+  await db`
+    update provider_profile_artifacts
+    set previous_object_key = null, updated_at = now()
+    where connection_id = ${input.connectionId}
+      and user_id = ${input.userId}
+      and artifact_version = ${input.artifactVersion}
+      and previous_object_key = ${input.objectKey}
+  `;
 };
 
 export const deleteOwnedProfileArtifact = async (

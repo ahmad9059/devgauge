@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import { CODEX_JOB_NAMES, connectResponseSchema, connectionsResponseSchema, providerIdSchema } from "@devgauge/contracts";
 import { errorEnvelopeSchema } from "@devgauge/contracts";
-import { getConnection, listConnectionsByUser, upsertConnection } from "@devgauge/database";
+import { cancelActiveCodexLoginAttempts, getConnection, listConnectionsByUser, upsertConnection } from "@devgauge/database";
 import { ProviderError } from "@devgauge/provider-core";
 import { fetchOpenCodeGoUsage } from "@devgauge/provider-opencode-go";
 
@@ -102,10 +102,17 @@ export const buildConnectionsRoutes = (app: FastifyInstance, env: ApiEnv): void 
         })
       );
     }
-    if (parsed.data === "codex" && app.providerQueue) {
+    if (parsed.data === "codex") {
       const connection = await getConnection(app.db, auth.userId, "codex");
       if (connection) {
+        if (!app.providerQueue) {
+          return reply.code(503).send(errorEnvelopeSchema.parse({
+            error: { code: "transient_upstream", message: "Disconnect queue is unavailable", requestId: request.id },
+          }));
+        }
         await app.providerQueue.removeJobScheduler(`codex-background-${connection.id}`);
+        await cancelActiveCodexLoginAttempts(app.db, connection.id, auth.userId);
+        await disconnectConnection(app.db, { userId: auth.userId, provider: parsed.data });
         const idempotencyKey = globalThis.crypto.randomUUID();
         await app.providerQueue.add(CODEX_JOB_NAMES.disconnect, {
           userId: auth.userId,
@@ -119,6 +126,8 @@ export const buildConnectionsRoutes = (app: FastifyInstance, env: ApiEnv): void 
           removeOnComplete: 100,
           removeOnFail: 500,
         });
+        const revoking = await getConnection(app.db, auth.userId, parsed.data);
+        return connectResponseSchema.parse({ connection: toConnectionDto(revoking ?? connection) });
       }
     }
     await disconnectConnection(app.db, { userId: auth.userId, provider: parsed.data });

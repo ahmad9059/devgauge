@@ -233,7 +233,7 @@ export function ConnectScreen(): React.JSX.Element {
               )}
 
               {provider !== "codex" ? <Button label="Continue" onPress={verify} /> : null}
-              <Button label="Back" variant="ghost" onPress={() => setStep("intro")} />
+              <Button label="Back" variant="ghost" onPress={() => provider === "codex" ? void cancelCodex() : setStep("intro")} />
             </View>
           )}
 

@@ -107,6 +107,7 @@ export const buildCodexRoutes = (app: FastifyInstance, env: ApiEnv): void => {
   });
 
   app.get("/v1/connections/codex/device-login/:attemptId", { preHandler: app.requireAuth }, async (request, reply) => {
+    reply.header("cache-control", "no-store");
     const auth = request.auth!;
     const { attemptId } = request.params as { attemptId: string };
     const attempt = await getOwnedCodexLoginAttempt(app.db, attemptId, auth.userId);

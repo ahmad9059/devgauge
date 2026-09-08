@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { ScriptedDuplex } from "./__fixtures__/harness.js";
 import { CodexSession } from "./session.js";
 import { CodexProtocolError } from "./session.js";
-import { awaitLoginCompletion, readRateLimits, readUsage, refreshCodexUsage, startDeviceCodeLogin, consumeResetCredit } from "./client.js";
+import { awaitLoginCompletion, readRateLimits, readUsage, refreshCodexUsage, startDeviceCodeLogin, consumeResetCredit, onRateLimitsUpdated } from "./client.js";
 import { normalizeRateLimits, normalizeActivitySummary } from "./normalize.js";
 import { deviceCodeLoginFixture, rateLimitsByLimitIdFixture, usageReadFixture } from "./__fixtures__/fixtures.js";
+import { rateLimitsReadResultSchema } from "./schema.js";
 
 const makeSession = (
   onRequest?: (m: { method: string; params?: unknown; id?: number }, d: ScriptedDuplex) => void
@@ -76,6 +77,14 @@ describe("CodexSession", () => {
     await expect(pending).rejects.toThrow(/transport failed/);
   });
 
+  it("rejects a login waiter when the process closes", async () => {
+    const { session, duplex } = makeSession();
+    await session.initialize({ name: "t" });
+    const pending = awaitLoginCompletion(session, "login-uuid-1", 5_000);
+    duplex.fail(new Error("crash"));
+    await expect(pending).rejects.toThrow(/transport failed/);
+  });
+
   it("dispatches interleaved notifications to additive listeners", async () => {
     const { session, duplex } = makeSession();
     await session.initialize({ name: "t" });
@@ -87,6 +96,18 @@ describe("CodexSession", () => {
     duplex.respond(1, { account: null });
     await pending;
     expect(seen).toEqual([1, 2]);
+  });
+
+  it("only forwards validated live rate-limit updates", async () => {
+    const { session, duplex } = makeSession();
+    await session.initialize({ name: "t" });
+    const seen: string[] = [];
+    const unsubscribe = onRateLimitsUpdated(session, (rateLimits) => seen.push(rateLimits.limitId ?? "default"));
+    duplex.notify("account/rateLimits/updated", { rateLimits: {} });
+    const fixture = rateLimitsReadResultSchema.parse(rateLimitsByLimitIdFixture());
+    duplex.notify("account/rateLimits/updated", { rateLimits: fixture.rateLimits });
+    unsubscribe();
+    expect(seen).toEqual(["codex"]);
   });
 
   it("times out an unanswered request", async () => {

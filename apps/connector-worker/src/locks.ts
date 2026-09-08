@@ -17,7 +17,7 @@ export const withConnectionLock = async <T>(
   if (acquired !== "OK") throw new Error("Codex connection is busy");
 
   const renew = setInterval(() => {
-    void redis.eval(RENEW, 1, key, token, String(ttlMs));
+    void redis.eval(RENEW, 1, key, token, String(ttlMs)).catch(() => undefined);
   }, Math.max(1_000, Math.floor(ttlMs / 3)));
   renew.unref();
   try {

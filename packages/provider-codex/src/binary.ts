@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { constants } from "node:fs";
-import { access, readFile } from "node:fs/promises";
+import { constants, createReadStream } from "node:fs";
+import { access, stat } from "node:fs/promises";
 import { delimiter, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -13,6 +13,15 @@ export const MIN_CODEX_VERSION = CODEX_VERSION;
 export const MAX_CODEX_VERSION = CODEX_VERSION;
 
 const execFileAsync = promisify(execFile);
+const verified = new Map<string, Promise<void>>();
+
+const hashFile = (path: string): Promise<string> => new Promise((resolve, reject) => {
+  const hash = createHash("sha256");
+  const stream = createReadStream(path);
+  stream.on("error", reject);
+  stream.on("data", (chunk) => hash.update(chunk));
+  stream.on("end", () => resolve(hash.digest("hex")));
+});
 
 export const resolveCodexBinary = async (binaryPath: string): Promise<string> => {
   if (binaryPath.includes("/")) return binaryPath;
@@ -29,16 +38,24 @@ export const verifyCodexBinary = async (
   expectedSha256: string | readonly string[] = [CODEX_LINUX_X64_SHA256, CODEX_DEVELOPMENT_LINUX_X64_SHA256]
 ): Promise<void> => {
   const resolvedPath = await resolveCodexBinary(binaryPath);
-  const [{ stdout }, bytes] = await Promise.all([
-    execFileAsync(resolvedPath, ["--version"], { timeout: 5_000 }),
-    readFile(resolvedPath),
-  ]);
-  if (stdout.trim() !== `codex-cli ${CODEX_VERSION}`) {
-    throw new Error(`Unsupported Codex binary version: ${stdout.trim()}`);
-  }
-  const digest = createHash("sha256").update(bytes).digest("hex");
-  const expected = typeof expectedSha256 === "string" ? [expectedSha256] : expectedSha256;
-  if (!expected.includes(digest)) {
-    throw new Error("Codex binary checksum mismatch");
+  const details = await stat(resolvedPath);
+  const expected = typeof expectedSha256 === "string" ? [expectedSha256] : [...expectedSha256];
+  const key = `${resolvedPath}:${details.size}:${details.mtimeMs}:${expected.join(",")}`;
+  const cached = verified.get(key) ?? (async () => {
+    const [{ stdout }, digest] = await Promise.all([
+      execFileAsync(resolvedPath, ["--version"], { timeout: 5_000 }),
+      hashFile(resolvedPath),
+    ]);
+    if (stdout.trim() !== `codex-cli ${CODEX_VERSION}`) {
+      throw new Error(`Unsupported Codex binary version: ${stdout.trim()}`);
+    }
+    if (!expected.includes(digest)) throw new Error("Codex binary checksum mismatch");
+  })();
+  verified.set(key, cached);
+  try {
+    await cached;
+  } catch (error) {
+    verified.delete(key);
+    throw error;
   }
 };

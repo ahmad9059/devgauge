@@ -24,6 +24,7 @@ export class CodexSession {
   private nextId = 1;
   private readonly pending = new Map<number, PendingRequest>();
   private readonly notificationHandlers = new Map<string, Set<(params: unknown) => void>>();
+  private readonly closeHandlers = new Set<(error: Error) => void>();
   private readonly requestTimeoutMs: number;
   private idleTimer: NodeJS.Timeout | undefined;
   private initializePromise: Promise<unknown> | undefined;
@@ -75,6 +76,15 @@ export class CodexSession {
       handlers.delete(handler);
       if (handlers.size === 0) this.notificationHandlers.delete(method);
     };
+  }
+
+  onClosed(handler: (error: Error) => void): () => void {
+    if (this.closed) {
+      queueMicrotask(() => handler(this.terminalError ?? new CodexProtocolError("session closed")));
+      return () => undefined;
+    }
+    this.closeHandlers.add(handler);
+    return () => this.closeHandlers.delete(handler);
   }
 
   close(): void {
@@ -182,6 +192,14 @@ export class CodexSession {
       pending.reject(error);
     }
     this.pending.clear();
+    for (const handler of this.closeHandlers) {
+      try {
+        handler(error);
+      } catch {
+        // Close observers cannot block process cleanup.
+      }
+    }
+    this.closeHandlers.clear();
     if (kill) this.options.transport.kill();
   }
 }

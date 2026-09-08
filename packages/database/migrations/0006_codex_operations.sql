@@ -5,6 +5,7 @@ create unique index if not exists credential_envelopes_connection_type_idx
 
 alter table provider_profile_artifacts
   add column if not exists wrapped_data_key bytea,
+  add column if not exists previous_object_key text,
   add column if not exists key_version int not null default 1,
   add column if not exists artifact_version int not null default 1,
   add column if not exists size_bytes bigint not null default 0,

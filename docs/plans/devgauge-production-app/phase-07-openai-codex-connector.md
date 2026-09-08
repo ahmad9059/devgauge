@@ -1,6 +1,6 @@
 # Phase 7 - Ship OpenAI Codex Connector
 
-> Status: **Implementation complete locally; release gates pending.** The pinned `0.153.4` App Server handshake/account-read canary, generated-schema drift gate, isolated process supervisor, encrypted profile artifacts, device login, quota/activity normalization, reset-credit workflow, API/worker wiring, and mobile states are implemented. Applying migration `0006_codex_operations.sql` to production and the controlled authenticated-account canary remain pending approval/access.
+> Status: **Implemented and migrated; authenticated canary pending.** The pinned `0.153.4` App Server handshake/account-read canary, generated-schema drift gate, isolated process supervisor, encrypted profile artifacts, device login, quota/activity normalization, reset-credit workflow, API/worker wiring, mobile states, and production migration `0006_codex_operations.sql` are complete. The controlled authenticated-account staging canary remains pending access.
 
 Depends on: Phase 4 secret/profile primitives; Phase 6 isolated runtime controls
 
@@ -114,13 +114,13 @@ Integrate the official Codex App Server protocol through a hardened process supe
 
 ## 5. Acceptance Criteria And QA Checklist
 
-- [ ] Binary is pinned, checksum-verified, schema-generated, SBOM-listed, and canary-tested.
-- [ ] Device-code login survives app background/termination, supports cancel, and cannot bind to the wrong DevGauge user.
+- [x] Binary is pinned, checksum-verified, schema-generated, SBOM-listed, and canary-tested.
+- [x] Device-code login survives app background/termination, supports cancel, and cannot bind to the wrong DevGauge user.
 - [x] App Server initialization order, request-ID routing, notification dispatch, malformed JSON, timeout, and process cleanup tests pass.
-- [ ] Concurrent jobs cannot access, overwrite, log, or infer another user's profile artifact.
+- [x] Concurrent jobs cannot access, overwrite, log, or infer another user's profile artifact.
 - [ ] Profile plaintext is absent after job cleanup and encrypted artifact deletion is verifiable on disconnect/account deletion.
 - [ ] Dynamic limit IDs and actual durations survive normalization, persistence, API, and UI without hard-coded primary/secondary assumptions.
-- [ ] Live rate-limit updates and scheduled reads deduplicate correctly.
+- [x] Live rate-limit updates and scheduled reads deduplicate correctly.
 - [x] Quota remains available when the separate activity read fails or returns null.
 - [x] No ChatGPT password, host-supplied token, internal endpoint, or public App Server socket exists.
 - [x] Reset credits are only ever consumed after explicit user confirmation; an idempotency key prevents duplicate redemption; every documented outcome maps to a distinct, correct UI result.

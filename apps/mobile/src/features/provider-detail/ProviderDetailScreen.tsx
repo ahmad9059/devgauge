@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, ScrollView, View, useWindowDimensions } from "react-native";
+import { randomUUID } from "expo-crypto";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -104,7 +105,7 @@ export function ProviderDetailScreen(): React.JSX.Element {
           onPress: () => {
             setResetPending(true);
             setResetMessage(null);
-            void api.consumeCodexResetCredit(globalThis.crypto.randomUUID(), availableResetCredit?.id)
+            void api.consumeCodexResetCredit(randomUUID(), availableResetCredit?.id)
               .then((attempt) => awaitResetOutcome(attempt.attemptId))
               .catch((cause) => setResetMessage(cause instanceof Error ? cause.message : "Could not redeem this credit."))
               .finally(() => setResetPending(false));

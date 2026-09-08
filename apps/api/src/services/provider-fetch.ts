@@ -19,8 +19,8 @@ export interface ProviderFetcherContext {
  * Resolves a normalized usage snapshot for a connection.
  *
  * OpenCode Go and GitHub Copilot use their real adapters when credentials are
- * stored and mock transport is off; the remaining providers stay on the mock
- * adapter until their phases land (Phases 7-8).
+ * stored and mock transport is off. Codex runs asynchronously in the isolated
+ * worker; Claude Code snapshots arrive through the companion ingest route.
  */
 export const fetchConnectionUsage = async (
   ctx: ProviderFetcherContext,
