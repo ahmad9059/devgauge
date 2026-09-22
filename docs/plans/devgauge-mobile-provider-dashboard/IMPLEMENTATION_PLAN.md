@@ -2,7 +2,7 @@
 
 > Status: **Planning, validation complete.** At the start of planning no feature code existed (`README.md:1`), and no feature code has been added; only planning documents were created.
 >
-> The request specifies ten explicit phases. Every requested workstream therefore has its own numbered, independently reviewable phase.
+> The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
 ## 0. How to Read This Plan
 
