@@ -4,7 +4,7 @@
 
 ## 1. Security Objectives
 
-1. DevGauge never learns provider passwords.
+1. DevGauge does not record or inspect provider passwords, form input or MFA material; embedded WebView hosting increases app trust and requires explicit user disclosure.
 2. Compromise of SQLite does not expose provider credentials.
 3. A malicious deep link cannot complete or redirect another auth transaction.
 4. One provider cannot receive another provider's credential.
@@ -14,25 +14,30 @@
 
 ## 2. Non-Negotiable Authentication Boundary
 
-Third-party login must use an external user-agent via `expo-auth-session` or `openAuthSessionAsync`, backed by `ASWebAuthenticationSession` on iOS and Custom Tabs/Auth Tab on Android.
+**Revised feasibility track:** The product owner requires embedded website-session sign-in for Claude, Codex and GitHub Copilot on Android. [AI Usage's privacy policy](https://usage-4e75d.web.app/privacy-policy.html) documents local WebView sessions for Claude/GitHub, establishing a deployed example, not provider authorization or proof for Codex. Phase 1 must assess consent, provider policies, access to usage data and session containment per provider. Gemini CLI is a separate coding-agent auth/quota track: neither consumer Gemini Apps data nor first-party CLI OAuth credentials may be repurposed. Enable only integrations that pass the documented release gate.
+
+For **delegated OAuth authorization**, use an external user-agent via `expo-auth-session` or `openAuthSessionAsync`, backed by Custom Tabs/Auth Tab on Android. For the distinct **provider website-session** track, evaluate a dedicated Android WebView and local cookie store under the safeguards below. Do not represent website cookies as OAuth access tokens. Google OAuth for Gemini CLI uses a DevGauge-owned client; never embed Google's authorization screen in a WebView or borrow Gemini CLI's first-party client ID.
 
 Prohibited:
 
-- `react-native-webview` for provider authentication.
-- JavaScript injection into login or usage pages.
-- Cookie extraction, session replay, or cookie transfer.
+- Injecting JavaScript into login forms or reading typed credentials.
+- Sending website cookies off device, to a broker, or to another provider.
+- Using a website session to perform unrelated account actions or bypass usage limits.
 - Capturing usernames, passwords, passkeys, MFA codes, or keystrokes.
 - Importing Claude `.credentials.json` or Codex `auth.json`.
 - Reusing first-party CLI client IDs without vendor authorization.
 - Scraping private account endpoints with browser sessions.
 
-RFC 8252 requires native apps to use external user-agents and says embedded user-agents must not be used because the host can capture credentials and cookies. If a provider does not offer a registered third-party OAuth/API contract, the connector stays blocked.
+RFC 8252 requires external user-agents for native-app OAuth authorization and explains why embedded agents are higher risk. An embedded provider website session is a separate, privileged integration model; a shipped comparator does not guarantee provider approval. Require per-provider technical, policy and privacy review before enabling it.
 
 ## 3. Threat Model
 
 | Threat actor | Goal | Primary controls |
 |---|---|---|
 | Malicious app on device | Intercept OAuth callback/code | Claimed HTTPS links where possible, PKCE S256, exact redirect, state, unique provider paths |
+| Embedded login surface or compromised page | Capture form input, session cookies or bridge data | Official-site-only navigation, no credential-input injection, reviewed bridge, local cookie storage, explicit consent, sanitized diagnostics |
+| Shared WebView cookie store | Leak one account/provider state or delete unrelated sessions | Test Android store boundaries; block unsupported multi-account setups; verify scoped logout |
+| Gemini CLI quota mix-up | Show consumer chat/API project usage as coding-agent quota | Separate `gemini-cli` ID and auth tier; validate source and account scope; label user-shared session stats |
 | Network attacker | Read/modify usage/token traffic | HTTPS only, OS trust store, no cleartext, redirect host allowlist |
 | Compromised provider response | Trigger unsafe behavior or corrupt DB | Runtime schema validation, fixed endpoints, bound SQL, domain constraints |
 | Lost/unlocked device | Read provider tokens and history | SecureStore, SQLCipher decision, OS lock, optional biometric gate |
@@ -63,11 +68,11 @@ RFC 8252 requires native apps to use external user-agents and says embedded user
 - One credential record per connection with opaque lookup key.
 - Async APIs only to avoid blocking the JS thread.
 - Small records only; large account payloads are rejected/minimized.
-- `WHEN_UNLOCKED` or stricter iOS accessibility.
+- Use Android Keystore-backed SecureStore; test device-lock and restore behavior.
 - Consider `requireAuthentication` as opt-in due to invalidation/recovery UX.
 - Explicit deletion on disconnect and delete-all.
 - Android backups exclude SecureStore.
-- iOS reinstall persistence is treated as possible; first launch checks and offers cleanup/recovery.
+- Android reinstall/restore may leave SQLite without matching Keystore secrets; offer safe recovery/reconnection.
 
 ### SQLite
 
@@ -146,13 +151,13 @@ Rules:
 - Distinguish personal from organization-admin authorization.
 - Confidential exchange remains broker-side if required.
 
-## 11. App Store and Privacy Compliance
+## 11. Google Play and Privacy Compliance
 
 - Publish in-app and store-linked privacy policy covering collection, local storage, retention, deletion, providers, and optional broker.
-- Complete Apple App Privacy and Google Data Safety forms from an actual data inventory.
+- Complete Google Play Data Safety declarations from an actual data inventory.
 - Provide reviewer notes explaining external authentication and demo behavior.
 - If DevGauge later creates its own accounts, implement in-app account deletion and required web deletion path.
-- Review Apple third-party/social credential rules before sending any provider token to a backend.
+- Review Google Play account/data and provider-specific credential requirements before release.
 - Do not describe blocked/manual providers as connected accounts.
 - Obtain trademark/brand-asset permission and follow each provider's brand guidelines.
 
@@ -178,16 +183,17 @@ Rules:
 - Logs and diagnostics scanned for seeded fake secrets.
 - SQLite export scanned for seeded fake tokens.
 - Disconnect with network failure and later revocation guidance.
-- iOS reinstall/keychain persistence scenario.
+- Gemini CLI source/account-scope mix-up and user-shared stats redaction.
 - Android restore without Keystore key.
 - SQLCipher key loss and recovery.
 - Experimental manifest signature tampering, expiry, audience mismatch, clock skew, and lower-version replay.
 
 ## 14. Release Blockers
 
-- Any embedded WebView authentication or cookie capture.
+- Any embedded website-session integration lacking a documented per-provider/platform feasibility, policy, disclosure, cookie-containment and deletion review.
 - Any provider secret in SQLite/logs/analytics.
-- Claude/Codex automatic sync without documented partner approval.
+- Gemini CLI live sync using borrowed first-party OAuth credentials, undocumented quota routes, or Gemini Apps chat limits.
+- Claude/Codex automatic sync without a documented Android WebView feasibility, policy and data-access review or a provider-approved alternative.
 - Command Code/OpenCode Go production enablement without vendor endpoint permission.
 - Missing remote/local credential deletion path.
 - OAuth state/PKCE/redirect validation test failure.
@@ -201,5 +207,4 @@ Rules:
 - [React Native security](https://reactnative.dev/docs/security)
 - [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
 - [Expo SQLite security](https://docs.expo.dev/versions/latest/sdk/sqlite/#security)
-- [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 - [Google Play User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311)

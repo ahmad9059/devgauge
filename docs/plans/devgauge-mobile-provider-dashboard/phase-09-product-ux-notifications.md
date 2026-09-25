@@ -49,14 +49,14 @@ Integrate all provider states into the complete Usage, Connectors, and Settings 
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] All five providers render every applicable state.
+- [ ] All six providers render every applicable state, including user-shared Gemini CLI stats.
 - [ ] No second account scope is silently dropped.
 - [ ] Dashboard is useful offline and labels data age.
 - [ ] Unknown values never render as zero or unlimited.
 - [ ] Notification denial does not block the app.
 - [ ] Lock-screen notification content is generic.
 - [ ] Theme/text settings persist and remain accessible.
-- [ ] VoiceOver/TalkBack, large text, reduced motion, phone/tablet, and landscape QA pass.
+- [ ] TalkBack, large text, reduced motion, Android phone/tablet, and landscape QA pass.
 
 ## 6. Open Questions
 

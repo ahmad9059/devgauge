@@ -48,9 +48,9 @@ Turn the supplied layout and dark visual reference into a coherent, accessible d
 - [ ] Three-tab hierarchy matches the supplied frame.
 - [ ] Both themes cover every semantic token and component state.
 - [ ] Normal text reaches 4.5:1 and meaningful non-text UI reaches 3:1 contrast.
-- [ ] Touch targets meet 44pt iOS / 48dp Android minimums.
+- [ ] Touch targets meet 48dp Android minimums.
 - [ ] Largest supported text does not hide values/actions.
-- [ ] VoiceOver/TalkBack order and labels are verified.
+- [ ] TalkBack order and labels are verified on Android.
 - [ ] Reduced motion removes non-essential transitions.
 - [ ] Small phone, large phone, tablet, portrait, and landscape layouts pass.
 

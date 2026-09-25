@@ -14,7 +14,7 @@ Create a production-capable Expo/TypeScript project, deterministic development w
 
 - Initialize the current stable Expo SDK with TypeScript strict mode and Expo Router.
 - Pin package manager, Node version, dependency policy, and EAS profiles.
-- Configure placeholder development identifiers and documented production identifier inputs.
+- Configure Android-only placeholder package identifiers and documented production identifier inputs; EAS build profiles target Android.
 - Add linting, formatting, unit-test bootstrap, typecheck, dependency audit, and CI.
 - Create route shells for onboarding, tabs, provider detail, connection flow, legal, support, and diagnostics.
 - Add environment validation, root error boundary, and development-only diagnostics boundaries.
@@ -52,7 +52,7 @@ Create a production-capable Expo/TypeScript project, deterministic development w
 ## 5. Acceptance Criteria / QA Checklist
 
 - [ ] Clean checkout installs reproducibly.
-- [ ] iOS and Android development builds launch.
+- [ ] Android development build launches on supported device/emulator.
 - [ ] Every planned route resolves and platform back behavior works.
 - [ ] Typed invalid routes fail compilation.
 - [ ] CI runs typecheck, lint, tests, and dependency audit.
@@ -61,6 +61,6 @@ Create a production-capable Expo/TypeScript project, deterministic development w
 
 ## 6. Open Questions
 
-- Final reverse-domain bundle/package identifier.
+- Final reverse-domain Android package identifier.
 - Domain used for Universal Links/App Links and OAuth callbacks.
 - Package manager and supported Node LTS policy.

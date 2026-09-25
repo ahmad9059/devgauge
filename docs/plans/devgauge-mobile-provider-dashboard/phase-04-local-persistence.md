@@ -53,7 +53,7 @@ Create migration-safe local persistence with strict separation between ordinary 
 - [ ] Seeded fake secrets never appear in DB or diagnostics export.
 - [ ] Concurrent connection writes do not interleave.
 - [ ] Disconnect/delete behavior removes expected DB, SecureStore, and notification state.
-- [ ] iOS reinstall and Android backup behaviors are manually tested.
+- [ ] Android reinstall and backup/restore behaviors are manually tested.
 
 ## 6. Open Questions
 

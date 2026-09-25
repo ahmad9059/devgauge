@@ -24,7 +24,7 @@ Prove the final application is secure, policy-compliant, accessible, performant,
 ### Out of scope
 
 - Enabling a connector that failed its release gate.
-- Adding provider six or cloud account synchronization.
+- Adding provider seven or cloud account synchronization.
 - Treating attempted vendor outreach as completed integration.
 
 ## 3. Detailed Tasks / Design
@@ -52,6 +52,8 @@ Prove the final application is secure, policy-compliant, accessible, performant,
 ## 5. Acceptance Criteria / QA Checklist
 
 - [ ] Every release blocker in `SECURITY.md` is cleared or the affected connector is disabled.
+- [ ] Each enabled embedded-session connector passes provider/platform feasibility, applicable policy review, local-cookie/privacy disclosure, persistence and logout tests; OAuth/manual fallback is not counted as fulfillment without owner agreement.
+- [ ] Gemini CLI live usage has a documented DevGauge-owned auth/quota contract; user-shared `/stats model` is labeled with provenance and age and never presented as live account-wide quota.
 - [ ] No high-confidence credential exposure remains.
 - [ ] Provider contracts and permissions are current and linked.
 - [ ] Experimental kill switches are owner-tested.
@@ -63,6 +65,6 @@ Prove the final application is secure, policy-compliant, accessible, performant,
 
 ## 6. Open Questions
 
-- App Store/Play release owner and legal reviewer.
+- Play Store release owner and legal reviewer.
 - Beta cohort and numeric go/no thresholds.
 - Approved crash-reporting SDK, if any, after privacy inventory.

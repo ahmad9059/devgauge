@@ -19,10 +19,10 @@
 - SQLCipher key if SQLCipher is approved.
 - Short-lived auth transaction material only when app restart recovery is required.
 
-### Never stored
+### Never stored in SQLite or SecureStore
 
 - Provider passwords.
-- Browser cookies/session jars.
+- Browser cookies/session jars (a gated provider website session persists only in Android WebView's app-local cookie store).
 - Claude or Codex credential files.
 - OAuth authorization codes after exchange.
 - Raw HTTP headers.
@@ -60,7 +60,7 @@ All user/provider-derived values use bound parameters or tagged prepared queries
 CREATE TABLE provider_connections (
   id TEXT PRIMARY KEY NOT NULL,
   provider_id TEXT NOT NULL CHECK (provider_id IN (
-    'claude', 'codex', 'command-code', 'opencode-go', 'github-copilot'
+    'claude', 'codex', 'command-code', 'opencode-go', 'github-copilot', 'gemini-cli'
   )),
   account_scope TEXT NOT NULL DEFAULT 'personal'
     CHECK (account_scope IN ('personal', 'organization', 'workspace')),
@@ -69,7 +69,7 @@ CREATE TABLE provider_connections (
   display_name TEXT,
   account_hint TEXT,
   auth_mode TEXT NOT NULL
-    CHECK (auth_mode IN ('oauth-pkce', 'api-key', 'manual')),
+    CHECK (auth_mode IN ('oauth-pkce', 'api-key', 'web-session', 'manual-import', 'manual')),
   credential_ref TEXT,
   status TEXT NOT NULL
     CHECK (status IN ('disconnected', 'connected', 'expired', 'disabled', 'error')),
@@ -131,7 +131,7 @@ CREATE TABLE refresh_attempts (
 CREATE TABLE notification_rules (
   id TEXT PRIMARY KEY NOT NULL,
   provider_id TEXT CHECK (provider_id IS NULL OR provider_id IN (
-    'claude', 'codex', 'command-code', 'opencode-go', 'github-copilot'
+    'claude', 'codex', 'command-code', 'opencode-go', 'github-copilot', 'gemini-cli'
   )),
   rule_type TEXT NOT NULL CHECK (rule_type IN ('threshold', 'reset-reminder')),
   enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
@@ -169,6 +169,14 @@ CREATE TABLE manual_reset_entries (
   source_note TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+CREATE TABLE cli_stats_imports (
+  snapshot_id TEXT PRIMARY KEY NOT NULL REFERENCES usage_snapshots(id) ON DELETE CASCADE,
+  cli_version TEXT,
+  captured_at TEXT NOT NULL,
+  coverage TEXT NOT NULL CHECK (coverage IN ('session', 'reported-quota')),
+  created_at TEXT NOT NULL
 );
 
 CREATE INDEX idx_snapshots_connection_fetched
@@ -236,9 +244,9 @@ Rules:
 
 - Keep records small; SecureStore can reject large payloads.
 - Use asynchronous SecureStore APIs.
-- Default iOS accessibility is `WHEN_UNLOCKED` or stricter if UX permits.
+- Use Android Keystore-backed SecureStore for tokens, API keys and the SQLCipher key; do not serialize WebView cookies into it.
 - Optional biometric protection requires recovery for biometric enrollment changes.
-- Explicit disconnect deletes the SecureStore item; do not rely on uninstall behavior because iOS Keychain data may survive reinstall.
+- Explicit disconnect deletes the SecureStore item and applicable Android WebView cookies; verify effects on other sessions in a shared cookie store.
 - Android backup excludes SecureStore ciphertext.
 
 ## 8. Migration Strategy

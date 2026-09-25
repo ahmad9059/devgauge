@@ -1,6 +1,6 @@
 # DevGauge Implementation Plan
 
-> Status: **Planning, validation complete.** At the start of planning no feature code existed (`README.md:1`), and no feature code has been added; only planning documents were created.
+> Status: **Planning; embedded-session feasibility reopened.** At the start of planning no feature code existed (`README.md:1`), and no feature code has been added; only planning documents were created.
 >
 > The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
@@ -13,37 +13,41 @@
 - `SECURITY.md` defines non-negotiable controls and release blockers.
 - This file defines delivery order, scope, files, and gates.
 
-Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
+Nothing after Phase 1 starts until its embedded-session spike and the sign-off decisions below are resolved.
 
 ## 1. Validated Current State
 
 - Before this planning pass, the repository contained only `README.md`, whose sole content is `# devgauge` (`README.md:1`). It now also contains this documentation set, but still has no feature implementation.
 - At the validated starting point there was no Expo project, application entrypoint, package stack, database, auth, provider integration, design system, test setup, CI, or prior plan style to preserve (`README.md:1`).
-- Provider research confirms that the originally proposed embedded-browser login plus session capture is not an acceptable architecture. RFC 8252 requires external user-agents and prohibits embedded OAuth user-agents.
+- The [AI Usage Play listing](https://play.google.com/store/apps/details?id=u.sage&hl=en) and [privacy policy](https://usage-4e75d.web.app/privacy-policy.html) demonstrate a shipped Android app advertising these providers and documenting local embedded WebView sessions for Claude/GitHub. This proves feasibility in principle, not DevGauge's exact integrations, provider authorization, Codex flow, or Gemini **CLI** tracking. RFC 8252 recommends external user-agents for delegated OAuth; a website session is not an OAuth app grant.
 - GitHub Copilot billing usage has documented API endpoints, but compatible GitHub App user permissions/authentication remain a Phase 6 feasibility gate.
-- Claude/Codex consumer usage requires vendor partnership before automatic sync.
+- Claude/Codex consumer usage has no documented public third-party quota API; embedded website-session access is now an explicit feasibility track, not a proven production contract.
 - Command Code/OpenCode Go must remain experimental until usage contracts are confirmed.
 
 ## 2. Architecture Decisions
 
-1. Local-first Expo application; no DevGauge account in v1.
-2. Expo Router, TypeScript strict mode, SQLite, SecureStore, external browser auth, and local notifications.
+1. Android-only local-first Expo application; no DevGauge account in v1.
+2. Expo Router, TypeScript strict mode, SQLite, SecureStore, a gated local WebView-session path for Claude/Codex/Copilot, external browser OAuth for distinct API-token flows, and local notifications.
 3. Provider adapters normalize data while preserving provider-native units and nulls.
 4. Optional stateless broker only for confidential OAuth exchange/revocation.
-5. No WebView auth, cookie/session extraction, credential-file import, or quota circumvention.
-6. Exactly five provider IDs in v1.
+5. WebView session handling is local, per-provider, explicitly disclosed and tested; no password interception, credential-file import, cross-provider cookie reuse, or quota circumvention.
+6. Exactly six provider IDs in v1, including Gemini CLI.
 
 ## 3. Decisions Requiring Sign-Off
 
 | # | Decision | Default in this plan | Why it matters |
 |---|---|---|---|
-| 1 | Embedded login/session capture | Reject | Violates native OAuth best practice and creates credential/policy risk |
-| 2 | Claude/Codex launch behavior | Blocked live sync; links + manual reminders | No public consumer quota API |
+| 1 | Embedded website-session sign-in | Prototype Claude/Codex/Copilot on Android | Comparator confirms shipped pattern, not each provider's authorization or reliability |
+| 2 | Claude/Codex launch behavior | WebView feasibility first; disable live sync and offer links/reminders if spike fails | No public consumer quota API; fallback needs owner acceptance |
 | 3 | Codex reset | Open first-party reset/usage page only | No public reset API; no misleading claim |
 | 4 | Command Code/OpenCode Go | Experimental behind kill switch | Usage endpoints are not stable public contracts |
-| 5 | GitHub auth | GitHub App; broker only if required | Minimum permissions and secret handling |
+| 5 | GitHub auth | WebView website session spike first; GitHub App/broker as distinct fallback | OAuth API token is not website session |
 | 6 | SQLite encryption | SQLCipher preferred | Protects usage history but requires development builds |
 | 7 | Telemetry | No analytics SDK by default | Avoid collecting sensitive usage/account metadata before policy exists |
+
+**Required feasibility spike:** The product owner requires app-controlled embedded browser login and local website-session access for Claude, Codex and Copilot. A shipped comparator documents such a design for Claude/GitHub. Phase 1 now validates it per provider and platform; Phases 6/8 implement only paths passing that gate. OAuth/manual flows remain non-equivalent fallbacks requiring explicit owner acceptance.
+
+**Gemini CLI addition:** The sixth provider is Google's CLI coding agent, not consumer Gemini Apps. Phase 1 checks DevGauge-owned quota authorization and the meaning of `/stats model`; Phase 8 implements approved live access or user-shared stats. The app ships for Android only.
 
 ## 4. Requested Workstream Mapping
 
@@ -56,7 +60,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 | 5. Provider domain/API framework | Phase 5 |
 | 6. GitHub Copilot connector feasibility and delivery | Phase 6 |
 | 7. Command Code/OpenCode Go connectors | Phase 7 |
-| 8. Claude/Codex safe experience and reset handoff | Phase 8 |
+| 8. Claude/Codex sessions, Gemini CLI connector and reset handoff | Phase 8 |
 | 9. Dashboard, settings, notifications | Phase 9 |
 | 10. Security, QA, privacy, release | Phase 10 |
 
@@ -64,14 +68,14 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 | Phase | Title | Status | Depends on |
 |---|---|---|---|
-| 1 | Validate Feasibility and Secure Product Boundary | Complete in planning; sign-off pending | None |
+| 1 | Validate Feasibility and Secure Product Boundary | Embedded-session and Gemini CLI quota/auth spikes pending | None |
 | 2 | Bootstrap Expo Application Foundation | Not started | Phase 1 sign-off |
 | 3 | Build Dark/Light Design System and Navigation | Not started | Phase 2 |
 | 4 | Implement Encrypted Local Persistence | Not started | Phase 2 |
 | 5 | Build Provider Platform and Refresh Engine | Not started | Phases 3-4 |
 | 6 | Prove and Deliver GitHub Copilot Connector | Not started | Phase 5 |
 | 7 | Gate Command Code and OpenCode Go Connectors | Not started | Phase 5; vendor approval gates network enablement only |
-| 8 | Deliver Claude and Codex Safe Companion Flows | Not started | Phase 5 |
+| 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Not started | Phase 5 |
 | 9 | Complete Usage, Connector, Settings, and Notifications UX | Not started | Phases 6-8; vendor approval is not required for disabled shells |
 | 10 | Security Hardening, QA, Privacy, and Release Readiness | Not started | Phase 9 |
 
@@ -82,10 +86,11 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 ### In scope
 
 - Confirm the repository was greenfield at planning start (`README.md:1`).
-- Research all five providers using official docs/primary repositories.
+- Research all six providers, including Gemini CLI quota/auth distinctions, using official docs/primary repositories.
 - Separate consumer quota, API usage, and enterprise billing concepts.
 - Define supported, experimental, and blocked connector tiers.
-- Reject embedded WebView/session-capture architecture.
+- Prototype dedicated embedded WebView sign-in on Android for Claude, Codex and GitHub; validate local cookie/session retention, usage access, logout and provider-policy constraints without logging or exporting credentials.
+- Validate whether a DevGauge-owned OAuth client can read account-level Gemini CLI quota through a documented Google contract; distinguish it from CLI-local `/stats model` and Gemini Apps usage.
 - Define safe Codex reset semantics.
 - Produce the six planning documents.
 - Obtain product-owner decisions in Section 3.
@@ -109,7 +114,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 - [x] Every current repository claim cites an opened file and line.
 - [x] Every provider has a provisional support tier and official/primary product sources; undocumented candidate routes are explicitly marked unverified and blocked.
-- [x] Unsupported session harvesting is explicitly excluded.
+- [ ] WebView session feasibility and provider/platform review are documented with pass/fail criteria and sanitized evidence.
 - [x] Requested product, design, database, API, security, and delivery scopes are documented.
 - [ ] Product owner confirms all seven sign-off decisions.
 - [ ] Vendor outreach owners and deadlines are assigned.
@@ -128,7 +133,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 - Initialize current stable Expo/React Native with TypeScript and Expo Router.
 - Pin package manager, Node version, Expo SDK, and EAS configuration.
-- Configure iOS bundle ID, Android package, reverse-domain scheme, Universal/App Link domains.
+- Configure Android package, reverse-domain scheme and Android App Link/callback domains; EAS targets Android only.
 - Add strict TypeScript, lint, formatting, unit tests, CI, and environment validation.
 - Implement route skeleton for onboarding, tabs, provider detail, connector flow, legal/support.
 - Configure development, preview, and production build profiles without embedding secrets.
@@ -144,7 +149,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 ### Acceptance criteria
 
-- [ ] iOS and Android development builds launch.
+- [ ] Android development build launches on supported device/emulator.
 - [ ] Typed routes compile and deep-link test routes resolve.
 - [ ] Development, preview, and production configuration boundaries are validated.
 - [ ] CI runs typecheck, lint, unit tests, and dependency audit.
@@ -152,7 +157,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 ### Open questions
 
-- Final bundle ID/domain.
+- Final Android package/domain.
 - Package manager and supported Node version.
 
 ## 8. Phase 3 - Build Dark/Light Design System and Navigation
@@ -164,7 +169,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - Create semantic dark/light color tokens, typography, spacing, radii, icon sizes, elevation, and motion tokens.
 - Implement Usage, Connectors, and Settings tab shells with safe-area-aware bottom navigation.
 - Build primitives: Screen, Header, Card, Button, ProgressBar, StatusChip, ListRow, Sheet, EmptyState, ErrorState, and Skeleton.
-- Build static fixtures for all five provider cards and every support/connection state.
+- Build static fixtures for all six provider cards and every support/connection state.
 - Define responsive phone/tablet layouts and landscape behavior.
 - Add accessibility semantics, platform touch targets, Dynamic Type behavior, reduced motion, and contrast tests.
 
@@ -174,7 +179,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - Light mode is independently designed and tested rather than mechanically inverted.
 - IBM Plex Sans is used for body/UI and JetBrains Mono selectively for usage data, subject to licensing and bundle review.
 - Bottom tabs use one vector icon family and visible text labels for Usage, Connectors, and Settings.
-- All interactions meet 44pt iOS / 48dp Android minimum targets and provide pressed/disabled/focus states.
+- All interactions meet 48dp Android minimum targets and provide pressed/disabled/focus states.
 - Progress bars always include readable values and never depend on color alone.
 
 ### Proposed files
@@ -192,7 +197,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - [ ] Dark and light snapshots cover every primitive and state.
 - [ ] Contrast meets 4.5:1 text and 3:1 meaningful non-text requirements.
 - [ ] Largest supported text sizes do not hide values or actions.
-- [ ] VoiceOver/TalkBack order and labels are verified on representative screens.
+- [ ] TalkBack order and labels are verified on representative Android screens.
 - [ ] Reduced-motion mode removes non-essential transitions.
 - [ ] No emoji or unofficial provider artwork is used as a structural icon.
 
@@ -234,7 +239,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - [ ] Database exports contain no seeded fake token/API key.
 - [ ] Dynamic SQL values are bound.
 - [ ] Disconnect/delete cascades data and SecureStore entries correctly.
-- [ ] iOS reinstall and Android backup behavior have manual QA records.
+- [ ] Android reinstall/backup behavior has manual QA records.
 
 ### Open questions
 
@@ -248,7 +253,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 ### In scope
 
-- Domain models and provider registry for exactly five IDs.
+- Domain models and provider registry for exactly six IDs, including `gemini-cli`.
 - Adapter interface and capability descriptors.
 - HTTP client with allowlisted hosts, timeout, cancellation, concurrency, backoff, and redaction.
 - Refresh state machine and per-connection mutex.
@@ -284,10 +289,11 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 ## 11. Phase 6 - Prove and Deliver GitHub Copilot Connector
 
-**Goal:** Prove the GitHub authentication/permission path and, only if it passes, ship the first production-supported end-to-end connector using documented GitHub contracts.
+**Goal:** Prove the requested GitHub website-session path on Android and ship it only if Phase 1 session/policy gates pass; independently prove the GitHub App API-token alternative.
 
 ### In scope
 
+- Validate embedded official-site GitHub login, local cookie persistence, usage access, account scope and logout on Android before enabling the requested path.
 - Register a test GitHub App and prove which minimum account permission, if any, authorizes the billing endpoints before changing the tier from candidate-supported to supported.
 - Spike browser PKCE versus device flow and determine whether a broker is required.
 - Implement exact callbacks, transaction initialization, TTL replay storage, state/PKCE binding, atomic transaction consumption, token refresh, and revocation.
@@ -301,6 +307,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - `src/providers/github-copilot/{adapter,client,schema,normalize,auth}.ts` (new)
 - `src/providers/github-copilot/fixtures/**` (new)
 - `src/services/auth/**` (new)
+- `src/services/web-session/**` (new; only after Phase 1 gate)
 - `broker/src/routes/oauth-github.ts` and security helpers if required (new)
 - Broker deployment configuration, secret-manager integration, domain/TLS configuration, TTL store, health checks, redacted monitoring, and CI/CD if the spike selects a broker (new)
 - GitHub connector component/E2E tests (new)
@@ -308,6 +315,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 ### Acceptance criteria
 
 - [ ] Personal and organization billing scopes are not conflated.
+- [ ] Any enabled website-session path demonstrates locally retained cookies, validated usage access, safe logout, reviewed policy, and no session data in logs/broker/SQLite.
 - [ ] A GitHub App user token is proven against every enabled billing endpoint with the documented minimum permission; otherwise the connector remains release-disabled.
 - [ ] OAuth PKCE/state/replay tests pass.
 - [ ] Token scope is minimum necessary and shown before consent.
@@ -355,13 +363,14 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - Vendor-provided read-only scopes, usage endpoints, polling limits, and revocation.
 - Whether broad API keys are acceptable for a read-only dashboard at all.
 
-## 13. Phase 8 - Deliver Claude and Codex Safe Companion Flows
+## 13. Phase 8 - Deliver Claude/Codex Sessions and Gemini CLI Connector
 
-**Goal:** Represent Claude and Codex honestly without harvesting sessions, while providing useful first-party usage handoffs and local reset reminders.
+**Goal:** Deliver feasible embedded Claude/Codex website-session connections after the Android Phase 1 spike, plus Gemini CLI quota tracking only through a proven DevGauge authorization/usage contract or explicitly user-shared CLI stats.
 
 ### In scope
 
-- Implement blocked/manual Claude and Codex adapters with `liveUsage: false`.
+- Implement a WebView-backed session adapter only for providers that pass the Phase 1 gate; otherwise keep blocked/manual adapters with `liveUsage: false`.
+- Implement `gemini-cli` with its own states: approved DevGauge OAuth quota read if available; otherwise user-shared `/stats model` data with source/time/coverage and no claim of live account-wide remaining quota.
 - Add status explanations describing why automatic synchronization is unavailable.
 - Open only allowlisted first-party usage/help pages through the system browser.
 - Add manual reset-time entry, timezone confirmation, editing, deletion, and reminder scheduling.
@@ -373,6 +382,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 - `src/providers/claude/**` (new)
 - `src/providers/codex/**` (new)
+- `src/providers/gemini-cli/**` (new)
 - `src/components/connectors/blocked-provider-card.tsx` (new)
 - `src/features/connections/manual-reset-form.tsx` (new)
 - `src/services/links/provider-links.ts` (new)
@@ -381,7 +391,8 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 ### Acceptance criteria
 
 - [ ] Claude/Codex never show `Connected` because a first-party page was opened.
-- [ ] No WebView, cookie capture, credential-file import, or private endpoint request exists.
+- [ ] Gemini CLI figures are never sourced from Gemini Apps chat and manual session stats never claim complete account quota.
+- [ ] Any enabled WebView flow has tested local cookie retention, allowlisted navigation, safe logout, redacted logs, and a reviewed usage source; failed flows remain disabled.
 - [ ] Codex action cannot be interpreted as forced quota reset.
 - [ ] Manual entries and reminders are visibly labeled user-provided.
 - [ ] Link destinations are fixed, allowlisted, and covered by tests.
@@ -420,11 +431,11 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 ### Acceptance criteria
 
-- [ ] All five providers render every defined state.
+- [ ] All six providers render every defined state.
 - [ ] GitHub renders a non-interactive candidate/release-disabled state until the Phase 6 gate passes.
 - [ ] Dashboard remains usable offline from cached data.
 - [ ] Theme switches without restart and has no hardcoded screen colors.
-- [ ] Dynamic Type, VoiceOver, TalkBack, and reduced motion pass manual matrix.
+- [ ] Android font scaling, TalkBack, and reduced motion pass manual matrix.
 - [ ] Notification denial does not block app usage.
 - [ ] Notification payloads are generic and routes allowlisted.
 - [ ] 375px phone, large phone, tablet, and landscape layouts have no hidden content.
@@ -445,7 +456,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - Dependency/license/supply-chain review.
 - Performance profiling for startup, refresh, database, and list rendering.
 - Store privacy/data safety disclosures, privacy policy, terms, support, licenses, and reviewer notes.
-- Brand asset/license review for all five providers.
+- Brand asset/license review for all six providers.
 - Beta distribution, crash triage, accessibility audit, and device matrix.
 - Operational runbook for provider schema incidents and kill switches.
 - Final go/no-go per connector; blocked connectors remain blocked.
@@ -471,7 +482,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 
 ### Open questions
 
-- App Store/Play release owner and legal review owner.
+- Play Store release owner and legal review owner.
 - Beta cohort size and success thresholds.
 
 ## 16. Cross-Cutting Rules
@@ -482,7 +493,7 @@ Nothing after Phase 1 starts until the sign-off decisions below are confirmed.
 - No migration edits after release; add a new migration.
 - Typecheck, lint, tests, security checks, and platform builds gate merge.
 - Provider credentials and real account payloads are never committed as fixtures.
-- Each phase includes manual iOS and Android verification relevant to its scope.
+- Each phase includes manual Android verification relevant to its scope.
 - Do not enable blocked/experimental functionality to satisfy a demo.
 
 ## 17. Risk and Backlog Register

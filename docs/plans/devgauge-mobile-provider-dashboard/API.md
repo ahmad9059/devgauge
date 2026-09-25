@@ -4,8 +4,8 @@
 
 ## 1. API Design Rules
 
-1. Use only documented public endpoints unless a connector is explicitly Experimental and vendor permission is recorded.
-2. Never scrape provider HTML or replay captured browser sessions.
+1. Use documented public APIs for API-token connectors; for embedded-session candidates, separately review provider-owned first-party usage surfaces, session behavior and provider policy before enablement.
+2. Keep website-session requests within a reviewed local WebView integration; never export/replay cookies to a broker or another provider, and do not assume HTML/endpoint stability.
 3. Preserve provider-native semantics and map missing fields to null.
 4. Validate every external response at runtime.
 5. Keep provider credentials out of URLs, SQLite, logs, analytics, crash reports, and notification payloads.
@@ -50,9 +50,11 @@ Normalizer invariants:
 
 ## 3. Provider Contracts
 
+**Embedded-session track:** The owner requires local, app-readable website sessions for Claude, Codex and Copilot on Android. [AI Usage](https://usage-4e75d.web.app/privacy-policy.html) documents embedded WebView sign-in for Claude/GitHub; its exact data sources, Codex flow and terms are unverified. Phase 1 must identify provider-owned usage surfaces, login/session behavior, schema, rate limits and applicable provider policies. Gemini CLI is a separate coding agent, not the Gemini chat web session. Do not promote a guessed private route to a production API contract.
+
 ### 3.1 Claude
 
-**Status:** blocked for automatic consumer-plan synchronization.
+**Status:** embedded website-session sync under Phase 1 feasibility review; no public third-party consumer-plan API documented.
 
 Validated facts:
 
@@ -60,7 +62,7 @@ Validated facts:
 - Anthropic Admin Usage/Cost APIs are for API organizations and unavailable to individual consumer accounts.
 - Claude Code long-lived setup tokens are documented for model requests, not third-party consumer quota access.
 
-V1 adapter behavior:
+V1 fallback adapter behavior **until** an embedded website-session flow passes the Phase 1 gate:
 
 - `authModes = ['manual']`.
 - `liveUsage = false`.
@@ -83,7 +85,7 @@ Sources:
 
 ### 3.2 OpenAI Codex
 
-**Status:** blocked for automatic consumer-plan synchronization.
+**Status:** embedded website-session sync under Phase 1 feasibility review; no public third-party consumer-plan API documented.
 
 Validated facts:
 
@@ -92,7 +94,7 @@ Validated facts:
 - No public third-party API for consumer quota or reset redemption is documented.
 - API rate-limit headers are a separate API organization concept.
 
-V1 adapter behavior:
+V1 fallback adapter behavior **until** the embedded-session gate passes:
 
 - `authModes = ['manual']`.
 - `liveUsage = false`.
@@ -190,7 +192,7 @@ Source: [OpenCode Go documentation](https://opencode.ai/docs/go/)
 
 ### 3.5 GitHub Copilot
 
-**Status:** candidate supported and release-disabled until a Phase 6 spike proves that a GitHub App user token can call the required billing endpoint with an approved minimum permission set.
+**Status:** requested embedded website-session flow needs a Phase 1/6 feasibility review; separate GitHub App API-token fallback remains release-disabled until a Phase 6 permission spike and owner acceptance.
 
 Candidate endpoints:
 
@@ -219,6 +221,17 @@ Sources:
 
 - [GitHub billing usage REST API](https://docs.github.com/en/rest/billing/usage)
 - [GitHub App user authorization](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-with-a-github-app-on-behalf-of-a-user)
+
+### 3.6 Gemini CLI (coding agent)
+
+**Status:** Android cross-device live account quota integration unverified; manual/user-shared CLI stats candidate. This connector does not use Gemini Apps web-chat usage.
+
+- Official [Gemini CLI quota documentation](https://geminicli.com/docs/resources/quota-and-pricing/) describes distinct Google-account/Code Assist, Gemini API-key, Workspace and Vertex limits. Its [`/stats model` command](https://geminicli.com/docs/reference/commands/#stats) shows model/session statistics and quota information within the CLI. CLI/agent-mode quotas may be shared with Code Assist; do not label them as Gemini Apps five-hour/weekly chat windows.
+- Phase 1: verify whether a DevGauge-owned OAuth client and documented API can query the same account-level quota on Android. Record exact scope, permissions, allowed refresh frequency, account/tier mapping and sample sanitized response. **No approved third-party quota endpoint is identified yet.** Do not use CLI's first-party OAuth client or undocumented `cloudcode-pa` internal routes.
+- If no approved live source exists, Phase 8 accepts explicit user-shared `/stats model` data or manual entries, stored with `source = manual`, CLI version and timestamp; session token counts must not be presented as complete daily account consumption. Do not import CLI credential/configuration files from another device.
+- A Gemini API key may represent a separately labeled *API project* connection only after its own scope decision; it cannot substitute for Google-account Gemini CLI subscription quota.
+
+Sources: [Gemini CLI auth](https://geminicli.com/docs/get-started/authentication/), [Gemini CLI quotas](https://geminicli.com/docs/resources/quota-and-pricing/), [Gemini Code Assist quotas](https://developers.google.com/gemini-code-assist/resources/quotas).
 
 ## 4. OAuth Broker API
 

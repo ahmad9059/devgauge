@@ -1,18 +1,19 @@
 # DevGauge Product Requirements Document
 
-> Status: **Planning. Provider feasibility validation complete.** At the start of this planning pass, no application, schema, API, or UI implementation existed (`README.md:1`); the repository now also contains these planning documents.
+> Status: **Planning; Android session/Gemini feasibility pending.** At the start of this planning pass, no application, schema, API, or UI implementation existed (`README.md:1`); the repository now also contains these planning documents.
 >
 > Evidence date: 2026-09-21. Provider contracts and limits change frequently and must be revalidated at each connector release.
 
 ## 1. Product Summary
 
-DevGauge is a local-first Expo React Native application that gives developers one place to inspect coding-assistant usage and reset windows for exactly five providers:
+DevGauge is an **Android-only**, local-first Expo React Native application that gives developers one place to inspect usage and reset windows for exactly six providers:
 
 1. Claude
 2. OpenAI Codex
 3. Command Code
 4. OpenCode Go
 5. GitHub Copilot
+6. Gemini CLI (Google's coding agent; not the Gemini consumer chat app)
 
 The product has three primary tabs based on the supplied layout:
 
@@ -38,23 +39,28 @@ Coding-assistant plans expose incompatible quota models. Some use rolling five-h
 
 ## 4. Product Principles
 
+### Product-owner requirement: embedded session sign-in (feasibility-first)
+
+The product owner requires Claude, Codex, and GitHub Copilot to sign in through a DevGauge-owned in-app browser and retain a local website session for usage refresh. This is a **hard product requirement**. The [AI Usage Play listing](https://play.google.com/store/apps/details?id=u.sage&hl=en) advertises these providers and Gemini, but does **not** establish that its Gemini tracking is Gemini CLI. Its [privacy policy](https://usage-4e75d.web.app/privacy-policy.html) explicitly describes embedded WebView sign-in for Claude and GitHub Copilot. Phase 1 must validate each requested session flow on Android. Gemini CLI has its own separate authentication and quota discovery spike; never substitute Gemini Apps chat usage for the coding agent.
+
 1. **Honest data over fake consistency.** Never invent a weekly or monthly limit if a provider does not expose one.
-2. **Supported auth over session harvesting.** Use registered OAuth/OIDC, device authorization, or user-created scoped keys. Never extract browser cookies or intercept passwords.
+2. **Explicit, local session handling.** For the three requested web-account providers, investigate provider-owned website login in an embedded WebView with a local cookie jar; never intercept typed passwords or claim the website session is an OAuth token. Use registered OAuth/OIDC or scoped keys where the provider supports them and they satisfy the product requirement.
 3. **Local-first by default.** Usage snapshots, settings, thresholds, and notification schedules remain on device.
-4. **Secrets are not ordinary data.** Credentials live in Keychain/Keystore-backed SecureStore, not SQLite.
+4. **Secrets are not ordinary data.** API/OAuth credentials live in Android Keystore-backed SecureStore; website sessions remain in the local WebView cookie store, not SQLite.
 5. **Stale is better than blank.** Keep the last successful snapshot and label its age when refresh fails.
-6. **Provider isolation.** One connector failure cannot break the other four.
+6. **Provider isolation.** One connector failure cannot break the other five.
 7. **Accessible at every density.** Dynamic Type, screen readers, reduced motion, and platform touch targets are release gates.
 
 ## 5. Provider Feasibility Matrix
 
 | Provider | Intended connection | Usage data | Product support tier | Release gate |
 |---|---|---|---|---|
-| Claude | Vendor-approved OAuth or official partner API only | Consumer plan limits are visible in first-party `/usage`, but no public third-party consumer quota API is documented | **Blocked for automatic consumer sync** | Written Anthropic approval plus documented scopes/endpoints |
-| Codex | Vendor-approved OAuth or official partner API only | First-party dashboard and `/status` expose five-hour/weekly state; no public third-party consumer quota API is documented | **Blocked for automatic consumer sync** | Written OpenAI approval plus documented usage/reset API |
+| Claude | Embedded website session feasibility spike; partner API if offered | Consumer plan limits visible in first-party usage UI; no public third-party consumer quota API documented | **Unverified WebView candidate** | Per-platform login, usage access, session retention, provider-policy and disclosure review |
+| Codex | Embedded website session feasibility spike; partner API if offered | First-party dashboard and `/status` expose five-hour/weekly state; no public third-party consumer quota API documented | **Unverified WebView candidate** | Determine exact sign-in, usage source, session durability and provider-policy review |
 | Command Code | User-generated API key or vendor OAuth when available | Five-hour, weekly, and plan allowance data appears available through private/alpha APIs | **Experimental** | Vendor permission, contract tests, remote kill switch |
 | OpenCode Go | User-generated Go API key | Official docs define 5-hour, weekly, and monthly limits; current usage endpoint is not documented as a stable public contract | **Experimental** | Vendor confirmation of usage endpoint and polling policy |
-| GitHub Copilot | GitHub App user authorization | Documented user/org AI credit and premium request billing usage | **Candidate supported; release-disabled** | Prove GitHub App token compatibility, permissions, and account coverage in Phase 6 |
+| GitHub Copilot | Embedded website session feasibility spike; GitHub App OAuth is an API-token fallback, not website session | Documented user/org AI credit and premium request billing usage | **Unverified WebView candidate; OAuth API candidate** | Prove requested WebView flow on Android or obtain explicit fallback decision; prove API permissions independently |
+| Gemini CLI | Investigate registered DevGauge OAuth for Code Assist quota, sanctioned quota API, or explicit user-shared CLI stats; keep Google sign-in in OS-owned auth tab | Official CLI docs show `/stats model` session/model statistics and quota information; quota depends on Google-account, API-key, Workspace or Vertex auth | **Candidate; live phone sync unverified** | Prove a DevGauge-authorized account can read real Gemini CLI remaining quota without borrowing CLI credentials; otherwise offer user-supplied stats/manual status |
 
 Important distinctions:
 
@@ -63,6 +69,7 @@ Important distinctions:
 - GitHub billing usage is primarily monthly/billing-period data and must not be relabeled as a five-hour allowance.
 - OpenCode Go documents 5-hour, weekly, and monthly caps, but current consumption access still requires a supported usage contract.
 - Command Code usage integration depends on private `/alpha/*` behavior and is not production-stable without vendor agreement.
+- Gemini CLI's quota varies by auth method and may be shared with Gemini Code Assist agent mode. `/stats model` is a CLI/session surface, **not** proof of an Android-accessible cross-device account quota API. Gemini Apps chat and Gemini API-key project usage are not interchangeable with Google-account CLI quota. [Google may reject account sign-in in embedded browsers](https://support.google.com/accounts/answer/7675428?hl=en&co=GENIE.Platform%3DAndroid); never impersonate a browser, reuse Gemini CLI's first-party OAuth client, or import its local credentials.
 
 ## 6. Target Users
 
@@ -85,16 +92,16 @@ Important distinctions:
 
 1. App explains local-first storage and provider support tiers.
 2. User chooses system, light, or dark theme.
-3. User sees all five providers as disconnected cards.
+3. User sees all six providers as disconnected cards.
 4. User can continue without creating a DevGauge account.
 
 ### 7.2 Connect a candidate supported provider after its release gate passes
 
 1. After Phase 6 proves the GitHub auth/permission path and enables the connector, the user opens Connectors and chooses GitHub Copilot. Before that gate, the same card is visibly release-disabled and cannot start authorization.
 2. App explains exactly which GitHub permission and billing data are requested.
-3. System authentication browser opens; an embedded WebView is never used.
-4. Callback state and PKCE are validated.
-5. App stores the credential reference securely and imports the first snapshot.
+3. For the requested session flow, DevGauge opens a dedicated provider WebView showing the official domain; OAuth in an OS-owned tab is an alternate API flow, not equivalent website-session login.
+4. Validate actual signed-in state and supported usage access without collecting form input; keep session state in the WebView's local cookie store, not in SQLite or a broker.
+5. If a separately authorized OAuth API flow is used instead, validate callback state/PKCE and store the resulting token in SecureStore; do not call it a web session.
 6. Usage tab displays provider-native labels and data freshness.
 
 ### 7.3 Connect an experimental API-key provider
@@ -108,10 +115,9 @@ Important distinctions:
 
 ### 7.4 Claude or Codex before partner access
 
-1. Card explains automatic sync is unavailable through a supported public API.
-2. User may open the first-party usage dashboard.
-3. User may optionally enter a reset time manually and schedule a local reminder.
-4. The app must not claim the provider account is connected.
+1. During Phase 1, test embedded sign-in, session retention, and first-party usage access per provider and platform without real-user credential collection in logs or test artifacts.
+2. Until a provider passes the feasibility and policy gates, the card clearly says automatic sync is unavailable; user may open the official dashboard and enter a reset reminder.
+3. Opening a page alone never marks an account connected; successful validated usage access is required.
 
 ### 7.5 Usage refresh
 
@@ -135,7 +141,7 @@ The requested one-button reset cannot mean forcing a server-side quota reset. No
 
 ### 8.1 Usage dashboard
 
-- Show exactly five provider cards in user-configurable order.
+- Show exactly six provider cards in user-configurable order.
 - Show connection/support state: candidate/release-disabled, connected, disconnected, blocked, experimental, expired, rate-limited, and stale.
 - Display every available window independently: rolling, daily, weekly, monthly, billing period.
 - Display used, limit, remaining, unit, percentage, period start/end, and reset time only when supplied or safely derived from documented rules.
@@ -146,10 +152,10 @@ The requested one-button reset cannot mean forcing a server-side quota reset. No
 
 ### 8.2 Connector management
 
-- Present the five providers and no generic arbitrary-provider connector in v1.
+- Present the six providers and no generic arbitrary-provider connector in v1.
 - Explain support tier, data available, auth method, scopes, and retention before connection.
 - Support secure key entry for approved key-based providers.
-- Support OAuth only through system browser and registered callbacks.
+- Support delegated OAuth only through system browser and registered callbacks; website-session WebViews are a separate, gated flow.
 - Test connection before persistence.
 - Support refresh, reauthorize, revoke/disconnect, and delete local history.
 - Allow a remote/local capability manifest to disable an experimental connector without an app update.
@@ -222,7 +228,7 @@ The requested one-button reset cannot mean forcing a server-side quota reset. No
 
 - Normal text contrast at least 4.5:1 in both themes.
 - Meaningful non-text UI at least 3:1.
-- Touch targets at least 44pt iOS and 48dp Android.
+- Touch targets at least 48dp on Android.
 - Dynamic Type and largest practical system font tested without clipping.
 - Screen reader order follows visual order and includes exact values/reset times.
 - Progress is never conveyed by color alone.
@@ -237,9 +243,9 @@ The requested one-button reset cannot mean forcing a server-side quota reset. No
 | Reliability | One provider parser/network failure cannot prevent other cards from rendering |
 | Privacy | No provider password, browser cookie, auth code, or secret in logs/analytics/SQLite |
 | Storage | Database migrations are forward-only, transactional, and fixture-tested |
-| Accessibility | VoiceOver/TalkBack, reduced motion, large text, contrast, and touch target QA required |
+| Accessibility | TalkBack, reduced motion, large text, contrast, and touch target QA required |
 | Observability | Local structured events with redaction; crash reporting opt-in decision required before SDK adoption |
-| Compatibility | iOS and Android production development builds; Expo Go is not a release target if SQLCipher is enabled |
+| Compatibility | Android development and Play production builds; Expo Go is not a release target if SQLCipher is enabled; iOS is out of scope |
 
 ## 12. Out of Scope for V1
 
@@ -263,8 +269,8 @@ The requested one-button reset cannot mean forcing a server-side quota reset. No
 
 ## 14. Key Decisions Requiring Sign-Off
 
-1. **Approve the compliant auth boundary:** no embedded WebView login, cookie extraction, or credential-file import.
-2. **Approve blocked launch state for Claude/Codex automatic sync:** first-party links/manual reminders until partner APIs exist.
+1. **Approve feasibility-first research:** test Claude, Codex and GitHub Copilot embedded sessions on Android; separately validate Gemini CLI account quota access with DevGauge's own authorization or explicit stats sharing. Google sign-in failure is a gate, never a bypass target.
+2. **Approve fallback behavior when a provider fails the spike:** disabled live sync with first-party links/manual reminders, or defer release of the requested three-provider product.
 3. **Approve experimental treatment for Command Code/OpenCode Go:** feature flags, vendor approval, and kill switches required.
 4. **Approve a stateless OAuth broker for GitHub if confidential exchange is required:** no remote usage database in v1.
 5. **Clarify Codex reset intent:** this plan assumes first-party reset-page handoff, not quota circumvention.
@@ -273,6 +279,11 @@ The requested one-button reset cannot mean forcing a server-side quota reset. No
 ## 15. Research Sources
 
 - [OAuth 2.0 for Native Apps, RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252)
+- [AI Usage Play Store listing](https://play.google.com/store/apps/details?id=u.sage&hl=en) and [AI Usage privacy policy](https://usage-4e75d.web.app/privacy-policy.html) (self-reported competitor behavior; not provider approval)
+- [Gemini CLI quotas and pricing](https://geminicli.com/docs/resources/quota-and-pricing/)
+- [Gemini CLI `/stats` command](https://geminicli.com/docs/reference/commands/#stats)
+- [Gemini Code Assist agent-mode and CLI quotas](https://developers.google.com/gemini-code-assist/resources/quotas)
+- [Google Account supported browser guidance](https://support.google.com/accounts/answer/7675428?hl=en&co=GENIE.Platform%3DAndroid)
 - [Expo AuthSession](https://docs.expo.dev/versions/latest/sdk/auth-session/)
 - [Claude Code authentication](https://code.claude.com/docs/en/authentication)
 - [Anthropic Usage and Cost API](https://platform.claude.com/docs/en/manage-claude/usage-cost-api)

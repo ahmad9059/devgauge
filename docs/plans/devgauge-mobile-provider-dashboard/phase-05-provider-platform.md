@@ -12,7 +12,7 @@ Implement the provider-independent domain, adapter registry, safe HTTP layer, no
 
 ### In scope
 
-- Closed registry for exactly five provider IDs.
+- Closed registry for exactly six provider IDs, including `gemini-cli`.
 - Adapter and capability contracts.
 - Connection-scoped refresh orchestration.
 - HTTPS allowlists, timeout, cancellation, bounded concurrency, backoff, and rate-limit handling.
