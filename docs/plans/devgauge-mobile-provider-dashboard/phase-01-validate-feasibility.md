@@ -6,7 +6,7 @@ Depends on: none
 
 ## 1. Structural Fact: This Was a Greenfield Repository
 
-At validation start, the repository had only the `devgauge` heading (`README.md:1`). No live entrypoint, router, schema, provider module, storage implementation, or duplicate/legacy implementation existed to trace. The files now present are planning documents only (`IMPLEMENTATION_PLAN.md:3`).
+At validation start, the repository had only the `devgauge` heading (`README.md:1`). No live entrypoint, router, schema, provider module, storage implementation, or duplicate/legacy implementation existed to trace. Phase 2 has since added an Expo route shell (`app.config.ts:3`, `app/_layout.tsx:1`); signed-in provider feasibility remains open in `PHASE-01-FEASIBILITY.md`.
 
 ## 2. Claim-by-Claim Validation
 
@@ -47,25 +47,25 @@ At validation start, the repository had only the `devgauge` heading (`README.md:
 - Experimental provider routes need exact vendor-owned contracts.
 - Brand/trademark permissions and store privacy disclosures are release dependencies.
 
-## 5. What Phase 1 Did Not Do
+## 5. What the Initial Planning Pass Did Not Do
 
 - No Expo project was initialized.
 - No database or provider endpoint was called from application code.
 - No schema/API/UI implementation was added.
 - No provider credentials were collected.
 
-## 5a. Reopened Embedded-Session Spike (pending)
+## 5a. Embedded-Session Spike (test harness built; signed-in checks pending)
 
-- Build a disposable Expo development build using `react-native-webview` on Android, separate from production connector code; use only test accounts and keep all outputs sanitized.
+- The disposable Android `react-native-webview` test harness is at `app/diagnostics/web-session.tsx`; it is separate from production connector code and is gated to development/internal preview. A signed-in device test is pending. Use only test accounts and keep all outputs sanitized (`PHASE-01-ANDROID-TEST-INSTRUCTIONS.md`).
 - For each of Claude, Codex and GitHub Copilot, verify official login redirects/MFA, local session persistence across restart, a minimal first-party usage read, refresh after expiry, logout, and account switching.
 - Inspect real platform cookie-store behavior, including whether one provider/account can be deleted without affecting others. Verify WebView bridge and navigation restrictions before recording a pass.
 - Record tested Android/WebView versions, date, first-party usage source, policy/terms assessment, and pass/fail for each provider. A comparator's published behavior is not a substitute for these tests.
 - Separately investigate Gemini CLI via its official `/stats model`, auth and quota documentation. Prove a DevGauge-owned authorized account-level quota source before claiming live phone sync; otherwise document a user-shared stats/import workflow without reusing CLI credentials.
 - Do not advance a failed or undocumented flow to Phases 6/8; retain a clearly labeled disabled/manual fallback pending an owner decision.
 
-## 6. Sign-Off Needed Before Phase 2
+## 6. Sign-Off Needed Before Provider Implementation
 
-- **Reopened validation:** The product owner supplied a shipped Android comparator documenting local WebView sessions. Before Phase 2, prototype official-site login, session persistence, usage access, logout and failure recovery for Claude, Codex and Copilot on Android; document policy/terms and fallback decisions. Also validate Gemini CLI-specific quota access independently of Gemini Apps.
+- **Reopened validation:** The product owner supplied a shipped Android comparator documenting local WebView sessions. The owner explicitly authorized the Phase 2 foundation ahead of signed-in checks; before enabling any provider connector, test official-site login, session persistence, usage access, logout and failure recovery for Claude, Codex and Copilot on Android; document policy/terms and fallback decisions. Validate Gemini CLI-specific quota access independently of Gemini Apps.
 
 - Approve external-browser-only authentication.
 - Approve local-first architecture and optional broker boundary.

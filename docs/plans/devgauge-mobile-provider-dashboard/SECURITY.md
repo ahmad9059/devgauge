@@ -1,6 +1,6 @@
 # DevGauge Security and Privacy Plan
 
-> Security posture is architectural because no application code exists yet (`README.md:1`). This document defines mandatory controls and release gates, not findings against an implementation.
+> Security posture is architectural for future provider/storage features. An Expo route skeleton and a development-only WebView feasibility screen now exist (`app/_layout.tsx:1`, `app/diagnostics/web-session.tsx:1`); this document defines release gates, not a security certification of those future features.
 
 ## 1. Security Objectives
 

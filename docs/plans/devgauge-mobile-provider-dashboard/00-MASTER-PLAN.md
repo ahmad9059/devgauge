@@ -1,6 +1,6 @@
 # DevGauge Mobile Provider Dashboard
 
-> Status: **Planning; Phase 1 session feasibility reopened.** No schema/API/UI implementation has been made.
+> Status: **Execution started; Phase 1 signed-in feasibility pending and Phase 2 foundation underway.** No provider/API/database feature has been implemented.
 >
 > Source request: research and plan a local-first **Android-only** Expo React Native usage dashboard for Claude, Codex, Command Code, OpenCode Go, GitHub Copilot and **Gemini CLI**, including dark/light design, secure provider connection, SQLite, notifications, and ten phases. The product brief is preserved in `PRD.md`.
 
@@ -24,7 +24,7 @@ This folder is the complete ten-phase plan. The six specification documents defi
 ## 1. Validated Current State
 
 - At research start, the repository contained only the project heading `# devgauge` (`README.md:1`); there was no application implementation to preserve.
-- The planning pass has now produced the product, architecture, database, API, security, and implementation specifications, but no feature code (`PRD.md:3`, `IMPLEMENTATION_PLAN.md:3`).
+- The planning pass produced product, architecture, database, API, security and delivery specifications. Phase 2 added an Expo route shell and CI (`package.json:1`, `app/_layout.tsx:1`, `.github/workflows/ci.yml:1`); live provider functionality is still pending.
 - Claude, Codex and GitHub Copilot website-session sync is an unverified, provider-specific candidate; Command Code/OpenCode Go still need vendor usage contracts (`PRD.md` §5).
 - The product owner requires app-controlled embedded sign-in for Claude, Codex and GitHub Copilot. AI Usage documents a comparable local WebView pattern for Claude/GitHub, but its listing does not prove Codex implementation or permission to replicate it (`PRD.md` §4; `SECURITY.md` §2).
 - Gemini CLI is the sixth provider. Its official `/stats model` surface shows session/model and quota data, but an authorized Android cross-device quota contract still needs validation (`PRD.md` §5).
@@ -72,8 +72,8 @@ See `ARCHITECTURE.md`, `DATABASE.md`, `API.md`, and `SECURITY.md` for the bindin
 | Phase | Title | Status |
 |---|---|---|
 | 1 | Validate Feasibility and Secure Product Boundary | WebView and Gemini CLI quota/auth spikes pending |
-| 2 | Bootstrap Expo Application Foundation | Not started |
-| 3 | Build Dark/Light Design System and Navigation | Not started |
+| 2 | Bootstrap Expo Application Foundation | Code/checks and internal preview APK built; Android device QA pending |
+| 3 | Build Dark/Light Design System and Navigation | Complete; verified on phone/tablet emulators |
 | 4 | Implement Encrypted Local Persistence | Not started |
 | 5 | Build Provider Platform and Refresh Engine | Not started |
 | 6 | Prove and Deliver GitHub Copilot Connector | Not started |
@@ -94,4 +94,4 @@ See `ARCHITECTURE.md`, `DATABASE.md`, `API.md`, and `SECURITY.md` for the bindin
 
 ## 7. Next Step
 
-Run the Phase 1 embedded-session feasibility spike and document results per provider and platform. Confirm the remaining sign-off decisions before Phase 2. Production network implementation remains gated by Phase 5 and the relevant provider/policy review.
+Run the remaining signed-in Phase 1 Android session tests and finish Phase 2 native/device QA. Resolve product identifiers, test accounts and the sign-off decisions before provider network implementation; see `PHASE-01-FEASIBILITY.md` and `PHASE-02-EXECUTION.md`.

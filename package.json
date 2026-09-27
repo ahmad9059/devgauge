@@ -1,0 +1,49 @@
+{
+  "name": "devgauge",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@12.0.2",
+  "main": "expo-router/entry",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "android:preview-apk": "sh scripts/build-test-apk.sh",
+    "typecheck": "expo customize tsconfig.json && tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check app src scripts app.config.ts vitest.config.mts eslint.config.mjs",
+    "format": "prettier --write app src scripts app.config.ts vitest.config.mts eslint.config.mjs",
+    "test": "vitest run",
+    "config:check": "node scripts/check-config.mjs",
+    "audit:deps": "npm audit --omit=dev --audit-level=high",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run config:check"
+  },
+  "dependencies": {
+    "@expo-google-fonts/ibm-plex-sans": "^0.4.1",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo/vector-icons": "^15.0.2",
+    "expo": "~57.0.25",
+    "expo-constants": "~57.0.19",
+    "expo-dev-client": "~57.0.19",
+    "expo-font": "~57.0.4",
+    "expo-linking": "~57.0.11",
+    "expo-router": "~57.0.23",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-webview": "13.16.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "^57.0.2",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.2"
+  }
+}

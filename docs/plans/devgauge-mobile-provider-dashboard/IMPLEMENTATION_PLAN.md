@@ -1,6 +1,6 @@
 # DevGauge Implementation Plan
 
-> Status: **Planning; embedded-session feasibility reopened.** At the start of planning no feature code existed (`README.md:1`), and no feature code has been added; only planning documents were created.
+> Status: **Execution started; Phase 1 feasibility incomplete, Phase 2 foundation underway.** The original greenfield baseline was `README.md:1`; Expo route code now exists (`app.config.ts:3`, `app/_layout.tsx:1`). Provider and database functionality has not been implemented.
 >
 > The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
@@ -13,7 +13,7 @@
 - `SECURITY.md` defines non-negotiable controls and release blockers.
 - This file defines delivery order, scope, files, and gates.
 
-Nothing after Phase 1 starts until its embedded-session spike and the sign-off decisions below are resolved.
+The owner authorized work on Phases 1-2 together. The Android foundation can be built without provider credentials; Phase 3+ provider behavior remains gated by the signed-in feasibility evidence and the sign-off decisions below. See `PHASE-01-FEASIBILITY.md` and `PHASE-02-EXECUTION.md` for actual execution status.
 
 ## 1. Validated Current State
 
@@ -49,6 +49,8 @@ Nothing after Phase 1 starts until its embedded-session spike and the sign-off d
 
 **Gemini CLI addition:** The sixth provider is Google's CLI coding agent, not consumer Gemini Apps. Phase 1 checks DevGauge-owned quota authorization and the meaning of `/stats model`; Phase 8 implements approved live access or user-shared stats. The app ships for Android only.
 
+**Owner handoff (2026-09-25):** The owner will run the signed-in Claude/Codex/Copilot checks on their own Android device using a local preview APK and return redacted results (`PHASE-01-ANDROID-TEST-INSTRUCTIONS.md`). Production Android package ID and callback domain remain intentionally pending. Neither decision marks the provider feasibility gate as passed.
+
 ## 4. Requested Workstream Mapping
 
 | Requested workstream | Delivery phase |
@@ -69,8 +71,8 @@ Nothing after Phase 1 starts until its embedded-session spike and the sign-off d
 | Phase | Title | Status | Depends on |
 |---|---|---|---|
 | 1 | Validate Feasibility and Secure Product Boundary | Embedded-session and Gemini CLI quota/auth spikes pending | None |
-| 2 | Bootstrap Expo Application Foundation | Not started | Phase 1 sign-off |
-| 3 | Build Dark/Light Design System and Navigation | Not started | Phase 2 |
+| 2 | Bootstrap Expo Application Foundation | Code/checks and internal preview APK built; device QA pending | Owner explicitly authorized Phases 1-2 together |
+| 3 | Build Dark/Light Design System and Navigation | Complete; verified on phone/tablet emulators | Phase 2 |
 | 4 | Implement Encrypted Local Persistence | Not started | Phase 2 |
 | 5 | Build Provider Platform and Refresh Engine | Not started | Phases 3-4 |
 | 6 | Prove and Deliver GitHub Copilot Connector | Not started | Phase 5 |
@@ -184,7 +186,7 @@ Nothing after Phase 1 starts until its embedded-session spike and the sign-off d
 
 ### Proposed files
 
-- `src/design/{tokens,themes,typography,motion}.ts` (new)
+- `src/design/{tokens,themes,typography,motion}.ts`, `src/design/responsive.ts`, `src/design/use-responsive-layout.ts` (new)
 - `src/components/ui/**` (new)
 - `src/components/usage/provider-card.tsx` (new)
 - `src/components/connectors/connector-card.tsx` (new)
@@ -193,13 +195,13 @@ Nothing after Phase 1 starts until its embedded-session spike and the sign-off d
 
 ### Acceptance criteria
 
-- [ ] Three-tab shell matches the supplied information architecture on small/large phones and tablets.
-- [ ] Dark and light snapshots cover every primitive and state.
-- [ ] Contrast meets 4.5:1 text and 3:1 meaningful non-text requirements.
-- [ ] Largest supported text sizes do not hide values or actions.
-- [ ] TalkBack order and labels are verified on representative Android screens.
-- [ ] Reduced-motion mode removes non-essential transitions.
-- [ ] No emoji or unofficial provider artwork is used as a structural icon.
+- [x] Three-tab shell matches the supplied information architecture on small/large phones and tablets.
+- [x] Dark and light snapshots cover every primitive and state.
+- [x] Contrast meets 4.5:1 text and 3:1 meaningful non-text requirements.
+- [x] Largest supported text sizes do not hide values or actions.
+- [x] TalkBack order and labels are verified on representative Android screens.
+- [x] Reduced-motion mode removes non-essential transitions.
+- [x] No emoji or unofficial provider artwork is used as a structural icon.
 
 ### Open questions
 

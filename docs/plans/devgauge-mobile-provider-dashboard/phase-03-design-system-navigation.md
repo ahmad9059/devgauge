@@ -33,26 +33,30 @@ Turn the supplied layout and dark visual reference into a coherent, accessible d
 5. Build static cards for candidate-disabled, disconnected, connected, experimental, blocked, stale, rate-limited, auth-expired, and error states.
 6. Use compact bullet/progress bars with exact text values; never encode status by color alone.
 7. Add token/component snapshot tests for both themes.
+8. Define responsive phone/tablet and landscape behavior from the shared breakpoint tokens.
 
 ## 4. Files Touched
 
-- `src/design/{tokens,themes,typography,motion}.ts` (new)
-- `src/components/ui/**` (new)
+- `src/design/{tokens,themes,typography,motion}.ts` (new; `theme-provider.tsx` added)
+- `src/design/responsive.ts` and `src/design/use-responsive-layout.ts` (new; pure breakpoint math plus the window-binding hook)
+- `src/components/ui/**` (new; `screen.tsx` applies the responsive content cap)
 - `src/components/usage/provider-card.tsx` (new)
 - `src/components/connectors/connector-card.tsx` (new)
 - `src/testing/fixtures/providers.ts` (new)
-- `app/(tabs)/_layout.tsx` and tab screens (new/update)
+- `src/domain/provider-status.ts`, `src/utils/format.ts` (new)
+- `app/(tabs)/_layout.tsx` and tab screens (updated)
+- `app/diagnostics/design-system.tsx` (new internal gallery)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Three-tab hierarchy matches the supplied frame.
-- [ ] Both themes cover every semantic token and component state.
-- [ ] Normal text reaches 4.5:1 and meaningful non-text UI reaches 3:1 contrast.
-- [ ] Touch targets meet 48dp Android minimums.
-- [ ] Largest supported text does not hide values/actions.
-- [ ] TalkBack order and labels are verified on Android.
-- [ ] Reduced motion removes non-essential transitions.
-- [ ] Small phone, large phone, tablet, portrait, and landscape layouts pass.
+- [x] Three-tab hierarchy matches the supplied frame.
+- [x] Both themes cover every semantic token and component state.
+- [x] Normal text reaches 4.5:1 and meaningful non-text UI reaches 3:1 contrast.
+- [x] Touch targets meet 48dp Android minimums.
+- [x] Largest supported text does not hide values/actions (verified on the Pixel 8 and Medium Tablet emulators at system font scale 1.5).
+- [x] TalkBack order and labels are verified on Android (accessibility focus and tree on the Medium Tablet emulator).
+- [x] Reduced motion removes non-essential transitions.
+- [x] Small phone, large phone, tablet, portrait, and landscape layouts pass on device/emulator.
 
 ## 6. Open Questions
 

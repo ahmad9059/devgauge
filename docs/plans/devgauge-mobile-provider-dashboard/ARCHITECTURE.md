@@ -1,6 +1,6 @@
 # DevGauge Architecture
 
-> This is a greenfield architecture. Before this planning pass, the repository contained only its name (`README.md:1`); it now also contains planning documents but no application implementation.
+> Greenfield provider architecture: the original repository contained only its name (`README.md:1`). Phase 2 now has an Expo/Android route skeleton (`app.config.ts:3`, `app/_layout.tsx:1`); provider adapters, storage and authentication remain proposed.
 
 ## 1. Architecture Decision
 

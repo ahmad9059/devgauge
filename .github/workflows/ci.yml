@@ -1,0 +1,22 @@
+name: Android foundation checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install -g npm@12.0.2
+      - run: npm ci
+      - run: npm run check
+      - run: npm run format:check
+      - run: npm run audit:deps
+      - run: npx expo install --check
+      - run: npx expo export --platform android --output-dir /tmp/devgauge-ci-export

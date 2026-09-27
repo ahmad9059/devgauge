@@ -1,6 +1,6 @@
 # Phase 2 — Bootstrap Expo Application Foundation
 
-Depends on: Phase 1 sign-off
+Depends on: owner authorization to start the Android foundation (granted); production connector work still depends on Phase 1 signed-in feasibility and outstanding sign-offs
 
 ---
 
@@ -17,7 +17,7 @@ Create a production-capable Expo/TypeScript project, deterministic development w
 - Configure Android-only placeholder package identifiers and documented production identifier inputs; EAS build profiles target Android.
 - Add linting, formatting, unit-test bootstrap, typecheck, dependency audit, and CI.
 - Create route shells for onboarding, tabs, provider detail, connection flow, legal, support, and diagnostics.
-- Add environment validation, root error boundary, and development-only diagnostics boundaries.
+- Add environment validation, root error boundary, and development/internal-preview diagnostics boundaries with a production redirect.
 
 ### Out of scope
 
@@ -51,16 +51,16 @@ Create a production-capable Expo/TypeScript project, deterministic development w
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Clean checkout installs reproducibly.
-- [ ] Android development build launches on supported device/emulator.
+- [x] Clean install from package manifest and lockfile with `npm ci` succeeded in an isolated temporary directory.
+- [ ] Signed internal preview APK was built and verified; launch on a supported device is pending owner QA.
 - [ ] Every planned route resolves and platform back behavior works.
-- [ ] Typed invalid routes fail compilation.
-- [ ] CI runs typecheck, lint, tests, and dependency audit.
-- [ ] Release configuration contains no client/provider secret.
-- [ ] Debug tooling is excluded or disabled in production configuration.
+- [x] Typed invalid routes fail compilation after automatic route type generation in `npm run typecheck`.
+- [ ] CI workflow contains typecheck, lint, tests, dependency audit and Android bundling; GitHub Actions has not run yet.
+- [x] Release config includes no provider secret; production package ID is an owner-supplied non-secret build value.
+- [x] Production config disables the diagnostic route, including if the preview flag is accidentally supplied.
 
 ## 6. Open Questions
 
 - Final reverse-domain Android package identifier.
 - Domain used for Universal Links/App Links and OAuth callbacks.
-- Package manager and supported Node LTS policy.
+- npm 12.0.2 and Node 24 LTS are chosen in `package.json`, `.nvmrc` and CI.

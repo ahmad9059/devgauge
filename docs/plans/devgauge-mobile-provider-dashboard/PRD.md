@@ -1,6 +1,6 @@
 # DevGauge Product Requirements Document
 
-> Status: **Planning; Android session/Gemini feasibility pending.** At the start of this planning pass, no application, schema, API, or UI implementation existed (`README.md:1`); the repository now also contains these planning documents.
+> Status: **Planning; Android session/Gemini feasibility pending.** The project began at `README.md:1`. An Expo route skeleton now exists (`app.config.ts:3`, `app/_layout.tsx:1`); no production provider connector or database is implemented.
 >
 > Evidence date: 2026-09-21. Provider contracts and limits change frequently and must be revalidated at each connector release.
 
@@ -25,7 +25,7 @@ The visual direction adapts the supplied dark mobile reference rather than copyi
 
 ## 2. Validated Starting Point
 
-The repository was greenfield when research began: its only project content was the `devgauge` heading in `README.md` (`README.md:1`). It now also contains this planning set, but still has no Expo project, package manifest, application code, database, provider integration, test suite, or pre-existing local planning convention.
+The repository was greenfield when research began: its only project content was the `devgauge` heading in `README.md` (`README.md:1`). Phase 2 added the Expo package manifest, route skeleton, tests and CI (`package.json:1`, `app/_layout.tsx:1`, `.github/workflows/ci.yml:1`). The SQLite schema and provider integrations are still plans.
 
 Consequences:
 
