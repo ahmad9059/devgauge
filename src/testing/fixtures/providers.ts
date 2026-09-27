@@ -1,13 +1,9 @@
 // Static provider fixtures for Phase 3 visual work. No network, no auth.
 // Times are relative offsets so cards render deterministically in tests.
 
-export type ProviderId =
-  | 'claude'
-  | 'codex'
-  | 'command-code'
-  | 'opencode-go'
-  | 'github-copilot'
-  | 'gemini-cli';
+import type { ProviderId } from '@/domain/providers';
+
+export type { ProviderId };
 
 export type SupportTier = 'supported' | 'experimental' | 'blocked';
 

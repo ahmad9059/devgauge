@@ -1,6 +1,6 @@
 # DevGauge Local Database Plan
 
-> No database implementation existed when planning began (`README.md:1`), and none has been added; this document defines the proposed local schema and migration contract.
+> Phase 4 implemented this schema and migration contract in `src/storage/` (SQLCipher + repositories); this document remains the binding spec. Evidence is in `PHASE-04-EXECUTION.md`.
 
 ## 1. Storage Boundary
 

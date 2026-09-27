@@ -37,23 +37,25 @@ Create migration-safe local persistence with strict separation between ordinary 
 
 ## 4. Files Touched
 
-- `src/storage/database.ts` (new)
-- `src/storage/migrations/0001-initial-schema.ts` (new)
-- `src/storage/repositories/*.ts` (new)
-- `src/storage/secure-vault.ts` (new)
-- `src/services/diagnostics/export.ts` (new)
-- migration/database/security fixtures and tests (new)
+- `src/storage/database.ts`, `src/storage/sqlite-driver.ts`, `src/storage/expo-driver.ts`, `src/storage/app-database.ts` (new)
+- `src/storage/migrations/{types,0001-initial-schema,index}.ts` (new)
+- `src/storage/repositories/{connections,usage,settings,notifications,manual-reset}.ts` (new)
+- `src/storage/{secret-store,secure-store-backend,secure-vault,database-key,ids,recovery,types}.ts` (new)
+- `src/services/diagnostics/export.ts`, `src/services/local-data.ts` (new)
+- `src/domain/providers.ts` (new; canonical provider registry)
+- `app/diagnostics/storage.tsx` (new dev-only self-test)
+- `src/testing/storage/{node-driver,database,factory}.ts` and migration/database/repository/security tests (new)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Fresh and prior-version fixtures migrate transactionally.
-- [ ] Failed migration preserves the prior usable database.
-- [ ] SQLCipher DB cannot open without its key when enabled.
-- [ ] Dynamic values use bound parameters.
-- [ ] Seeded fake secrets never appear in DB or diagnostics export.
-- [ ] Concurrent connection writes do not interleave.
-- [ ] Disconnect/delete behavior removes expected DB, SecureStore, and notification state.
-- [ ] Android reinstall and backup/restore behaviors are manually tested.
+- [x] Fresh and prior-version fixtures migrate transactionally.
+- [x] Failed migration preserves the prior usable database.
+- [x] SQLCipher DB cannot open without its key when enabled.
+- [x] Dynamic values use bound parameters.
+- [x] Seeded fake secrets never appear in DB or diagnostics export.
+- [x] Concurrent connection writes do not interleave.
+- [x] Disconnect/delete behavior removes expected DB, SecureStore, and notification state.
+- [x] Android reinstall and backup/restore behaviors are manually tested (reinstall on emulator; backup excludes SecureStore; cross-device restore remains owner QA).
 
 ## 6. Open Questions
 

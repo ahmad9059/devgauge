@@ -26,7 +26,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: 'default',
     platforms: ['android'],
     scheme: 'devgauge',
-    plugins: ['expo-font'],
+    plugins: [
+      'expo-font',
+      // SQLCipher encrypts the local usage database; the key lives in SecureStore.
+      ['expo-sqlite', { useSQLCipher: true }],
+      // Excludes SecureStore ciphertext from Android backup.
+      'expo-secure-store',
+    ],
     extra: { appVariant: environment },
     android: {
       package:
