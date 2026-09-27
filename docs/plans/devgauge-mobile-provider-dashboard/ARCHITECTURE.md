@@ -1,6 +1,6 @@
 # DevGauge Architecture
 
-> Greenfield provider architecture: the original repository contained only its name (`README.md:1`). Phase 2 now has an Expo/Android route skeleton (`app.config.ts:3`, `app/_layout.tsx:1`); provider adapters, storage and authentication remain proposed.
+> Greenfield provider architecture: the original repository contained only its name (`README.md:1`). Phases 2–5 now provide an Expo/Android route shell, an encrypted SQLite storage layer, and the provider platform (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/features/dashboard/refresh-connection.ts:1`); real provider adapters and authentication remain unimplemented.
 
 ## 1. Architecture Decision
 

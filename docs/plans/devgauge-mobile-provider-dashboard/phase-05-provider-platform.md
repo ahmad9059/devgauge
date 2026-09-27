@@ -39,23 +39,23 @@ Implement the provider-independent domain, adapter registry, safe HTTP layer, no
 
 ## 4. Files Touched
 
-- `src/domain/{providers,usage,errors}.ts` (new)
-- `src/providers/{registry,types}.ts` (new)
-- `src/services/network/{client,backoff,redaction}.ts` (new)
-- `src/features/dashboard/refresh-connection.ts` (new)
-- `src/services/capabilities/**` (new)
-- provider contract harness, fixtures, and tests (new)
+- `src/domain/{providers,usage,errors,decimal}.ts` (new; `providers.ts` became the canonical registry in Phase 4)
+- `src/providers/{registry,types}.ts` and `src/providers/mock/**` (new)
+- `src/services/network/{client,backoff,redaction,logger}.ts` (new)
+- `src/services/capabilities/{ed25519,manifest}.ts` (new)
+- `src/features/dashboard/refresh-connection.ts` and `lifecycle.ts` (new)
+- provider contract harness, versioned fixtures, and tests (new)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Unknown values remain null; no absent limit becomes zero.
-- [ ] Decimal quantities round-trip without currency precision loss.
-- [ ] One adapter failure cannot block another.
-- [ ] Duplicate refreshes coalesce per connection.
-- [ ] Malformed, oversized, hostile, and changed-schema responses fail safely.
-- [ ] `429` and exact `Retry-After` handling pass tests.
-- [ ] Capability tamper/expiry/audience/replay tests pass.
-- [ ] Seeded secrets are absent from logs.
+- [x] Unknown values remain null; no absent limit becomes zero.
+- [x] Decimal quantities round-trip without currency precision loss.
+- [x] One adapter failure cannot block another.
+- [x] Duplicate refreshes coalesce per connection.
+- [x] Malformed, oversized, hostile, and changed-schema responses fail safely.
+- [x] `429` and exact `Retry-After` handling pass tests.
+- [x] Capability tamper/expiry/audience/replay tests pass.
+- [x] Seeded secrets are absent from logs.
 
 ## 6. Open Questions
 

@@ -1,6 +1,6 @@
 # DevGauge Implementation Plan
 
-> Status: **Execution started; Phases 1–4 delivered.** The original greenfield baseline was `README.md:1`; Expo route code and an encrypted SQLite storage layer now exist (`app.config.ts:3`, `app/_layout.tsx:1`, `src/storage/app-database.ts:1`). Provider network functionality has not been implemented.
+> Status: **Execution started; Phases 1–5 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, and a provider platform (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/features/dashboard/refresh-connection.ts:1`). No real provider network call is enabled.
 >
 > The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
@@ -74,7 +74,7 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 | 2 | Bootstrap Expo Application Foundation | Code/checks and internal preview APK built; device QA pending | Owner explicitly authorized Phases 1-2 together |
 | 3 | Build Dark/Light Design System and Navigation | Complete; verified on phone/tablet emulators | Phase 2 |
 | 4 | Implement Encrypted Local Persistence | Complete; SQLCipher and repositories verified on emulator | Phase 2 |
-| 5 | Build Provider Platform and Refresh Engine | Not started | Phases 3-4 |
+| 5 | Build Provider Platform and Refresh Engine | Complete; domain, HTTP policy, refresh engine, and capability manifest implemented | Phases 3-4 |
 | 6 | Prove and Deliver GitHub Copilot Connector | Not started | Phase 5 |
 | 7 | Gate Command Code and OpenCode Go Connectors | Not started | Phase 5; vendor approval gates network enablement only |
 | 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Not started | Phase 5 |
@@ -268,22 +268,22 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 
 ### Proposed files
 
-- `src/domain/{providers,usage,errors}.ts` (new)
-- `src/providers/{registry,types}.ts` (new)
-- `src/services/network/{client,backoff,redaction}.ts` (new)
-- `src/features/dashboard/refresh-provider.ts` (new)
-- `src/services/capabilities/**` (new)
-- provider contract test harness and fixtures (new)
+- `src/domain/{providers,usage,errors,decimal}.ts` (new)
+- `src/providers/{registry,types}.ts` and `src/providers/mock/**` (new)
+- `src/services/network/{client,backoff,redaction,logger}.ts` (new)
+- `src/services/capabilities/{ed25519,manifest}.ts` (new)
+- `src/features/dashboard/refresh-connection.ts` and `lifecycle.ts` (new)
+- provider contract test harness and versioned fixtures (new)
 
 ### Acceptance criteria
 
-- [ ] Unknown limits remain null end-to-end.
-- [ ] One adapter failure does not block other adapters.
-- [ ] Duplicate refreshes coalesce.
-- [ ] `429` and `Retry-After` behavior is tested.
-- [ ] Malformed/oversized provider payloads fail safely.
-- [ ] Capability manifest signature, audience/environment, issue/expiry time, clock-skew, and lower-version replay tests pass.
-- [ ] Logs contain no seeded fake secrets.
+- [x] Unknown limits remain null end-to-end.
+- [x] One adapter failure does not block other adapters.
+- [x] Duplicate refreshes coalesce.
+- [x] `429` and `Retry-After` behavior is tested.
+- [x] Malformed/oversized provider payloads fail safely.
+- [x] Capability manifest signature, audience/environment, issue/expiry time, clock-skew, and lower-version replay tests pass.
+- [x] Logs contain no seeded fake secrets.
 
 ### Open questions
 
