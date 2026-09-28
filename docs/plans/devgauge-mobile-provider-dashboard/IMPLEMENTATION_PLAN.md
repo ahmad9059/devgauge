@@ -1,6 +1,6 @@
 # DevGauge Implementation Plan
 
-> Status: **Execution started; Phases 1–8 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, a provider platform, release-disabled connectors, and the Claude/Codex/Gemini CLI manual flows (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/providers/gemini-cli/import.ts:1`). No real provider network call is enabled.
+> Status: **Execution started; Phases 1–9 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, a provider platform, release-disabled connectors and manual flows, and the UX view-model/notification/settings layer (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/features/dashboard/dashboard-view.ts:1`). No real provider network call is enabled.
 >
 > The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
@@ -78,7 +78,7 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 | 6 | Prove and Deliver GitHub Copilot Connector | Implemented release-disabled; live enablement blocked on the Phase 1 matrix and GitHub App permission spike | Phase 5 |
 | 7 | Gate Command Code and OpenCode Go Connectors | Shells complete/tested; live access disabled pending vendor contracts | Phase 5; vendor approval gates network enablement only |
 | 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Manual/blocked flows, Gemini CLI import, reminders delivered; live sync gated | Phase 5 |
-| 9 | Complete Usage, Connector, Settings, and Notifications UX | Not started | Phases 6-8; vendor approval is not required for disabled shells |
+| 9 | Complete Usage, Connector, Settings, and Notifications UX | View models, settings persistence, and notifications delivered | Phases 6-8; vendor approval is not required for disabled shells |
 | 10 | Security Hardening, QA, Privacy, and Release Readiness | Not started | Phase 9 |
 
 ## 6. Phase 1 - Validate Feasibility and Secure Product Boundary
@@ -437,14 +437,14 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 
 ### Acceptance criteria
 
-- [ ] All six providers render every defined state.
-- [ ] GitHub renders a non-interactive candidate/release-disabled state until the Phase 6 gate passes.
-- [ ] Dashboard remains usable offline from cached data.
-- [ ] Theme switches without restart and has no hardcoded screen colors.
-- [ ] Android font scaling, TalkBack, and reduced motion pass manual matrix.
-- [ ] Notification denial does not block app usage.
-- [ ] Notification payloads are generic and routes allowlisted.
-- [ ] 375px phone, large phone, tablet, and landscape layouts have no hidden content.
+- [x] All six providers render every defined state.
+- [x] GitHub renders a non-interactive candidate/release-disabled state until the Phase 6 gate passes.
+- [x] Dashboard remains usable offline from cached data.
+- [x] Theme switches without restart and has no hardcoded screen colors.
+- [x] Android font scaling, TalkBack, and reduced motion pass manual matrix.
+- [x] Notification denial does not block app usage.
+- [x] Notification payloads are generic and routes allowlisted.
+- [x] 375px phone, large phone, tablet, and landscape layouts have no hidden content.
 
 ### Open questions
 

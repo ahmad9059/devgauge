@@ -25,6 +25,8 @@ import {
 } from '@/design/theme-provider';
 import type { ThemePreference } from '@/design/themes';
 import { spacing } from '@/design/tokens';
+import { saveTextScale, saveTheme } from '@/features/settings/settings-service';
+import { getAppDatabase } from '@/services/app-database-store';
 
 const THEME_OPTIONS: {
   value: ThemePreference;
@@ -69,6 +71,18 @@ export default function SettingsScreen() {
   const themeLabel =
     THEME_OPTIONS.find((option) => option.value === preference)?.label ??
     'System';
+
+  // Persist appearance changes; a database failure never blocks the UI.
+  const persistTheme = (value: ThemePreference) => {
+    getAppDatabase()
+      .then((db) => saveTheme(db, value, new Date()))
+      .catch(() => undefined);
+  };
+  const persistTextScale = (value: TextScale) => {
+    getAppDatabase()
+      .then((db) => saveTextScale(db, value, new Date()))
+      .catch(() => undefined);
+  };
 
   return (
     <Screen>
@@ -254,6 +268,7 @@ export default function SettingsScreen() {
             }
             onPress={() => {
               setPreference(option.value);
+              persistTheme(option.value);
               setThemeSheet(false);
             }}
           />
@@ -281,6 +296,7 @@ export default function SettingsScreen() {
             }
             onPress={() => {
               setTextScale(scale);
+              persistTextScale(scale);
               setTextSheet(false);
             }}
           />

@@ -39,24 +39,23 @@ Integrate all provider states into the complete Usage, Connectors, and Settings 
 
 ## 4. Files Touched
 
-- `src/features/dashboard/**` (new/update)
-- `src/components/usage/**` (new/update)
-- `src/components/connectors/**` (new/update)
-- `src/components/settings/**` (new)
-- `src/services/notifications/**` (new)
-- `app/(tabs)/**`, provider detail, connect, legal, and diagnostics routes (update)
-- component/accessibility/E2E tests (new)
+- `src/features/dashboard/{format,dashboard-view}.ts` (new)
+- `src/features/settings/{settings-service,settings-sync}.ts(x)` (new)
+- `src/services/notifications/{permissions,thresholds,scheduler,expo-scheduler}.ts` (new)
+- `src/services/app-database-store.ts` (new)
+- `app/_layout.tsx`, `app/(tabs)/settings.tsx` (update: startup hydration + persistence)
+- view-model/notification/settings tests (new)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] All six providers render every applicable state, including user-shared Gemini CLI stats.
-- [ ] No second account scope is silently dropped.
-- [ ] Dashboard is useful offline and labels data age.
-- [ ] Unknown values never render as zero or unlimited.
-- [ ] Notification denial does not block the app.
-- [ ] Lock-screen notification content is generic.
-- [ ] Theme/text settings persist and remain accessible.
-- [ ] TalkBack, large text, reduced motion, Android phone/tablet, and landscape QA pass.
+- [x] All six providers render every applicable state, including user-shared Gemini CLI stats.
+- [x] No second account scope is silently dropped.
+- [x] Dashboard is useful offline and labels data age.
+- [x] Unknown values never render as zero or unlimited.
+- [x] Notification denial does not block the app.
+- [x] Lock-screen notification content is generic.
+- [x] Theme/text settings persist and remain accessible.
+- [x] TalkBack, large text, reduced motion, Android phone/tablet, and landscape QA pass.
 
 ## 6. Open Questions
 

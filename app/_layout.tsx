@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { ThemeProvider, useTheme } from '@/design/theme-provider';
+import { SettingsSync } from '@/features/settings/settings-sync';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return <AppErrorBoundary retry={retry} />;
@@ -48,6 +49,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <ThemedApp />
+      <SettingsSync />
     </ThemeProvider>
   );
 }

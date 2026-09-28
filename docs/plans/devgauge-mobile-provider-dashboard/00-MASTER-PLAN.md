@@ -1,6 +1,6 @@
 # DevGauge Mobile Provider Dashboard
 
-> Status: **Execution started; Phases 1–8 delivered (Expo foundation, design system, encrypted local persistence, provider platform, GitHub/Command Code/OpenCode Go connectors, and the Claude/Codex/Gemini CLI manual flows). Phase 1 signed-in feasibility and Phase 2 device QA remain open; no real provider network call is enabled.**
+> Status: **Execution started; Phases 1–9 delivered (Expo foundation, design system, encrypted local persistence, provider platform, connectors/manual flows, and the product UX view models, settings persistence, and notifications). Phase 1 signed-in feasibility and Phase 2 device QA remain open; no real provider network call is enabled.**
 >
 > Source request: research and plan a local-first **Android-only** Expo React Native usage dashboard for Claude, Codex, Command Code, OpenCode Go, GitHub Copilot and **Gemini CLI**, including dark/light design, secure provider connection, SQLite, notifications, and ten phases. The product brief is preserved in `PRD.md`.
 
@@ -79,7 +79,7 @@ See `ARCHITECTURE.md`, `DATABASE.md`, `API.md`, and `SECURITY.md` for the bindin
 | 6 | Prove and Deliver GitHub Copilot Connector | Implemented release-disabled; live enablement blocked on the Phase 1 matrix and GitHub App permission spike |
 | 7 | Gate Command Code and OpenCode Go Connectors | Connector shells complete and tested; live access disabled pending vendor contracts |
 | 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Manual/blocked flows, Gemini CLI user-shared import, and reminders delivered; live sync gated |
-| 9 | Complete Product UX and Notifications | Not started |
+| 9 | Complete Product UX and Notifications | View models, settings persistence, and notifications delivered |
 | 10 | Security Hardening, QA, Privacy, and Release | Not started |
 
 ## 6. Cross-Cutting Rules
