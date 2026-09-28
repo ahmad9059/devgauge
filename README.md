@@ -26,3 +26,14 @@ In a development build or the explicit internal-preview profile, Settings → Di
 `APP_VARIANT` is a build-time selector (`development`, `preview`, `production`), not a secret. The internal preview profile sets `EXPO_PUBLIC_SPIKE_TEST=1` to make the tester's APK self-contained without Metro; production always hides diagnostics even if that flag is set. Never put provider credentials in app config, `.env`, or `EXPO_PUBLIC_*` values.
 
 When production ownership is decided, configure `ANDROID_PACKAGE` as a **plain-text** value in the EAS production environment or locally for a production build. It is an app ID, not a credential. The production config deliberately fails without it.
+
+## Branding
+
+The Android icon set is generated from [`icon.png`](icon.png) with `npm run icons` (requires ImageMagick 7). Committed outputs in `assets/`:
+
+- `icon.png` — 1024×1024 full-bleed app icon.
+- `adaptive-icon.png` / `monochrome-icon.png` — safe-zone foreground for Android adaptive and themed icons.
+- `splash-icon.png` — splash logo.
+- `play-store-icon.png` — 512×512 Play Store listing icon.
+
+`app.config.ts` wires the icon, adaptive icon (with `#000000` background), monochrome icon, and the `expo-splash-screen` plugin. `npm run check` asserts these paths.

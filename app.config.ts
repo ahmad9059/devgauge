@@ -25,6 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     version: '0.1.0',
     orientation: 'default',
     platforms: ['android'],
+    icon: './assets/icon.png',
     scheme: 'devgauge',
     plugins: [
       'expo-font',
@@ -32,6 +33,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ['expo-sqlite', { useSQLCipher: true }],
       // Excludes SecureStore ciphertext from Android backup.
       'expo-secure-store',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          resizeMode: 'contain',
+          backgroundColor: '#000000',
+        },
+      ],
     ],
     extra: { appVariant: environment },
     android: {
@@ -39,6 +48,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         environment === 'production'
           ? productionPackage
           : `app.devgauge.${environment}`,
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#000000',
+        monochromeImage: './assets/monochrome-icon.png',
+      },
     },
     experiments: { typedRoutes: true },
   };

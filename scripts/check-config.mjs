@@ -26,6 +26,16 @@ for (const variant of ['development', 'preview', 'production']) {
       : `app.devgauge.${variant}`,
   );
   assert.equal(config.ios, undefined);
+  assert.equal(config.icon, './assets/icon.png');
+  assert.equal(
+    config.android.adaptiveIcon.foregroundImage,
+    './assets/adaptive-icon.png',
+  );
+  assert.equal(
+    config.android.adaptiveIcon.monochromeImage,
+    './assets/monochrome-icon.png',
+  );
+  assert.ok(config.android.adaptiveIcon.backgroundColor);
 }
 
 assert.throws(() =>
