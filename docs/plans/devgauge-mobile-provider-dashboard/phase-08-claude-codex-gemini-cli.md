@@ -44,23 +44,25 @@ Implement local website-session experiences for Claude and Codex where the Phase
 - `src/providers/claude/**` (new)
 - `src/providers/codex/**` (new)
 - `src/providers/gemini-cli/**` (new)
-- `src/services/web-session/**` (new; only for Phase 1 validated providers)
-- `src/components/connectors/blocked-provider-card.tsx` (new)
-- `src/features/connections/manual-reset-form.tsx` (new)
+- `src/services/web-session/{policy}.ts` (new; gates only — no provider passed)
 - `src/services/links/provider-links.ts` (new)
+- `src/services/notifications/scheduler.ts` (new)
+- `src/services/capabilities/partner.ts` (new)
+- `src/components/connectors/blocked-provider-card.tsx` (new)
+- `src/features/connections/{manual-reset,manual-reset-form,manual-flows}.ts(x)` (new)
 - manual-flow fixtures and tests (new)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Enabled embedded flows pass Android login, persistence, expiry, logout, host allowlist and data-minimization checks.
-- [ ] Gemini CLI card uses CLI/Code Assist quota semantics only; no Gemini Apps chat limits appear.
-- [ ] Live sync requires an approved DevGauge-owned authorization and quota contract; imported `/stats model` is user-shared, timestamped and not presented as account-wide live usage.
-- [ ] First-party links are fixed, allowlisted, and tested.
-- [ ] Browser return does not create a connected account.
-- [ ] Codex CTA cannot be read as “DevGauge resets quota.”
-- [ ] Manual data is visibly labeled and removable.
-- [ ] Reminder deletion cancels the native schedule.
-- [ ] Partner capability cannot activate through manifest alone.
+- [x] Enabled embedded flows pass Android login, persistence, expiry, logout, host allowlist and data-minimization checks. (no embedded flow is enabled)
+- [x] Gemini CLI card uses CLI/Code Assist quota semantics only; no Gemini Apps chat limits appear.
+- [x] Live sync requires an approved DevGauge-owned authorization and quota contract; imported `/stats model` is user-shared, timestamped and not presented as account-wide live usage.
+- [x] First-party links are fixed, allowlisted, and tested.
+- [x] Browser return does not create a connected account.
+- [x] Codex CTA cannot be read as "DevGauge resets quota."
+- [x] Manual data is visibly labeled and removable.
+- [x] Reminder deletion cancels the native schedule.
+- [x] Partner capability cannot activate through manifest alone.
 
 ## 6. Open Questions
 

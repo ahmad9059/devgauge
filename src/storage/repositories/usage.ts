@@ -184,6 +184,78 @@ export async function saveRefresh(
   });
 }
 
+export type ManualImportInput = {
+  /** Snapshot with `source: 'manual'` (user-shared CLI stats or manual entry). */
+  snapshot: UsageSnapshotRecord;
+  windows: UsageWindowRecord[];
+  cliStats?: CliStatsImport;
+};
+
+/**
+ * Persists a user-provided snapshot (for example sanitized Gemini CLI
+ * `/stats model` figures) together with its coverage metadata, in one
+ * transaction. It never marks the connection as live.
+ */
+export async function saveManualImport(
+  db: Database,
+  input: ManualImportInput,
+): Promise<void> {
+  const { snapshot, windows, cliStats } = input;
+  if (snapshot.source !== 'manual') {
+    throw new Error('saveManualImport requires a manual-source snapshot');
+  }
+  await db.transaction(async (tx) => {
+    await tx.run(
+      `INSERT INTO usage_snapshots (${SNAPSHOT_COLUMNS}) VALUES (?,?,?,?,?,?,?,?)`,
+      [
+        snapshot.id,
+        snapshot.connectionId,
+        snapshot.fetchedAt,
+        snapshot.source,
+        snapshot.providerSchemaVersion,
+        snapshot.isPartial ? 1 : 0,
+        snapshot.responseFingerprint,
+        snapshot.createdAt,
+      ],
+    );
+    for (const window of windows) {
+      await tx.run(
+        `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          window.id,
+          window.snapshotId,
+          window.externalKey,
+          window.kind,
+          window.label,
+          window.usedDecimal,
+          window.limitDecimal,
+          window.remainingDecimal,
+          window.utilization,
+          window.unit,
+          window.currencyCode,
+          window.periodStartsAt,
+          window.periodEndsAt,
+          window.resetsAt,
+          window.derivation,
+        ],
+      );
+    }
+    if (cliStats) {
+      await tx.run(
+        `INSERT INTO cli_stats_imports (snapshot_id, cli_version, captured_at, coverage, created_at)
+         VALUES (?,?,?,?,?)`,
+        [
+          cliStats.snapshotId,
+          cliStats.cliVersion,
+          cliStats.capturedAt,
+          cliStats.coverage,
+          cliStats.createdAt,
+        ],
+      );
+    }
+  });
+}
+
 async function windowsFor(
   db: Database,
   snapshotIds: string[],
