@@ -10,11 +10,14 @@ const DOCUMENTS: Record<
 > = {
   privacy: {
     title: 'Privacy policy',
-    summary: 'What this preview build does and does not collect.',
+    summary: 'What DevGauge stores on this device and what it does not.',
     body: [
-      'This preview build collects no usage data and contacts no provider. It has no DevGauge account and no analytics SDK.',
-      'When connectors are enabled in a later phase, usage snapshots stay on this device. Provider passwords, browser cookies, authorization codes, and secrets are never logged or stored.',
-      'A release build will ship a finalized policy before any provider connection becomes available.',
+      'DevGauge has no DevGauge account, no analytics SDK, and no cloud sync. This build makes no provider network requests.',
+      'Usage snapshots, connections, and preferences are stored in an encrypted local SQLite database (SQLCipher). The database key is generated on this device and kept in Android Keystore-backed secure storage; it is never uploaded.',
+      'Provider tokens and API keys are stored only in secure storage, never in the database, logs, diagnostics, or notification content. DevGauge never records provider passwords, browser cookies, or MFA codes.',
+      'Notifications are local and generic; they never include account identifiers or usage amounts. Official provider pages open in your browser only from a fixed allowlist.',
+      'Settings > Data deletes cached usage, connections, and stored credentials. Deleting all local data also removes the database key.',
+      'A release build ships a finalized policy before any provider connection becomes available.',
     ],
   },
   terms: {
@@ -30,9 +33,10 @@ const DOCUMENTS: Record<
     title: 'Provider disclosures',
     summary: 'Support tier and access method for each provider.',
     body: [
-      'Claude, Codex, and GitHub Copilot are supported tiers; their sign-in methods are still under Phase 1 review.',
-      'Command Code and OpenCode Go are experimental and stay disabled until their usage contracts are confirmed.',
-      'Gemini CLI is the coding agent, not the consumer Gemini app. No account-wide Android quota source is confirmed yet.',
+      'GitHub Copilot is release-disabled: the Android website-session feasibility and the GitHub App permission spike must pass first. Personal and organization billing are separate, never merged.',
+      'Command Code and OpenCode Go are experimental and make no network request until a verified, read-only vendor contract is recorded.',
+      'Claude and Codex are manual-only until their Android website-session gates pass; DevGauge opens the official usage page and can keep a local reset reminder.',
+      'Gemini CLI is the coding agent, not the consumer Gemini app. DevGauge shows only figures you share from the CLI, labeled with their source and time; they are not account-wide live quota.',
     ],
   },
   licenses: {
@@ -41,7 +45,8 @@ const DOCUMENTS: Record<
     body: [
       'The interface uses IBM Plex Sans and JetBrains Mono, both licensed under the SIL Open Font License.',
       'Icons come from the Material Design Icons set via Expo vector icons.',
-      'Expo, React Native, and supporting libraries remain under their respective open-source licenses.',
+      'Runtime libraries include Expo and React Native (MIT), Zod (MIT), and the audited @noble cryptographic libraries (MIT).',
+      'Data-at-rest encryption uses SQLCipher via expo-sqlite; secrets use expo-secure-store.',
     ],
   },
 };

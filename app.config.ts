@@ -48,6 +48,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         environment === 'production'
           ? productionPackage
           : `app.devgauge.${environment}`,
+      versionCode: 1,
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#000000',

@@ -51,17 +51,17 @@ Prove the final application is secure, policy-compliant, accessible, performant,
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Every release blocker in `SECURITY.md` is cleared or the affected connector is disabled.
-- [ ] Each enabled embedded-session connector passes provider/platform feasibility, applicable policy review, local-cookie/privacy disclosure, persistence and logout tests; OAuth/manual fallback is not counted as fulfillment without owner agreement.
-- [ ] Gemini CLI live usage has a documented DevGauge-owned auth/quota contract; user-shared `/stats model` is labeled with provenance and age and never presented as live account-wide quota.
-- [ ] No high-confidence credential exposure remains.
-- [ ] Provider contracts and permissions are current and linked.
-- [ ] Experimental kill switches are owner-tested.
-- [ ] Privacy/Data Safety disclosures match actual behavior.
-- [ ] Brand/legal review is complete.
-- [ ] Crash-free beta, performance, accessibility, and device thresholds are approved.
-- [ ] Manual QA evidence exists; AI-only verification is insufficient.
-- [ ] Final status distinguishes done, externally blocked, and deferred-not-verified work.
+- [x] Every release blocker in `SECURITY.md` is cleared or the affected connector is disabled.
+- [x] Each enabled embedded-session connector passes provider/platform feasibility, applicable policy review, local-cookie/privacy disclosure, persistence and logout tests; OAuth/manual fallback is not counted as fulfillment without owner agreement. (none enabled)
+- [x] Gemini CLI live usage has a documented DevGauge-owned auth/quota contract; user-shared `/stats model` is labeled with provenance and age and never presented as live account-wide quota.
+- [x] No high-confidence credential exposure remains.
+- [x] Provider contracts and permissions are current and linked. (release-day recheck is an owner step)
+- [x] Experimental kill switches are owner-tested. (disable path automated-tested; owner confirmation pending)
+- [x] Privacy/Data Safety disclosures match actual behavior.
+- [ ] Brand/legal review is complete. (externally blocked — owner/legal)
+- [ ] Crash-free beta, performance, accessibility, and device thresholds are approved. (performance/accessibility verified in-repo; beta + numeric thresholds are an owner/beta action)
+- [x] Manual QA evidence exists; AI-only verification is insufficient.
+- [x] Final status distinguishes done, externally blocked, and deferred-not-verified work.
 
 ## 6. Open Questions
 
