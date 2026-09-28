@@ -252,6 +252,25 @@ export function createRefreshEngine(
       return { status: 'skipped', connectionId, reason: 'no-live-adapter' };
     }
 
+    // Release gate: a connector can be implemented but not yet enabled (for
+    // example GitHub Copilot before its feasibility spikes pass).
+    if (!descriptor.capabilities.liveUsage) {
+      await persistAttempt(
+        connectionId,
+        trigger,
+        clock().toISOString(),
+        'capability_disabled',
+        null,
+        null,
+        null,
+        connection,
+        connection.status,
+        connection.nextAllowedRefreshAt,
+        connection.lastSuccessAt,
+      );
+      return { status: 'skipped', connectionId, reason: 'release-disabled' };
+    }
+
     const startedAt = clock().toISOString();
     if (
       trigger !== 'manual' &&

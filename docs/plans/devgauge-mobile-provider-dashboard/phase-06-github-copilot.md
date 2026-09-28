@@ -41,23 +41,23 @@ Prove an embedded GitHub website session can access the intended usage surface l
 
 ## 4. Files Touched
 
-- `src/providers/github-copilot/{adapter,client,schema,normalize,auth}.ts` (new)
-- `src/providers/github-copilot/fixtures/**` (new)
-- `src/services/auth/**` (new/update)
-- `src/features/connections/github/**` (new)
-- `broker/**` deployment/routes/security files if required (new)
-- connector contract, security, component, and E2E tests (new)
+- `src/providers/github-copilot/{adapter,client,schema,normalize,auth,fixtures}.ts` (new)
+- `src/services/auth/{pkce,oauth-transaction,device-flow}.ts` (new)
+- `src/features/connections/github/view.ts` (new)
+- `src/features/dashboard/refresh-connection.ts` (release gate)
+- connector contract, security, and view tests (new)
+- No `broker/**`: device flow needs no confidential exchange (ADR 0004)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Real test proves every enabled endpoint and minimum permission.
-- [ ] If the requested WebView path is enabled, Android session persistence, usage access, cookie containment and logout are demonstrated with sanitized evidence.
-- [ ] Personal and organization scopes are never conflated.
-- [ ] PKCE, state mismatch, callback mismatch, expiry, and replay tests pass.
-- [ ] Broker, if used, has managed secrets, TLS, TTL store, no-store logs, monitoring, rate limits, and rollback runbook.
-- [ ] Unknown cap renders as unknown, not zero/unlimited.
-- [ ] Disconnect revokes where supported and always clears local credentials.
-- [ ] Failed feasibility leaves a clear release-disabled card.
+- [ ] Real test proves every enabled endpoint and minimum permission. (blocked; connector release-disabled)
+- [x] If the requested WebView path is enabled, Android session persistence, usage access, cookie containment and logout are demonstrated with sanitized evidence. (path not enabled)
+- [x] Personal and organization scopes are never conflated.
+- [x] PKCE, state mismatch, callback mismatch, expiry, and replay tests pass.
+- [x] Broker, if used, has managed secrets, TLS, TTL store, no-store logs, monitoring, rate limits, and rollback runbook. (no broker used)
+- [x] Unknown cap renders as unknown, not zero/unlimited.
+- [x] Disconnect revokes where supported and always clears local credentials.
+- [x] Failed feasibility leaves a clear release-disabled card.
 
 ## 6. Open Questions
 

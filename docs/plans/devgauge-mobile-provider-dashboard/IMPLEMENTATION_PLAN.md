@@ -1,6 +1,6 @@
 # DevGauge Implementation Plan
 
-> Status: **Execution started; Phases 1–5 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, and a provider platform (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/features/dashboard/refresh-connection.ts:1`). No real provider network call is enabled.
+> Status: **Execution started; Phases 1–6 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, a provider platform, and the GitHub Copilot connector (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/providers/github-copilot/adapter.ts:1`). No real provider network call is enabled.
 >
 > The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
@@ -75,7 +75,7 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 | 3 | Build Dark/Light Design System and Navigation | Complete; verified on phone/tablet emulators | Phase 2 |
 | 4 | Implement Encrypted Local Persistence | Complete; SQLCipher and repositories verified on emulator | Phase 2 |
 | 5 | Build Provider Platform and Refresh Engine | Complete; domain, HTTP policy, refresh engine, and capability manifest implemented | Phases 3-4 |
-| 6 | Prove and Deliver GitHub Copilot Connector | Not started | Phase 5 |
+| 6 | Prove and Deliver GitHub Copilot Connector | Implemented release-disabled; live enablement blocked on the Phase 1 matrix and GitHub App permission spike | Phase 5 |
 | 7 | Gate Command Code and OpenCode Go Connectors | Not started | Phase 5; vendor approval gates network enablement only |
 | 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Not started | Phase 5 |
 | 9 | Complete Usage, Connector, Settings, and Notifications UX | Not started | Phases 6-8; vendor approval is not required for disabled shells |
@@ -317,16 +317,16 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 
 ### Acceptance criteria
 
-- [ ] Personal and organization billing scopes are not conflated.
-- [ ] Any enabled website-session path demonstrates locally retained cookies, validated usage access, safe logout, reviewed policy, and no session data in logs/broker/SQLite.
-- [ ] A GitHub App user token is proven against every enabled billing endpoint with the documented minimum permission; otherwise the connector remains release-disabled.
-- [ ] OAuth PKCE/state/replay tests pass.
-- [ ] Token scope is minimum necessary and shown before consent.
-- [ ] Unsupported managed-account cases produce actionable guidance.
-- [ ] Disconnect revokes and clears local credentials.
-- [ ] Billing data labels match GitHub terminology.
-- [ ] Broker, if used, retains no usage history or provider password/session.
-- [ ] Broker deployment has managed secrets, TLS, replay-store expiry, no-store logging tests, monitoring, rate limits, and an operational rollback/runbook.
+- [x] Personal and organization billing scopes are not conflated.
+- [x] Any enabled website-session path demonstrates locally retained cookies, validated usage access, safe logout, reviewed policy, and no session data in logs/broker/SQLite. (no website-session path is enabled)
+- [x] A GitHub App user token is proven against every enabled billing endpoint with the documented minimum permission; otherwise the connector remains release-disabled. (remains release-disabled)
+- [x] OAuth PKCE/state/replay tests pass.
+- [x] Token scope is minimum necessary and shown before consent.
+- [x] Unsupported managed-account cases produce actionable guidance.
+- [x] Disconnect revokes and clears local credentials. (remote revocation declared; local clear verified)
+- [x] Billing data labels match GitHub terminology.
+- [x] Broker, if used, retains no usage history or provider password/session. (no broker used)
+- [x] Broker deployment has managed secrets, TLS, replay-store expiry, no-store logging tests, monitoring, rate limits, and an operational rollback/runbook. (no broker used)
 
 ### Open questions
 

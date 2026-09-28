@@ -1,6 +1,6 @@
 # DevGauge Mobile Provider Dashboard
 
-> Status: **Execution started; Phases 1–5 delivered (Expo foundation, dark/light design system, encrypted local persistence, provider platform and refresh engine). Phase 1 signed-in feasibility and Phase 2 device QA remain open; no real provider network call is enabled yet.**
+> Status: **Execution started; Phases 1–6 delivered (Expo foundation, dark/light design system, encrypted local persistence, provider platform, and the GitHub Copilot connector as release-disabled infrastructure). Phase 1 signed-in feasibility and Phase 2 device QA remain open; no real provider network call is enabled.**
 >
 > Source request: research and plan a local-first **Android-only** Expo React Native usage dashboard for Claude, Codex, Command Code, OpenCode Go, GitHub Copilot and **Gemini CLI**, including dark/light design, secure provider connection, SQLite, notifications, and ten phases. The product brief is preserved in `PRD.md`.
 
@@ -76,7 +76,7 @@ See `ARCHITECTURE.md`, `DATABASE.md`, `API.md`, and `SECURITY.md` for the bindin
 | 3 | Build Dark/Light Design System and Navigation | Complete; verified on phone/tablet emulators |
 | 4 | Implement Encrypted Local Persistence | Complete; SQLCipher and repositories verified on emulator |
 | 5 | Build Provider Platform and Refresh Engine | Complete; domain, HTTP policy, refresh engine, and capability manifest implemented |
-| 6 | Prove and Deliver GitHub Copilot Connector | Not started |
+| 6 | Prove and Deliver GitHub Copilot Connector | Implemented release-disabled; live enablement blocked on the Phase 1 matrix and GitHub App permission spike |
 | 7 | Gate Command Code and OpenCode Go Connectors | Not started |
 | 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Not started |
 | 9 | Complete Product UX and Notifications | Not started |
