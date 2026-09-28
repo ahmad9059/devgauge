@@ -1,6 +1,6 @@
 # DevGauge Implementation Plan
 
-> Status: **Execution started; Phases 1–6 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, a provider platform, and the GitHub Copilot connector (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/providers/github-copilot/adapter.ts:1`). No real provider network call is enabled.
+> Status: **Execution started; Phases 1–7 delivered.** The original greenfield baseline was `README.md:1`; the repository now contains an Expo route shell, an encrypted SQLite storage layer, a provider platform, and release-disabled GitHub/Command Code/OpenCode Go connectors (`app.config.ts:3`, `src/storage/app-database.ts:1`, `src/providers/command-code/adapter.ts:1`). No real provider network call is enabled.
 >
 > The request specifies ten explicit phases. All ten are delivered in this folder as `phase-01` through `phase-10`, with one master plan and the six supporting specification documents.
 
@@ -76,7 +76,7 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 | 4 | Implement Encrypted Local Persistence | Complete; SQLCipher and repositories verified on emulator | Phase 2 |
 | 5 | Build Provider Platform and Refresh Engine | Complete; domain, HTTP policy, refresh engine, and capability manifest implemented | Phases 3-4 |
 | 6 | Prove and Deliver GitHub Copilot Connector | Implemented release-disabled; live enablement blocked on the Phase 1 matrix and GitHub App permission spike | Phase 5 |
-| 7 | Gate Command Code and OpenCode Go Connectors | Not started | Phase 5; vendor approval gates network enablement only |
+| 7 | Gate Command Code and OpenCode Go Connectors | Shells complete/tested; live access disabled pending vendor contracts | Phase 5; vendor approval gates network enablement only |
 | 8 | Deliver Claude/Codex Sessions and Gemini CLI Connector | Not started | Phase 5 |
 | 9 | Complete Usage, Connector, Settings, and Notifications UX | Not started | Phases 6-8; vendor approval is not required for disabled shells |
 | 10 | Security Hardening, QA, Privacy, and Release Readiness | Not started | Phase 9 |
@@ -349,17 +349,19 @@ The owner authorized work on Phases 1-2 together. The Android foundation can be 
 
 - `src/providers/command-code/**` (new)
 - `src/providers/opencode-go/**` (new)
+- `src/providers/experimental/{contract,http-errors}.ts` (new)
 - `src/components/connectors/experimental-disclosure.tsx` (new)
+- `src/features/connections/{experimental,api-key,api-key-form}.ts(x)` (new)
 - connector fixture/contract/security tests (new)
 
 ### Acceptance criteria
 
-- [ ] Production network calls remain disabled without vendor approval and exact vendor-owned endpoint contracts.
-- [ ] API keys never enter SQLite/logs/diagnostics.
-- [ ] Schema-change failure preserves last successful snapshot.
-- [ ] Kill switch stops new requests but permits local deletion/read-only cache.
-- [ ] Broad keys require explicit risk disclosure; a connector does not ship if usage-only access cannot be authorized at an acceptable risk level.
-- [ ] Command Code and OpenCode Go failures remain isolated from each other and from GitHub.
+- [x] Production network calls remain disabled without vendor approval and exact vendor-owned endpoint contracts.
+- [x] API keys never enter SQLite/logs/diagnostics.
+- [x] Schema-change failure preserves last successful snapshot.
+- [x] Kill switch stops new requests but permits local deletion/read-only cache.
+- [x] Broad keys require explicit risk disclosure; a connector does not ship if usage-only access cannot be authorized at an acceptable risk level.
+- [x] Command Code and OpenCode Go failures remain isolated from each other and from GitHub.
 
 ### Open questions
 

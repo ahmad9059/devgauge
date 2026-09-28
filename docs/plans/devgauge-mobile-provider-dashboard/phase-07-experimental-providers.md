@@ -39,19 +39,20 @@ Build safe connector shells for Command Code and OpenCode Go while ensuring undo
 
 - `src/providers/command-code/**` (new)
 - `src/providers/opencode-go/**` (new)
+- `src/providers/experimental/{contract,http-errors}.ts` (new)
 - `src/components/connectors/experimental-disclosure.tsx` (new)
-- `src/features/connections/api-key-form.tsx` (new)
+- `src/features/connections/{experimental,api-key}.ts` and `api-key-form.tsx` (new)
 - provider fixtures, contract tests, and security tests (new)
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] No request is made without exact vendor-owned contract evidence.
-- [ ] API keys never appear in SQLite, logs, diagnostics, or screenshots.
-- [ ] Broad-key risk is disclosed and explicitly accepted, or connector remains disabled.
-- [ ] `429`, expired key, malformed schema, offline, and provider outage states are tested.
-- [ ] Kill switch stops requests without preventing deletion.
-- [ ] Provider failures remain isolated.
-- [ ] Disconnect removes the local secret and explains remote revocation.
+- [x] No request is made without exact vendor-owned contract evidence.
+- [x] API keys never appear in SQLite, logs, diagnostics, or screenshots.
+- [x] Broad-key risk is disclosed and explicitly accepted, or connector remains disabled.
+- [x] `429`, expired key, malformed schema, offline, and provider outage states are tested.
+- [x] Kill switch stops requests without preventing deletion.
+- [x] Provider failures remain isolated.
+- [x] Disconnect removes the local secret and explains remote revocation.
 
 ## 6. Open Questions
 
