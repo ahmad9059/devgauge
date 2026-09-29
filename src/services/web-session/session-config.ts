@@ -69,7 +69,8 @@ export const SESSION_PROVIDERS: Record<
   },
   'github-copilot': {
     label: 'GitHub Copilot',
-    usageUrl: 'https://github.com/settings/billing',
+    // AI credit usage is shown on the Copilot features page.
+    usageUrl: 'https://github.com/settings/copilot/features',
     allowedHosts: ['github.com', 'login.microsoftonline.com'],
     keyMap: {
       ai_credit: MONTHLY,
