@@ -32,19 +32,19 @@ const STATUS: Record<ProviderState, StatusDescriptor> = {
     tone: 'neutral',
     label: 'Unavailable',
     icon: 'lock-outline',
-    hint: 'Release-disabled until its contract is confirmed.',
+    hint: 'Not available in this build.',
   },
   experimental: {
     tone: 'accent',
-    label: 'Experimental',
+    label: 'Limited',
     icon: 'flask-outline',
-    hint: 'Included for testing; data may be incomplete.',
+    hint: 'Limited availability.',
   },
   blocked: {
-    tone: 'danger',
-    label: 'Awaiting provider API',
+    tone: 'neutral',
+    label: 'Unavailable',
     icon: 'cloud-off-outline',
-    hint: 'No approved usage source yet.',
+    hint: 'Not available yet.',
   },
   stale: {
     tone: 'warning',
@@ -78,8 +78,8 @@ export function describeState(state: ProviderState): StatusDescriptor {
 
 export const TIER_LABELS: Record<SupportTier, string> = {
   supported: 'Supported',
-  experimental: 'Experimental',
-  blocked: 'Awaiting provider API',
+  experimental: 'Limited',
+  blocked: 'Unavailable',
 };
 
 export type SourceLabel = 'Live' | 'Manual' | 'None';
@@ -105,10 +105,10 @@ export type ConnectorGroup =
   'available' | 'candidate' | 'experimental' | 'blocked';
 
 export const CONNECTOR_GROUP_LABELS: Record<ConnectorGroup, string> = {
-  available: 'Available now',
-  candidate: 'Candidate / release-disabled',
-  experimental: 'Experimental',
-  blocked: 'Awaiting provider API',
+  available: 'Available',
+  candidate: 'Unavailable',
+  experimental: 'Limited',
+  blocked: 'Unavailable',
 };
 
 export function connectorGroup(state: ProviderState): ConnectorGroup {

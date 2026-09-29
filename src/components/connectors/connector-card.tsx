@@ -9,8 +9,8 @@ import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { formatRelativeMinutes } from '@/utils/format';
 import type { ProviderFixture } from '@/testing/fixtures/providers';
-import { Button, Card, StatusChip } from '@/components/ui';
-import { Monogram } from '@/components/ui/monogram';
+import { Button, Card, Icon, StatusChip } from '@/components/ui';
+import { providerIcon } from '@/components/usage/provider-icon';
 
 export function ConnectorCard({
   provider,
@@ -48,7 +48,11 @@ export function ConnectorCard({
   return (
     <Card testID={testID} elevated={isConnected}>
       <View style={styles.headerRow}>
-        <Monogram label={provider.monogram} />
+        <Icon
+          name={providerIcon(provider.id)}
+          size={22}
+          color={theme.colors.textSecondary}
+        />
         <View style={styles.titleBlock}>
           <Text
             style={[typography.bodyStrong, { color: theme.colors.textPrimary }]}

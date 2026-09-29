@@ -310,7 +310,7 @@ export default function SettingsScreen() {
         onClose={() => setTextSheet(false)}
       >
         <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
-          Preview: 71% weekly · resets 2h 05m
+          Resets in 2h 05m · 71% weekly used
         </Text>
         {TEXT_SCALE_PRESETS.map((scale) => (
           <ListRow

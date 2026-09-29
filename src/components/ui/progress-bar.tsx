@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: spacing.sm,
   },
-  track: { height: 8, borderRadius: radii.pill, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: radii.pill, minWidth: 2 },
+  track: { height: 12, borderRadius: radii.pill, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: radii.pill, minWidth: 3 },
 });

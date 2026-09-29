@@ -358,34 +358,34 @@ export type ConnectorMetadata = {
  */
 export const connectorMetadata: Record<ProviderId, ConnectorMetadata> = {
   claude: {
-    authMethod: 'Website session in an in-app browser',
-    dataSummary: 'Five-hour and weekly usage windows',
-    retention: 'Local only until you disconnect',
+    authMethod: 'In-app session',
+    dataSummary: 'Five-hour and weekly usage',
+    retention: 'On this device',
   },
   codex: {
-    authMethod: 'Website session in an in-app browser',
-    dataSummary: 'Five-hour usage window and reset time',
-    retention: 'Local only until you disconnect',
+    authMethod: 'In-app session',
+    dataSummary: 'Five-hour and weekly usage',
+    retention: 'On this device',
   },
   'github-copilot': {
-    authMethod: 'GitHub website session (API token is a separate fallback)',
+    authMethod: 'In-app session',
     dataSummary: 'Monthly request allowance',
-    retention: 'Local only until you disconnect',
+    retention: 'On this device',
   },
   'command-code': {
-    authMethod: 'Vendor contract not confirmed',
-    dataSummary: 'Rolling and weekly credits, if contracted',
-    retention: 'Disabled until the vendor approves access',
+    authMethod: 'In-app session',
+    dataSummary: 'Five-hour and weekly usage',
+    retention: 'On this device',
   },
   'opencode-go': {
-    authMethod: 'Vendor contract not confirmed',
-    dataSummary: 'Billing-period credits, if contracted',
-    retention: 'Disabled until the vendor approves access',
+    authMethod: 'In-app session',
+    dataSummary: 'Five-hour and weekly usage',
+    retention: 'On this device',
   },
   'gemini-cli': {
-    authMethod: 'No approved Android quota source',
-    dataSummary: 'User-shared CLI session stats only, clearly labelled',
-    retention: 'Local only; CLI credentials are never imported',
+    authMethod: 'In-app session',
+    dataSummary: 'Hourly and weekly usage',
+    retention: 'On this device',
   },
 };
 

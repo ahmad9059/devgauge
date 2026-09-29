@@ -19,7 +19,6 @@ import {
 import { saveSessionSnapshot } from '@/services/web-session/session';
 import {
   extractRawWindows,
-  mergeRawWindows,
   toDomainWindows,
   type CapturedResponse,
 } from '@/services/web-session/usage-extract';
@@ -112,11 +111,17 @@ export default function SessionScreen() {
       } else {
         return;
       }
-      const raw = mergeRawWindows([
-        ...extractRawWindows(capturedRef.current, config.keyMap),
-        ...parseUsageText(pageTextRef.current, config.keyMap),
-      ]);
-      const windows = toDomainWindows(raw, config.keyMap);
+      // Page text is authoritative for used-vs-remaining; it overrides JSON.
+      const byKey = new Map(
+        extractRawWindows(capturedRef.current, config.keyMap).map((window) => [
+          window.key,
+          window,
+        ]),
+      );
+      for (const window of parseUsageText(pageTextRef.current, config.keyMap)) {
+        byKey.set(window.key, window);
+      }
+      const windows = toDomainWindows([...byKey.values()], config.keyMap);
       if (windows.length > 0) {
         setWindows(windows);
         setStatus('Usage found. Finishing…');

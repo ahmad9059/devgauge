@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ProviderCard } from '@/components/usage/provider-card';
@@ -15,7 +15,10 @@ import {
 import { radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import type { ProviderState } from '@/testing/fixtures/providers';
-import { useProviderViews } from '@/features/dashboard/app-providers';
+import {
+  useProviderViews,
+  useReloadProviders,
+} from '@/features/dashboard/app-providers';
 import { formatCountdown } from '@/utils/format';
 
 // Usage shows only providers that actually have a connection or data.
@@ -30,6 +33,8 @@ const ACTIVE_STATES: ProviderState[] = [
 export default function UsageScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const reload = useReloadProviders();
+  const [refreshing, setRefreshing] = useState(false);
   const allProviders = useProviderViews();
   const providers = allProviders.filter((provider) =>
     ACTIVE_STATES.includes(provider.state),
@@ -65,7 +70,15 @@ export default function UsageScreen() {
             <IconButton
               icon="refresh"
               accessibilityLabel="Refresh all providers"
-              onPress={() => undefined}
+              disabled={refreshing}
+              onPress={async () => {
+                setRefreshing(true);
+                try {
+                  await reload();
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
             />
           }
         />
