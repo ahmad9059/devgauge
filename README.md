@@ -15,7 +15,7 @@ npx expo install --check
 
 To launch the Android development build, start an emulator or connect a device, then run `npm run android` (`expo run:android`). For an EAS build, set up an Expo project and run `eas build --platform android --profile development`. Android development package names and the callback scheme in `app.config.ts` are provisional. Production builds require `ANDROID_PACKAGE` with an owner-approved ID.
 
-For the signed-in Phase 1 phone check, use the locally built self-contained APK at `artifacts/devgauge-phase1-preview.apk` (no Metro server required; generated artifacts are gitignored). SHA-256 of the current local build (SQLCipher enabled, new icon): `6ed555c32e17e6f13cb70a0405955bbb89afe6150a140a5f9f2f8e28f0f35ac3`. To rebuild locally, run `npm run android:preview-apk`; the checksum changes on rebuild. This APK uses the Android template's debug signing key and must not be submitted to Google Play. See the [redacted-results checklist](docs/plans/devgauge-mobile-provider-dashboard/PHASE-01-ANDROID-TEST-INSTRUCTIONS.md).
+For the signed-in Phase 1 phone check, use the locally built self-contained APK at `artifacts/devgauge-phase1-preview.apk` (no Metro server required; generated artifacts are gitignored). SHA-256 of the current local build (SQLCipher enabled, new icon): `8d1d40c618adc2e3bbebb37c6cb18ff69917d9626edee733bf63688b9e69a243`. To rebuild locally, run `npm run android:preview-apk`; the checksum changes on rebuild. This APK uses the Android template's debug signing key and must not be submitted to Google Play. See the [redacted-results checklist](docs/plans/devgauge-mobile-provider-dashboard/PHASE-01-ANDROID-TEST-INSTRUCTIONS.md).
 
 ## Current scope
 
