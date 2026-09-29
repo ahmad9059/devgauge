@@ -9,16 +9,15 @@ import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { formatRelativeMinutes } from '@/utils/format';
 import type { ProviderFixture } from '@/testing/fixtures/providers';
-import { Button, Card, CardDivider, StatusChip } from '@/components/ui';
+import { Button, Card, StatusChip } from '@/components/ui';
 import { Monogram } from '@/components/ui/monogram';
 
 export function ConnectorCard({
   provider,
   authMethod,
-  dataSummary,
-  retention,
   onConnect,
   onSignIn,
+  onOpenUsage,
   onOpenDashboard,
   onDisconnect,
   testID,
@@ -33,6 +32,8 @@ export function ConnectorCard({
   onConnect?: () => void;
   /** Opens the in-app provider sign-in (embedded session) instead of a browser. */
   onSignIn?: () => void;
+  /** Opens the dashboard for an already-connected provider. */
+  onOpenUsage?: () => void;
   onOpenDashboard?: () => void;
   onDisconnect?: () => void;
   testID?: string;
@@ -71,33 +72,26 @@ export function ConnectorCard({
         />
       </View>
 
-      <CardDivider />
-
-      <View style={styles.facts}>
-        <Fact label="Sign-in" value={authMethod} />
-        <Fact label="Data" value={dataSummary} />
-        <Fact label="Retention" value={retention} />
-      </View>
-
-      {provider.note ? (
-        <Text
-          style={[typography.caption, { color: theme.colors.textSecondary }]}
-        >
-          {provider.note}
-        </Text>
-      ) : null}
+      <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
+        {authMethod}
+      </Text>
 
       {relative ? (
         <Text
           style={[typography.monoCaption, { color: theme.colors.textMuted }]}
         >
-          Last updated {relative}
+          Updated {relative}
         </Text>
       ) : null}
 
-      <CardDivider />
-
       <View style={styles.actions}>
+        {isConnected && onOpenUsage ? (
+          <Button
+            label="Open usage"
+            icon="chart-timeline-variant"
+            onPress={onOpenUsage}
+          />
+        ) : null}
         {onSignIn ? (
           <Button
             label={isConnected ? 'Sign in again (in-app)' : 'Sign in (in-app)'}
@@ -141,31 +135,8 @@ export function ConnectorCard({
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  const { theme, typography } = useTheme();
-  return (
-    <View style={styles.factRow}>
-      <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
-        {label}
-      </Text>
-      <Text
-        style={[
-          typography.label,
-          styles.factValue,
-          { color: theme.colors.textSecondary },
-        ]}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleBlock: { flex: 1, gap: spacing.xxs },
-  facts: { gap: spacing.sm },
-  factRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  factValue: { flex: 1, textAlign: 'right' },
   actions: { gap: spacing.sm },
 });

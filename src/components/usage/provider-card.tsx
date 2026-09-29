@@ -8,13 +8,7 @@ import type {
   ProviderFixture,
   UsageWindow,
 } from '@/testing/fixtures/providers';
-import {
-  Card,
-  CardDivider,
-  IconButton,
-  ProgressBar,
-  StatusChip,
-} from '@/components/ui';
+import { Card, IconButton, ProgressBar, StatusChip } from '@/components/ui';
 import { Monogram } from '@/components/ui/monogram';
 
 function progressTone(
@@ -89,11 +83,7 @@ export function ProviderCard({
         />
       ))}
     </View>
-  ) : (
-    <Text style={[typography.label, { color: theme.colors.textMuted }]}>
-      {status.hint}
-    </Text>
-  );
+  ) : null;
 
   const footer = (
     <View style={styles.footerRow}>
@@ -128,16 +118,7 @@ export function ProviderCard({
       accessibilityHint={onPress ? 'Opens provider details' : undefined}
     >
       {header}
-      <CardDivider />
       {body}
-      {provider.note ? (
-        <Text
-          style={[typography.caption, { color: theme.colors.textSecondary }]}
-        >
-          {provider.note}
-        </Text>
-      ) : null}
-      <CardDivider />
       {footer}
     </Card>
   );

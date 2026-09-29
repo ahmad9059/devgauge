@@ -57,23 +57,32 @@ const UTILIZATION_KEYS = [
 ];
 const RESET_KEYS = ['resets_at', 'reset_at', 'resetsAt', 'resetAt', 'resets'];
 
-function walk(node: unknown, parentKey: string | null, out: RawWindow[]): void {
+function walk(
+  node: unknown,
+  knownAncestor: string | null,
+  keyMap: WindowKeyMap,
+  out: RawWindow[],
+): void {
   if (node === null || typeof node !== 'object') return;
   if (Array.isArray(node)) {
-    for (const child of node) walk(child, parentKey, out);
+    for (const child of node) walk(child, knownAncestor, keyMap, out);
     return;
   }
   const record = node as Record<string, unknown>;
   const value = pickNumber(record, UTILIZATION_KEYS);
-  if (value !== null && parentKey !== null) {
+  if (value !== null && knownAncestor !== null) {
     out.push({
-      key: parentKey,
+      key: knownAncestor,
       value: value <= 1 ? value * 100 : value,
       resetsAt: pickString(record, RESET_KEYS),
     });
   }
   for (const [key, child] of Object.entries(record)) {
-    if (child !== null && typeof child === 'object') walk(child, key, out);
+    if (child !== null && typeof child === 'object') {
+      // Track the nearest recognized key so nested shapes like
+      // { rate_limits: { primary: { used_percent } } } still map.
+      walk(child, keyMap[key] ? key : knownAncestor, keyMap, out);
+    }
   }
 }
 
@@ -102,7 +111,7 @@ export function extractUsageWindows(
     const parsed = parseBody(response.body);
     if (parsed === null) continue;
     const raw: RawWindow[] = [];
-    walk(parsed, null, raw);
+    walk(parsed, null, keyMap, raw);
     if (raw.length === 0) continue;
     matchedUrls.push(response.url);
     for (const window of raw) {

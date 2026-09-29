@@ -55,6 +55,8 @@ export const SESSION_PROVIDERS: Record<
       primary: FIVE_HOUR,
       secondary: WEEKLY,
       weekly: WEEKLY,
+      seven_day: WEEKLY,
+      rate_limit: FIVE_HOUR,
     },
   },
   'github-copilot': {

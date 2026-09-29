@@ -67,10 +67,7 @@ export default function OnboardingScreen() {
           </Card>
         ))}
 
-        <ListRow
-          title="Android-only preview"
-          subtitle="iOS is out of scope, and this build contains no live connectors."
-        />
+        <ListRow title="Android only" subtitle="DevGauge runs on Android." />
 
         <Button
           label="Go to the dashboard"

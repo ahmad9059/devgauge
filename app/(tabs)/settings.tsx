@@ -173,21 +173,13 @@ export default function SettingsScreen() {
             />
           </View>
         </Card>
-        <Card>
-          <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
-            Preview
-          </Text>
-          <Text style={[typography.body, { color: theme.colors.textPrimary }]}>
-            Resets in 2h 05m · 71% of the weekly window used
-          </Text>
-        </Card>
 
         <SectionTitle>Notifications</SectionTitle>
         <Card padded={false}>
           <View style={styles.cardPad}>
             <ListRow
               title="Threshold alerts"
-              subtitle="No notifications are scheduled in this phase"
+              subtitle="Notify when a usage window crosses a threshold"
               trailing={
                 <Text
                   style={[typography.label, { color: theme.colors.textMuted }]}
@@ -199,7 +191,7 @@ export default function SettingsScreen() {
             <RowDivider />
             <ListRow
               title="Reset reminders"
-              subtitle="Configured later, only after you enable it"
+              subtitle="Local reminders you schedule on this device"
               trailing={
                 <Text
                   style={[typography.label, { color: theme.colors.textMuted }]}

@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
-import { Card, Header, Notice, Screen, ScreenScroll } from '@/components/ui';
+import { Card, Header, Screen, ScreenScroll } from '@/components/ui';
 import { useTheme } from '@/design/theme-provider';
 
 const DOCUMENTS: Record<
@@ -64,10 +64,6 @@ export default function LegalScreen() {
     <Screen edges={['left', 'right', 'bottom']}>
       <ScreenScroll>
         <Header title={doc.title} subtitle={doc.summary} />
-        <Notice tone="info" icon="file-document-outline">
-          Draft text for an unreleased preview build. A finalized version is
-          required before release.
-        </Notice>
         {doc.body.map((paragraph) => (
           <Card key={paragraph}>
             <Text

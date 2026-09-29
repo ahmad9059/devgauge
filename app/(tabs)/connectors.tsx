@@ -5,7 +5,6 @@ import { Linking } from 'react-native';
 import { ConnectorCard } from '@/components/connectors/connector-card';
 import {
   Header,
-  Notice,
   Screen,
   ScreenScroll,
   SectionTitle,
@@ -46,15 +45,7 @@ export default function ConnectorsScreen() {
   return (
     <Screen>
       <ScreenScroll>
-        <Header
-          title="Connectors"
-          subtitle="Plan support, data access, and retention before connecting"
-        />
-
-        <Notice tone="info" icon="shield-lock-outline">
-          Connectors stay disabled until their provider gate and contract are
-          verified. A disabled connector never requests credentials.
-        </Notice>
+        <Header title="Connectors" subtitle="Connect a provider" />
 
         {groups.map(({ group, providers }) => (
           <Stack key={group} gap="lg">
@@ -81,6 +72,9 @@ export default function ConnectorsScreen() {
                             params: { providerId: provider.id },
                           })
                       : undefined
+                  }
+                  onOpenUsage={
+                    session ? () => router.push('/(tabs)/usage') : undefined
                   }
                   onOpenDashboard={
                     !session && provider.dashboardUrl

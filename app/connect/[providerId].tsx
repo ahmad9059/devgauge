@@ -18,7 +18,6 @@ import {
 import { useTheme } from '@/design/theme-provider';
 import { connectorMetadata } from '@/testing/fixtures/providers';
 import { useProviderViews } from '@/features/dashboard/app-providers';
-import { providerUnavailableExplanation } from '@/features/connections/manual-flows';
 import { isSessionProvider } from '@/services/web-session/session-config';
 
 export default function ConnectScreen() {
@@ -46,49 +45,26 @@ export default function ConnectScreen() {
       <ScreenScroll>
         <Header title="Connect" subtitle={provider.displayName} />
 
-        <Notice tone="info" icon="flask-outline">
-          This is a preview of the connection step. No sign-in is started and no
-          credentials are collected.
-        </Notice>
-
         <ConnectorCard
           provider={provider}
           authMethod={metadata.authMethod}
           dataSummary={metadata.dataSummary}
           retention={metadata.retention}
-          onConnect={() => setSheetOpen(true)}
+          onSignIn={
+            isSessionProvider(provider.id)
+              ? () =>
+                  router.push({
+                    pathname: '/session/[providerId]',
+                    params: { providerId: provider.id },
+                  })
+              : undefined
+          }
+          onConnect={
+            isSessionProvider(provider.id)
+              ? undefined
+              : () => setSheetOpen(true)
+          }
         />
-
-        <Notice tone="info" icon="information-outline">
-          {providerUnavailableExplanation(provider.id)}
-        </Notice>
-
-        {isSessionProvider(provider.id) ? (
-          <Stack gap="sm">
-            <Button
-              label={`Sign in to ${provider.displayName}`}
-              icon="login-variant"
-              onPress={() =>
-                router.push({
-                  pathname: '/session/[providerId]',
-                  params: { providerId: provider.id },
-                })
-              }
-            />
-            <Text
-              style={[typography.caption, { color: theme.colors.textMuted }]}
-            >
-              Experimental: opens the provider page inside the app and reads
-              only the usage it loads.
-            </Text>
-          </Stack>
-        ) : null}
-
-        <SectionTitle>Before you connect</SectionTitle>
-        <Text style={[typography.body, { color: theme.colors.textSecondary }]}>
-          DevGauge explains the sign-in method, the data it can read, and how
-          long it is kept before any provider is enabled.
-        </Text>
 
         <Stack gap="sm">
           <Button
@@ -118,8 +94,8 @@ export default function ConnectScreen() {
           subtitle="Passwords, browser cookies, and provider secrets are never logged or stored."
         />
         <Notice tone="warning" icon="alert-outline">
-          Live connections stay disabled until the Phase 1 signed-in checks and
-          policy review pass.
+          In-app sessions are experimental. DevGauge reads only the usage the
+          provider page loads.
         </Notice>
         <Button
           label="Close"

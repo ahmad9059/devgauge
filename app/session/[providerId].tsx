@@ -1,17 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
-import {
-  Button,
-  Card,
-  ErrorState,
-  Header,
-  Notice,
-  Screen,
-  Stack,
-} from '@/components/ui';
+import { Button, ErrorState, Header, Screen } from '@/components/ui';
+import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import type { UsageWindow } from '@/domain/usage';
 import { useReloadProviders } from '@/features/dashboard/app-providers';
@@ -30,13 +23,9 @@ import {
 } from '@/services/web-session/usage-extract';
 
 /**
- * Embedded website-session flow. The user signs in on the provider's own page
- * inside the app; DevGauge keeps the session in the WebView cookie store and
- * reads only the usage response the page itself fetches. Passwords and typed
- * credentials are never read, and no cookie is exported off device.
- *
- * Owner-authorized experimental path: it stays labeled experimental because the
- * page's payload can change.
+ * Embedded session. The provider page loads inside the app; after the user
+ * signs in, DevGauge reads the usage the page loads, syncs it automatically, and
+ * returns to the dashboard. No password is read and no cookie leaves the device.
  */
 export default function SessionScreen() {
   const params = useLocalSearchParams<{ providerId: string }>();
@@ -45,26 +34,64 @@ export default function SessionScreen() {
   const reload = useReloadProviders();
   const webView = useRef<WebView>(null);
   const capturedRef = useRef<CapturedResponse[]>([]);
+  const syncedRef = useRef(false);
   const [windows, setWindows] = useState<UsageWindow[]>([]);
-  const [status, setStatus] = useState('Sign in to load your usage page.');
-  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState('Connecting…');
+  const [busy, setBusy] = useState(false);
 
   const providerId = params.providerId;
-  const isSession =
-    typeof providerId === 'string' && isSessionProvider(providerId);
+  const sessionProvider =
+    typeof providerId === 'string' && isSessionProvider(providerId)
+      ? providerId
+      : null;
 
-  if (!isSession) {
+  const sync = async () => {
+    if (windows.length === 0 || sessionProvider === null) return;
+    setBusy(true);
+    setStatus('Syncing usage…');
+    try {
+      const db = await getAppDatabase();
+      let ids = 0;
+      await saveSessionSnapshot({
+        db,
+        providerId: sessionProvider,
+        displayName: `${SESSION_PROVIDERS[sessionProvider].label} session`,
+        windows,
+        fetchedAt: new Date().toISOString(),
+        now: new Date(),
+        nextId: () => `${sessionProvider}-${Date.now()}-${(ids += 1)}`,
+      });
+      await reload();
+      setStatus('Connected.');
+      router.replace('/(tabs)/usage');
+    } catch {
+      syncedRef.current = false;
+      setStatus('Could not sync. Checking again…');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Auto-sync the moment usage appears, then go straight to the dashboard.
+  useEffect(() => {
+    if (windows.length === 0 || syncedRef.current) return;
+    syncedRef.current = true;
+    void sync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [windows]);
+
+  if (sessionProvider === null) {
     return (
       <Screen edges={['left', 'right', 'bottom']}>
         <ErrorState
-          title="No in-app sign-in"
-          description="This provider has no embedded session flow."
+          title="Not available"
+          description="This provider has no in-app sign-in."
         />
       </Screen>
     );
   }
 
-  const config = SESSION_PROVIDERS[providerId];
+  const config = SESSION_PROVIDERS[sessionProvider];
 
   const onMessage = (event: WebViewMessageEvent) => {
     try {
@@ -78,76 +105,34 @@ export default function SessionScreen() {
       const extracted = extractUsageWindows(capturedRef.current, config.keyMap);
       if (extracted.windows.length > 0) {
         setWindows(extracted.windows);
-        setStatus(
-          `${extracted.windows.length} usage window(s) detected. Save to see them on the dashboard.`,
-        );
-      } else {
-        setStatus('Signed in. Open the usage page to load your limits.');
+        setStatus('Usage found. Finishing…');
       }
     } catch {
-      // Ignore non-JSON messages.
-    }
-  };
-
-  const save = async () => {
-    if (windows.length === 0) return;
-    setSaving(true);
-    try {
-      const db = await getAppDatabase();
-      let ids = 0;
-      await saveSessionSnapshot({
-        db,
-        providerId,
-        displayName: `${config.label} web session`,
-        windows,
-        fetchedAt: new Date().toISOString(),
-        now: new Date(),
-        nextId: () => `${providerId}-${Date.now()}-${(ids += 1)}`,
-      });
-      await reload();
-      router.replace('/(tabs)/usage');
-    } catch (error) {
-      setStatus(`Save failed: ${String(error)}`);
-    } finally {
-      setSaving(false);
+      // Non-JSON messages are ignored.
     }
   };
 
   return (
     <Screen edges={['left', 'right', 'bottom']}>
       <View style={styles.screen}>
-        <Header
-          title={`Sign in to ${config.label}`}
-          subtitle="Experimental in-app session"
-        />
-        <Notice tone="warning" icon="shield-lock-outline">
-          DevGauge reads only the usage response this page fetches. It never
-          sees your password and never sends your session off device.
-        </Notice>
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[
-            typography.monoCaption,
-            { color: theme.colors.textSecondary },
-          ]}
-        >
-          {status}
-        </Text>
-        <Stack gap="sm">
-          <Button
-            label={windows.length > 0 ? 'Save usage' : 'Waiting for usage…'}
-            icon="download-outline"
-            loading={saving}
-            disabled={windows.length === 0 || saving}
-            onPress={save}
-          />
-          <Button
-            label="Reload page"
-            variant="ghost"
-            icon="refresh"
-            onPress={() => webView.current?.reload()}
-          />
-        </Stack>
+        <Header title={config.label} />
+        <View style={styles.statusRow}>
+          {busy ? (
+            <ActivityIndicator
+              size="small"
+              color={theme.colors.textSecondary}
+            />
+          ) : null}
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[
+              typography.monoCaption,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            {status}
+          </Text>
+        </View>
         <View style={styles.webviewWrap}>
           <WebView
             ref={webView}
@@ -164,32 +149,27 @@ export default function SessionScreen() {
             injectedJavaScript={USAGE_BRIDGE_SCRIPT}
             onMessage={onMessage}
             onShouldStartLoadWithRequest={(request) => {
-              const host = allowedSessionHost(providerId, request.url);
-              if (host === null) {
-                setStatus('Blocked a navigation outside the provider.');
-                return false;
-              }
+              const host = allowedSessionHost(sessionProvider, request.url);
+              if (host === null) return false;
               return true;
             }}
-            onError={() =>
-              setStatus('Could not load the page. Check your connection.')
-            }
-            onHttpError={({ nativeEvent }) =>
-              setStatus(`The page returned HTTP ${nativeEvent.statusCode}.`)
-            }
+            onError={() => setStatus('Connection problem. Retrying…')}
           />
         </View>
+        <Button
+          label="Reload"
+          variant="ghost"
+          icon="refresh"
+          onPress={() => webView.current?.reload()}
+        />
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 16, gap: 12 },
-  webviewWrap: {
-    flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
+  screen: { flex: 1, padding: spacing.lg, gap: spacing.md },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  webviewWrap: { flex: 1, borderRadius: 8, overflow: 'hidden' },
   webview: { flex: 1 },
 });
