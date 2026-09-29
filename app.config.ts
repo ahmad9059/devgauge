@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: environment === 'production' ? 'DevGauge' : `DevGauge ${environment}`,
+    name: 'DevGauge',
     slug: 'devgauge',
     version: '0.1.0',
     orientation: 'default',
