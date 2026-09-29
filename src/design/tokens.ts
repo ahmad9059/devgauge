@@ -21,12 +21,13 @@ export const sectionSpacing = {
   loose: spacing.xxl,
 } as const;
 
+// Restrained radii: Vercel surfaces are near-square, not pill-shaped.
 export const radii = {
-  xs: 6,
-  sm: 10,
-  control: 14,
-  card: 20,
-  sheet: 24,
+  xs: 3,
+  sm: 5,
+  control: 6,
+  card: 8,
+  sheet: 12,
   pill: 999,
 } as const;
 
@@ -42,26 +43,26 @@ export const touchTargets = {
   comfortable: 56,
   large: 64,
   iconButton: 48,
-  tabBar: 64,
+  tabBar: 60,
 } as const;
 
 export const fontSizes = {
   caption: 12,
-  label: 14,
-  body: 16,
-  subheading: 17,
+  label: 13,
+  body: 15,
+  subheading: 16,
   heading: 20,
-  title: 26,
-  display: 34,
+  title: 24,
+  display: 32,
 } as const;
 
 export const lineHeights = {
   caption: 16,
-  label: 20,
-  body: 24,
+  label: 18,
+  body: 22,
   heading: 26,
-  title: 32,
-  display: 40,
+  title: 30,
+  display: 38,
 } as const;
 
 export const fontWeights = {
@@ -75,7 +76,7 @@ export const letterSpacing = {
   tighter: -0.4,
   tight: -0.2,
   normal: 0,
-  wide: 0.4,
+  wide: 0.2,
 } as const;
 
 export const opacities = {
@@ -86,9 +87,9 @@ export const opacities = {
 
 export const iconSizes = {
   sm: 16,
-  md: 20,
-  lg: 24,
-  xl: 32,
+  md: 18,
+  lg: 20,
+  xl: 28,
 } as const;
 
 // Android elevation (dp) for raised surfaces, paired with the surface ramp.

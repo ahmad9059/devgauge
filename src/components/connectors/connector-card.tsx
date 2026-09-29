@@ -5,11 +5,11 @@ import {
   describeSource,
   describeState,
 } from '@/domain/provider-status';
-import { borderWidths, radii, spacing } from '@/design/tokens';
+import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { formatRelativeMinutes } from '@/utils/format';
 import type { ProviderFixture } from '@/testing/fixtures/providers';
-import { Button, Card, CardDivider, Icon, StatusChip } from '@/components/ui';
+import { Button, Card, CardDivider, StatusChip } from '@/components/ui';
 import { Monogram } from '@/components/ui/monogram';
 
 export function ConnectorCard({
@@ -71,9 +71,9 @@ export function ConnectorCard({
       <CardDivider />
 
       <View style={styles.facts}>
-        <Fact icon="shield-key-outline" label="Sign-in" value={authMethod} />
-        <Fact icon="chart-line" label="Data" value={dataSummary} />
-        <Fact icon="database-outline" label="Retention" value={retention} />
+        <Fact label="Sign-in" value={authMethod} />
+        <Fact label="Data" value={dataSummary} />
+        <Fact label="Retention" value={retention} />
       </View>
 
       {provider.note ? (
@@ -121,48 +121,19 @@ export function ConnectorCard({
           />
         ) : null}
         {provider.state === 'candidate-disabled' ? (
-          <View
-            style={[
-              styles.disabledNote,
-              {
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.surfaceRaised,
-              },
-            ]}
-          >
-            <Icon
-              name="information-outline"
-              size={18}
-              color={theme.colors.textSecondary}
-            />
-            <Text
-              style={[
-                typography.caption,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              {status.hint}
-            </Text>
-          </View>
+          <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
+            {status.hint}
+          </Text>
         ) : null}
       </View>
     </Card>
   );
 }
 
-function Fact({
-  icon,
-  label,
-  value,
-}: {
-  icon: 'shield-key-outline' | 'chart-line' | 'database-outline';
-  label: string;
-  value: string;
-}) {
+function Fact({ label, value }: { label: string; value: string }) {
   const { theme, typography } = useTheme();
   return (
     <View style={styles.factRow}>
-      <Icon name={icon} size={16} color={theme.colors.textMuted} />
       <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
         {label}
       </Text>
@@ -186,12 +157,4 @@ const styles = StyleSheet.create({
   factRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   factValue: { flex: 1, textAlign: 'right' },
   actions: { gap: spacing.sm },
-  disabledNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.control,
-    borderWidth: borderWidths.thin,
-  },
 });

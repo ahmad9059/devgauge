@@ -1,11 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
-import { radii } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 
 /**
- * Neutral monogram used until official provider brand assets are approved.
- * Deliberately not a company logo or trademark.
+ * Brand-neutral identifier text. Deliberately not a logo, tile, or badge.
  */
 export function Monogram({
   label,
@@ -16,40 +14,24 @@ export function Monogram({
 }) {
   const { theme, typography } = useTheme();
   return (
-    <View
+    <Text
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[
-        styles.badge,
+        styles.label,
+        typography.monoLabel,
         {
-          width: size,
-          height: size,
-          borderRadius: radii.control,
-          backgroundColor: theme.colors.surfaceRaised,
-          borderColor: theme.colors.border,
+          color: theme.colors.textSecondary,
+          fontSize: Math.min(Math.round(size * 0.3), 15),
+          lineHeight: Math.min(Math.round(size * 0.38), 18),
         },
       ]}
     >
-      <Text
-        style={[
-          typography.monoLabel,
-          {
-            color: theme.colors.textPrimary,
-            fontSize: size * 0.34,
-            lineHeight: size * 0.44,
-          },
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
+      {label}
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
+  label: { textTransform: 'uppercase' },
 });

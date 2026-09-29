@@ -38,6 +38,8 @@ The Android icon set is generated from [`icon.png`](icon.png) with `npm run icon
 
 `app.config.ts` wires the icon, adaptive icon (with `#000000` background), monochrome icon, and the `expo-splash-screen` plugin. `npm run check` asserts these paths.
 
+The interface follows a monochrome, Vercel-style design language: Geist and Geist Mono typography, restrained radii, thin rules instead of filled chips or banners, and independent light/dark themes with no decorative gradients, glows, or icon tiles.
+
 ## Release status
 
 All ten phases are implemented. **No connector is enabled:** Claude, Codex, Command Code, OpenCode Go, and Gemini CLI are externally blocked on provider feasibility/contracts, and GitHub Copilot is release-disabled pending the Phase 1 Android matrix and the GitHub App permission spike. Preview/internal testing is **GO**; production with live connectors is **NO-GO** until the owner actions complete.

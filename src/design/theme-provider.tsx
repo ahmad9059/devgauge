@@ -1,14 +1,14 @@
 import {
-  IBMPlexSans_400Regular,
-  IBMPlexSans_500Medium,
-  IBMPlexSans_600SemiBold,
-  IBMPlexSans_700Bold,
-} from '@expo-google-fonts/ibm-plex-sans';
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+} from '@expo-google-fonts/geist';
 import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_500Medium,
-  JetBrainsMono_700Bold,
-} from '@expo-google-fonts/jetbrains-mono';
+  GeistMono_400Regular,
+  GeistMono_500Medium,
+  GeistMono_700Bold,
+} from '@expo-google-fonts/geist-mono';
 import { useFonts } from 'expo-font';
 import {
   createContext,
@@ -60,13 +60,13 @@ export function ThemeProvider({
   const [textScale, setTextScale] = useState<TextScale>(initialTextScale);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [fontsLoaded] = useFonts({
-    IBMPlexSans_400Regular,
-    IBMPlexSans_500Medium,
-    IBMPlexSans_600SemiBold,
-    IBMPlexSans_700Bold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_500Medium,
-    JetBrainsMono_700Bold,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    GeistMono_400Regular,
+    GeistMono_500Medium,
+    GeistMono_700Bold,
   });
 
   useEffect(() => {

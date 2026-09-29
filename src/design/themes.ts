@@ -55,8 +55,10 @@ export type StatusTone =
   'neutral' | 'accent' | 'info' | 'success' | 'warning' | 'danger';
 
 export type ToneColors = {
+  /** A near-surface backdrop; never a saturated color field. */
   background: string;
   border: string;
+  /** Legible text/mark color for the tone. */
   content: string;
 };
 
@@ -86,98 +88,99 @@ export type Theme = {
   letterSpacing: typeof letterSpacing;
 };
 
-/** Bundled webfonts; loaded at runtime with a system-font fallback. */
+/** Bundled Geist webfonts; loaded at runtime with a system-font fallback. */
 export const customFonts: ThemeFonts = {
-  uiRegular: 'IBMPlexSans_400Regular',
-  uiMedium: 'IBMPlexSans_500Medium',
-  uiSemibold: 'IBMPlexSans_600SemiBold',
-  uiBold: 'IBMPlexSans_700Bold',
-  monoRegular: 'JetBrainsMono_400Regular',
-  monoMedium: 'JetBrainsMono_500Medium',
-  monoBold: 'JetBrainsMono_700Bold',
+  uiRegular: 'Geist_400Regular',
+  uiMedium: 'Geist_500Medium',
+  uiSemibold: 'Geist_600SemiBold',
+  uiBold: 'Geist_700Bold',
+  monoRegular: 'GeistMono_400Regular',
+  monoMedium: 'GeistMono_500Medium',
+  monoBold: 'GeistMono_700Bold',
 };
 
 // Fallback keeps the app usable if font assets fail to load.
 export const systemFonts: ThemeFonts = {};
 
+// Monochrome, near-black/white. Color is reserved for state, never decoration.
 const darkColors: ThemeColors = {
-  background: '#101215',
-  surface: '#181B1F',
-  surfaceElevated: '#1F2329',
-  surfaceRaised: '#262B32',
-  surfaceSunken: '#0B0D0F',
-  border: '#313841',
-  borderStrong: '#454E59',
-  controlBorder: '#6B7480',
-  textPrimary: '#F3F4F6',
-  textSecondary: '#C2C8D0',
-  textMuted: '#9AA1AA',
-  textInverse: '#16181C',
-  accent: '#E8B65F',
-  accentMuted: '#B98E42',
-  accentContrast: '#16181C',
-  positive: '#7BD39B',
-  warning: '#F1C55A',
-  danger: '#F58B90',
-  info: '#8CC0F5',
+  background: '#000000',
+  surface: '#0A0A0A',
+  surfaceElevated: '#111111',
+  surfaceRaised: '#1A1A1A',
+  surfaceSunken: '#000000',
+  border: '#262626',
+  borderStrong: '#3F3F46',
+  controlBorder: '#66666F',
+  textPrimary: '#EDEDED',
+  textSecondary: '#A1A1AA',
+  textMuted: '#8A8A93',
+  textInverse: '#0A0A0A',
+  accent: '#EDEDED',
+  accentMuted: '#A1A1AA',
+  accentContrast: '#0A0A0A',
+  positive: '#6FD79B',
+  warning: '#E8C766',
+  danger: '#F19193',
+  info: '#7FB4F5',
   dangerFill: '#B3261E',
   dangerContrast: '#FFFFFF',
-  focus: '#8CC0F5',
-  overlay: 'rgba(0, 0, 0, 0.6)',
-  skeleton: '#2A3038',
-  progressTrack: '#2C333B',
-  progressFill: '#E8B65F',
-  tabBar: '#14171B',
-  tabBarBorder: '#262B32',
+  focus: '#7FB4F5',
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  skeleton: '#1A1A1A',
+  progressTrack: '#262626',
+  progressFill: '#EDEDED',
+  tabBar: '#050505',
+  tabBarBorder: '#1F1F1F',
 };
 
 const lightColors: ThemeColors = {
-  background: '#F6F2EA',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceElevated: '#FCF9F3',
-  surfaceRaised: '#F1EBE0',
-  surfaceSunken: '#EDE6D9',
-  border: '#E0D7C7',
-  borderStrong: '#C7BCA8',
-  controlBorder: '#767D88',
-  textPrimary: '#1B1E22',
-  textSecondary: '#4A5058',
-  textMuted: '#5D646C',
+  surfaceElevated: '#FAFAFA',
+  surfaceRaised: '#F4F4F5',
+  surfaceSunken: '#F4F4F5',
+  border: '#E4E4E7',
+  borderStrong: '#D4D4D8',
+  controlBorder: '#8A8A93',
+  textPrimary: '#09090B',
+  textSecondary: '#52525B',
+  textMuted: '#67676F',
   textInverse: '#FFFFFF',
-  accent: '#8A5A12',
-  accentMuted: '#A97A2E',
+  accent: '#09090B',
+  accentMuted: '#52525B',
   accentContrast: '#FFFFFF',
-  positive: '#1B7A48',
+  positive: '#15803D',
   warning: '#8A5A12',
-  danger: '#B3261E',
-  info: '#1B5FA8',
-  dangerFill: '#B3261E',
+  danger: '#B91C1C',
+  info: '#1D4ED8',
+  dangerFill: '#B91C1C',
   dangerContrast: '#FFFFFF',
-  focus: '#1B5FA8',
-  overlay: 'rgba(27, 30, 34, 0.45)',
-  skeleton: '#E5DDCE',
-  progressTrack: '#E2D9C9',
-  progressFill: '#8A5A12',
+  focus: '#1D4ED8',
+  overlay: 'rgba(9, 9, 11, 0.4)',
+  skeleton: '#E4E4E7',
+  progressTrack: '#E4E4E7',
+  progressFill: '#09090B',
   tabBar: '#FFFFFF',
-  tabBarBorder: '#E7DFD1',
+  tabBarBorder: '#E4E4E7',
 };
 
 const darkTones: Record<StatusTone, ToneColors> = {
-  neutral: { background: '#242A31', border: '#3A424C', content: '#C2C8D0' },
-  accent: { background: '#2C2417', border: '#5C4A22', content: '#EEC078' },
-  info: { background: '#18293B', border: '#2C4863', content: '#9CC8F7' },
-  success: { background: '#152A20', border: '#265039', content: '#8ADBAA' },
-  warning: { background: '#2E2616', border: '#5C4A22', content: '#F1C55A' },
-  danger: { background: '#2E1B1D', border: '#5C2F32', content: '#F7A0A4' },
+  neutral: { background: '#141414', border: '#262626', content: '#A1A1AA' },
+  accent: { background: '#141414', border: '#262626', content: '#EDEDED' },
+  info: { background: '#0E1622', border: '#1E3A5F', content: '#7FB4F5' },
+  success: { background: '#0E1A13', border: '#1F4030', content: '#6FD79B' },
+  warning: { background: '#1E1808', border: '#4A3B12', content: '#E8C766' },
+  danger: { background: '#1E0F10', border: '#5A2225', content: '#F19193' },
 };
 
 const lightTones: Record<StatusTone, ToneColors> = {
-  neutral: { background: '#EFE9DD', border: '#D8CDB9', content: '#3F454D' },
-  accent: { background: '#F6EBD4', border: '#E1C99A', content: '#7A4E0A' },
-  info: { background: '#E4EEFA', border: '#B7D2EF', content: '#14508F' },
-  success: { background: '#E1F1E7', border: '#B4DCC4', content: '#146039' },
-  warning: { background: '#F7EDD5', border: '#E3CD97', content: '#7A4E0A' },
-  danger: { background: '#FBE5E4', border: '#EFBDBB', content: '#96201A' },
+  neutral: { background: '#FAFAFA', border: '#E4E4E7', content: '#52525B' },
+  accent: { background: '#FAFAFA', border: '#E4E4E7', content: '#09090B' },
+  info: { background: '#F2F7FE', border: '#CFE0F7', content: '#1D4ED8' },
+  success: { background: '#F1F8F4', border: '#C8E6D4', content: '#15803D' },
+  warning: { background: '#FBF6E9', border: '#EADFB8', content: '#8A5A12' },
+  danger: { background: '#FCF2F2', border: '#F2CFCE', content: '#B91C1C' },
 };
 
 const scales = {

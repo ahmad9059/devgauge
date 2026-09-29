@@ -24,11 +24,11 @@ describe('typography', () => {
 
   it('maps weights to the matching bundled family', () => {
     const styles = typographyFor(createTheme('dark', customFonts));
-    expect(styles.body.fontFamily).toBe('IBMPlexSans_400Regular');
-    expect(styles.bodyStrong.fontFamily).toBe('IBMPlexSans_600SemiBold');
-    expect(styles.title.fontFamily).toBe('IBMPlexSans_600SemiBold');
-    expect(styles.monoValue.fontFamily).toBe('JetBrainsMono_500Medium');
-    expect(styles.monoCaption.fontFamily).toBe('JetBrainsMono_400Regular');
+    expect(styles.body.fontFamily).toBe('Geist_400Regular');
+    expect(styles.bodyStrong.fontFamily).toBe('Geist_600SemiBold');
+    expect(styles.title.fontFamily).toBe('Geist_600SemiBold');
+    expect(styles.monoValue.fontFamily).toBe('GeistMono_500Medium');
+    expect(styles.monoCaption.fontFamily).toBe('GeistMono_400Regular');
   });
 
   it('scales font sizes and line heights without changing weights', () => {

@@ -22,8 +22,8 @@
     "check": "npm run typecheck && npm run lint && npm run test && npm run config:check"
   },
   "dependencies": {
-    "@expo-google-fonts/ibm-plex-sans": "^0.4.1",
-    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/geist": "^0.4.2",
+    "@expo-google-fonts/geist-mono": "^0.4.3",
     "@expo/vector-icons": "^15.0.2",
     "@noble/ed25519": "^3.2.0",
     "@noble/hashes": "^2.4.0",

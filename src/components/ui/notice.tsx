@@ -1,41 +1,35 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { StatusTone } from '@/design/themes';
-import { borderWidths, radii, spacing } from '@/design/tokens';
+import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { Icon, type IconName } from './icon';
+import type { IconName } from './icon';
 
-/** Inline explanatory banner. Icon + text always accompany the tone color. */
+/**
+ * Inline explanatory note. A thin tone rule carries the category; the text is
+ * the message. No filled color field or decorative icon.
+ */
 export function Notice({
   tone = 'info',
-  icon = 'information-outline',
   children,
   testID,
 }: {
   tone?: StatusTone;
+  /** Accepted for call-site compatibility; no decorative icon is rendered. */
   icon?: IconName;
   children: string;
   testID?: string;
 }) {
   const { theme, typography } = useTheme();
-  const toneColors = theme.tones[tone];
+  const color = theme.tones[tone].content;
   return (
     <View
       testID={testID}
       accessible
       accessibilityLabel={children}
-      style={[
-        styles.container,
-        {
-          backgroundColor: toneColors.background,
-          borderColor: toneColors.border,
-        },
-      ]}
+      style={[styles.container, { borderLeftColor: color }]}
     >
-      <Icon name={icon} size={16} color={toneColors.content} />
-      <Text
-        style={[typography.caption, styles.text, { color: toneColors.content }]}
-      >
+      <Text style={[typography.caption, { color: theme.colors.textSecondary }]}>
         {children}
       </Text>
     </View>
@@ -44,12 +38,8 @@ export function Notice({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.control,
-    borderWidth: borderWidths.thin,
+    borderLeftWidth: 2,
+    paddingLeft: spacing.md,
+    paddingVertical: spacing.xxs,
   },
-  text: { flex: 1 },
 });

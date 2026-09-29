@@ -1,57 +1,41 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { StatusTone } from '@/design/themes';
-import { borderWidths, radii, spacing } from '@/design/tokens';
+import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { Icon, type IconName } from './icon';
+import type { IconName } from './icon';
 
 /**
- * Status is communicated by icon + text, never by color alone. The tone only
- * reinforces meaning.
+ * Status is a small colored dot plus a text label. Meaning is carried by the
+ * label, not by an icon tile, pill, or color alone.
  */
 export function StatusChip({
   label,
   tone,
-  icon,
   testID,
 }: {
   label: string;
   tone: StatusTone;
-  icon: IconName;
+  /** Accepted for call-site compatibility; no decorative icon is rendered. */
+  icon?: IconName;
   testID?: string;
 }) {
   const { theme, typography } = useTheme();
-  const toneColors = theme.tones[tone];
+  const color = theme.tones[tone].content;
   return (
     <View
       testID={testID}
       accessible
       accessibilityLabel={`Status: ${label}`}
-      style={[
-        styles.chip,
-        {
-          backgroundColor: toneColors.background,
-          borderColor: toneColors.border,
-        },
-      ]}
+      style={styles.row}
     >
-      <Icon name={icon} size={14} color={toneColors.content} />
-      <Text style={[typography.caption, { color: toneColors.content }]}>
-        {label}
-      </Text>
+      <View style={[styles.dot, { backgroundColor: color }]} />
+      <Text style={[typography.caption, { color }]}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.pill,
-    borderWidth: borderWidths.thin,
-    alignSelf: 'flex-start',
-  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  dot: { width: 6, height: 6, borderRadius: 3 },
 });

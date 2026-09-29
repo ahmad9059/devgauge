@@ -11,7 +11,6 @@ import type {
 import {
   Card,
   CardDivider,
-  Icon,
   IconButton,
   ProgressBar,
   StatusChip,
@@ -98,14 +97,9 @@ export function ProviderCard({
 
   const footer = (
     <View style={styles.footerRow}>
-      <View style={styles.footerText}>
-        <Icon name="clock-outline" size={14} color={theme.colors.textMuted} />
-        <Text
-          style={[typography.monoCaption, { color: theme.colors.textMuted }]}
-        >
-          {relative ? `Updated ${relative}` : 'No stored snapshot'}
-        </Text>
-      </View>
+      <Text style={[typography.monoCaption, { color: theme.colors.textMuted }]}>
+        {relative ? `Updated ${relative}` : 'No stored snapshot'}
+      </Text>
       {onOpenActions ? (
         <IconButton
           icon="dots-horizontal"
@@ -158,5 +152,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerText: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

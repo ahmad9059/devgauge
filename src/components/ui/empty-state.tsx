@@ -21,14 +21,7 @@ export function EmptyState({
   const { theme, typography } = useTheme();
   return (
     <View testID={testID} style={styles.container}>
-      <View
-        style={[
-          styles.iconWrap,
-          { backgroundColor: theme.colors.surfaceRaised },
-        ]}
-      >
-        <Icon name={icon} size={28} color={theme.colors.textSecondary} />
-      </View>
+      <Icon name={icon} size={20} color={theme.colors.textMuted} />
       <Text
         accessibilityRole="header"
         style={[
@@ -59,14 +52,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xxl,
     paddingHorizontal: spacing.lg,
-  },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
   },
   center: { textAlign: 'center' },
   action: { marginTop: spacing.sm },

@@ -2,9 +2,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { clampPercent, formatCount, trim } from '@/utils/format';
 import type { UsageUnit } from '@/testing/fixtures/providers';
+import { clampPercent, formatCount, trim } from '@/utils/format';
 
+/**
+ * A thin, monochrome data bar. Color is only used for warning/danger state and
+ * is never the sole cue: the exact values are always printed.
+ */
 export function ProgressBar({
   label,
   percent,
@@ -73,11 +77,7 @@ export function ProgressBar({
         <View
           style={[
             styles.fill,
-            {
-              width: `${value}%`,
-              backgroundColor: fillColor,
-              borderColor: theme.colors.surface,
-            },
+            { width: `${value}%`, backgroundColor: fillColor },
           ]}
         />
       </View>
@@ -100,15 +100,6 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: spacing.sm,
   },
-  track: {
-    height: 8,
-    borderRadius: radii.pill,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: radii.pill,
-    minWidth: 4,
-    borderWidth: 1,
-  },
+  track: { height: 4, borderRadius: radii.xs, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: radii.xs, minWidth: 2 },
 });

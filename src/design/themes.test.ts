@@ -30,7 +30,7 @@ describe('theme tokens', () => {
   it('applies custom fonts only when a font set is supplied', () => {
     expect(darkTheme.fonts).toEqual({});
     expect(resolveTheme('dark', 'dark', customFonts).fonts.uiRegular).toBe(
-      'IBMPlexSans_400Regular',
+      'Geist_400Regular',
     );
   });
 

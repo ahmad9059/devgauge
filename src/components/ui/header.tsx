@@ -55,7 +55,7 @@ export function SectionTitle({
       </Text>
       {caption ? (
         <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
-          {caption.toUpperCase()}
+          {caption}
         </Text>
       ) : null}
     </View>

@@ -34,7 +34,6 @@ export function Card({
     borderRadius: radii.card,
     padding: padded ? spacing.lg : 0,
     gap: spacing.md,
-    elevation: elevated ? theme.elevations.low : theme.elevations.none,
   };
 
   if (!onPress) {

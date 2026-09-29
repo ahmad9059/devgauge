@@ -21,7 +21,7 @@ export function ErrorState({
   const { theme, typography } = useTheme();
   return (
     <View testID={testID} style={styles.container} accessibilityRole="alert">
-      <Icon name="alert-circle-outline" size={28} color={theme.colors.danger} />
+      <Icon name="alert-circle-outline" size={18} color={theme.colors.danger} />
       <Text
         accessibilityRole="header"
         style={[
