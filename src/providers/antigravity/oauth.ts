@@ -2,7 +2,7 @@
 // the Antigravity CLI application's public OAuth client; there is no secret, so
 // PKCE is required. Owner-authorized; treated as an experimental integration.
 export const ANTIGRAVITY_CLIENT_ID =
-  '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
+  'REDACTED.apps.googleusercontent.com';
 export const ANTIGRAVITY_REDIRECT_URI =
   'https://antigravity.google/oauth-callback';
 export const ANTIGRAVITY_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
