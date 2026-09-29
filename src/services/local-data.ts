@@ -152,3 +152,16 @@ export async function deleteAllLocalData(
     databaseFileReset,
   };
 }
+
+export type ClearCacheReport = { snapshotsDeleted: number };
+
+/**
+ * Removes cached usage snapshots (and their windows) but keeps connections,
+ * credentials, and settings.
+ */
+export async function clearCachedUsage(
+  db: Database,
+): Promise<ClearCacheReport> {
+  const result = await db.run('DELETE FROM usage_snapshots');
+  return { snapshotsDeleted: result.changes };
+}

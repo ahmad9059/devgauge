@@ -17,3 +17,11 @@ export function getAppDatabase(): Promise<Database> {
   }
   return pending;
 }
+
+/**
+ * Drops the cached handle so the next open re-runs migrations (and the
+ * key-loss recovery path). Used after deleting all local data.
+ */
+export function resetAppDatabaseHandle(): void {
+  pending = null;
+}

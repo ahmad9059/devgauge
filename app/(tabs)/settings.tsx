@@ -26,7 +26,13 @@ import {
 import type { ThemePreference } from '@/design/themes';
 import { spacing } from '@/design/tokens';
 import { saveTextScale, saveTheme } from '@/features/settings/settings-service';
-import { getAppDatabase } from '@/services/app-database-store';
+import {
+  getAppDatabase,
+  resetAppDatabaseHandle,
+} from '@/services/app-database-store';
+import { clearCachedUsage, deleteAllLocalData } from '@/services/local-data';
+import { createSecureStoreBackend } from '@/storage/secure-store-backend';
+import { createSecureVault } from '@/storage/secure-vault';
 
 const THEME_OPTIONS: {
   value: ThemePreference;
@@ -65,7 +71,8 @@ export default function SettingsScreen() {
   } = useTheme();
   const [themeSheet, setThemeSheet] = useState(false);
   const [textSheet, setTextSheet] = useState(false);
-  const [dataSheet, setDataSheet] = useState(false);
+  const [dataAction, setDataAction] = useState<null | 'cache' | 'delete'>(null);
+  const [dataMessage, setDataMessage] = useState<string | null>(null);
 
   const version = Constants.expoConfig?.version ?? '0.1.0';
   const themeLabel =
@@ -84,6 +91,33 @@ export default function SettingsScreen() {
       .catch(() => undefined);
   };
 
+  const runClearCache = async () => {
+    try {
+      const db = await getAppDatabase();
+      const report = await clearCachedUsage(db);
+      setDataMessage(`Cleared ${report.snapshotsDeleted} cached snapshot(s).`);
+    } catch {
+      setDataMessage('Could not clear cached usage.');
+    }
+    setDataAction(null);
+  };
+
+  const runDeleteAll = async () => {
+    try {
+      const db = await getAppDatabase();
+      const secretStore = createSecureStoreBackend();
+      await deleteAllLocalData(db, {
+        vault: createSecureVault(secretStore),
+        secretStore,
+      });
+      resetAppDatabaseHandle();
+      setDataMessage('All local data deleted.');
+    } catch {
+      setDataMessage('Could not delete local data.');
+    }
+    setDataAction(null);
+  };
+
   return (
     <Screen>
       <ScreenScroll>
@@ -94,7 +128,7 @@ export default function SettingsScreen() {
           <View style={styles.cardPad}>
             <ListRow
               title="Theme"
-              subtitle="Applied immediately; persisted in a later phase"
+              subtitle="Applied immediately and saved on this device"
               trailing={
                 <View style={styles.trailing}>
                   <Text
@@ -206,17 +240,28 @@ export default function SettingsScreen() {
             <ListRow
               title="Clear cached usage"
               subtitle="Removes stored snapshots but keeps connections"
-              onPress={() => setDataSheet(true)}
+              onPress={() => {
+                setDataMessage(null);
+                setDataAction('cache');
+              }}
             />
             <RowDivider />
             <ListRow
               title="Delete all local data"
               destructive
-              subtitle="Removes connections, snapshots, and settings"
-              onPress={() => setDataSheet(true)}
+              subtitle="Removes connections, snapshots, credentials, and settings"
+              onPress={() => {
+                setDataMessage(null);
+                setDataAction('delete');
+              }}
             />
           </View>
         </Card>
+        {dataMessage ? (
+          <Notice tone="info" icon="information-outline">
+            {dataMessage}
+          </Notice>
+        ) : null}
 
         <SectionTitle>Help &amp; About</SectionTitle>
         <Card padded={false}>
@@ -304,29 +349,38 @@ export default function SettingsScreen() {
       </Sheet>
 
       <Sheet
-        visible={dataSheet}
-        title="Delete local data"
-        onClose={() => setDataSheet(false)}
+        visible={dataAction !== null}
+        title={
+          dataAction === 'delete'
+            ? 'Delete all local data'
+            : 'Clear cached usage'
+        }
+        onClose={() => setDataAction(null)}
       >
-        <Notice tone="warning" icon="alert-outline">
-          This removes every connection, stored snapshot, and preference on this
-          device. It cannot be undone.
-        </Notice>
-        <Text style={[typography.body, { color: theme.colors.textSecondary }]}>
-          Data deletion is implemented in a later phase. Nothing is stored yet,
-          so this is a preview of the confirmation step.
-        </Text>
+        {dataAction === 'delete' ? (
+          <Notice tone="warning" icon="alert-outline">
+            This removes every connection, stored snapshot, credential, and
+            preference on this device. It cannot be undone.
+          </Notice>
+        ) : (
+          <Notice tone="warning" icon="alert-outline">
+            This removes stored usage snapshots. Connections and settings are
+            kept.
+          </Notice>
+        )}
         <Stack gap="sm">
           <Button
-            label="Delete everything"
-            variant="danger"
-            icon="delete-outline"
-            onPress={() => setDataSheet(false)}
+            label={
+              dataAction === 'delete' ? 'Delete everything' : 'Clear cache'
+            }
+            variant={dataAction === 'delete' ? 'danger' : 'secondary'}
+            icon={dataAction === 'delete' ? 'delete-outline' : 'broom'}
+            onPress={dataAction === 'delete' ? runDeleteAll : runClearCache}
           />
           <Button
             label="Cancel"
             variant="ghost"
-            onPress={() => setDataSheet(false)}
+            onPress={() => setDataAction(null)}
           />
         </Stack>
       </Sheet>
