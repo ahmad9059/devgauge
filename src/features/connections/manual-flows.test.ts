@@ -5,6 +5,7 @@ import {
   codexResetAction,
   manualDataLabelText,
   partnerApiWaitingState,
+  providerUnavailableExplanation,
 } from '@/features/connections/manual-flows';
 
 describe('manual flow copy', () => {
@@ -30,5 +31,26 @@ describe('manual flow copy', () => {
     const waiting = partnerApiWaitingState();
     expect(waiting.title).toBe('Awaiting provider API');
     expect(waiting.description).toMatch(/partner contract/);
+  });
+
+  it('explains why each connector cannot sync automatically', () => {
+    expect(providerUnavailableExplanation('claude')).toMatch(
+      /not available yet/,
+    );
+    expect(providerUnavailableExplanation('codex')).toMatch(
+      /not available yet/,
+    );
+    expect(providerUnavailableExplanation('gemini-cli')).toMatch(
+      /not account-wide/,
+    );
+    expect(providerUnavailableExplanation('github-copilot')).toMatch(
+      /release-disabled/,
+    );
+    expect(providerUnavailableExplanation('command-code')).toMatch(
+      /read-only usage contract/,
+    );
+    expect(providerUnavailableExplanation('opencode-go')).toMatch(
+      /read-only usage contract/,
+    );
   });
 });

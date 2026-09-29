@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -19,6 +20,7 @@ import { buildProviderViews } from './provider-views';
 type AppProvidersValue = {
   providers: ProviderFixture[];
   ready: boolean;
+  reload: () => Promise<void>;
 };
 
 const AppProvidersContext = createContext<AppProvidersValue | null>(null);
@@ -34,9 +36,8 @@ function gatedOnly(): ProviderFixture[] {
 
 /**
  * Loads the real provider list from the encrypted database (connections +
- * latest snapshots) once, and derives each provider's state from the registry.
- * There is no static/mock usage data. If the database is unavailable the app
- * falls back to the registry's gated states and stays usable.
+ * latest snapshots), derives each provider's state from the registry, and can
+ * reload after a connection change. There is no static/mock usage data.
  */
 export function AppProvidersProvider({ children }: { children: ReactNode }) {
   const [connections, setConnections] = useState<ProviderConnection[]>([]);
@@ -45,24 +46,27 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
   );
   const [ready, setReady] = useState(false);
 
+  const reload = useCallback(async () => {
+    try {
+      const db = await getAppDatabase();
+      const storedConnections = await listConnections(db);
+      const snapshots = await latestByConnection(db);
+      setConnections(storedConnections);
+      setLatest(snapshots);
+    } finally {
+      setReady(true);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
-    getAppDatabase()
-      .then(async (db) => {
-        const storedConnections = await listConnections(db);
-        const snapshots = await latestByConnection(db);
-        if (!active) return;
-        setConnections(storedConnections);
-        setLatest(snapshots);
-        setReady(true);
-      })
-      .catch(() => {
-        if (active) setReady(true);
-      });
+    reload().catch(() => {
+      if (active) setReady(true);
+    });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reload]);
 
   const value = useMemo<AppProvidersValue>(
     () => ({
@@ -73,8 +77,9 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
         now: new Date(),
       }),
       ready,
+      reload,
     }),
-    [connections, latest, ready],
+    [connections, latest, ready, reload],
   );
 
   return (
@@ -87,4 +92,10 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
 export function useProviderViews(): ProviderFixture[] {
   const context = useContext(AppProvidersContext);
   return context ? context.providers : gatedOnly();
+}
+
+/** Reloads provider views after a connection changes (demo/manual flows). */
+export function useReloadProviders(): () => Promise<void> {
+  const context = useContext(AppProvidersContext);
+  return context ? context.reload : async () => undefined;
 }

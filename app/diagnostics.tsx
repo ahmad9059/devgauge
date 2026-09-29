@@ -55,6 +55,13 @@ export default function DiagnosticsScreen() {
               showChevron
               onPress={() => router.push('/diagnostics/storage')}
             />
+            <RowDivider />
+            <ListRow
+              title="Demo connector"
+              subtitle="Run the real pipeline with sample data"
+              showChevron
+              onPress={() => router.push('/diagnostics/demo-connector')}
+            />
           </View>
         </Card>
 

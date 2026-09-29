@@ -18,6 +18,7 @@ import {
 import { useTheme } from '@/design/theme-provider';
 import { connectorMetadata } from '@/testing/fixtures/providers';
 import { useProviderViews } from '@/features/dashboard/app-providers';
+import { providerUnavailableExplanation } from '@/features/connections/manual-flows';
 
 export default function ConnectScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
@@ -56,6 +57,10 @@ export default function ConnectScreen() {
           retention={metadata.retention}
           onConnect={() => setSheetOpen(true)}
         />
+
+        <Notice tone="info" icon="information-outline">
+          {providerUnavailableExplanation(provider.id)}
+        </Notice>
 
         <SectionTitle>Before you connect</SectionTitle>
         <Text style={[typography.body, { color: theme.colors.textSecondary }]}>

@@ -1,6 +1,23 @@
 import { PARTNER_API_WAITING } from '@/services/capabilities/partner';
+import type { ProviderId } from '@/domain/providers';
 
 export type ManualProviderId = 'claude' | 'codex' | 'gemini-cli';
+
+/** Why a connector cannot fetch automatically, per provider. */
+export function providerUnavailableExplanation(providerId: ProviderId): string {
+  switch (providerId) {
+    case 'claude':
+    case 'codex':
+      return automaticSyncExplanation(providerId);
+    case 'gemini-cli':
+      return automaticSyncExplanation('gemini-cli');
+    case 'github-copilot':
+      return 'GitHub Copilot is release-disabled until the Android website-session check and the GitHub App permission spike pass.';
+    case 'command-code':
+    case 'opencode-go':
+      return 'This experimental connector stays off until the vendor issues a documented, read-only usage contract.';
+  }
+}
 
 /** Plain-language explanation that never blames the user. */
 export function automaticSyncExplanation(providerId: ManualProviderId): string {
