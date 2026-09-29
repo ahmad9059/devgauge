@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { ThemeProvider, useTheme } from '@/design/theme-provider';
 import { AppProvidersProvider } from '@/features/dashboard/app-providers';
+import { AutoSyncOnOpen } from '@/features/dashboard/auto-sync';
 import { SettingsSync } from '@/features/settings/settings-sync';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
@@ -49,6 +50,7 @@ function ThemedApp() {
           name="apikey/[providerId]"
           options={{ title: 'API key' }}
         />
+        <Stack.Screen name="sync" options={{ headerShown: false }} />
       </Stack>
     </>
   );
@@ -60,6 +62,7 @@ export default function RootLayout() {
       <AppProvidersProvider>
         <ThemedApp />
         <SettingsSync />
+        <AutoSyncOnOpen />
       </AppProvidersProvider>
     </ThemeProvider>
   );

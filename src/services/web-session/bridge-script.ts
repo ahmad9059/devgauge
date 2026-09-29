@@ -33,8 +33,31 @@ export const USAGE_BRIDGE_SCRIPT = `
   }
   function schedule() {
     postText();
-    setTimeout(postText, 2500);
-    setTimeout(postText, 6000);
+    try {
+      var ticks = 0;
+      var timer = setInterval(function () {
+        postText();
+        ticks += 1;
+        if (ticks > 25) clearInterval(timer);
+      }, 2000);
+    } catch (e) {}
+    try {
+      var pending = null;
+      var observer = new MutationObserver(function () {
+        if (pending) return;
+        pending = setTimeout(function () {
+          pending = null;
+          postText();
+        }, 800);
+      });
+      if (document.body) {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+        });
+      }
+    } catch (e) {}
   }
   try {
     if (document.readyState === 'complete' || document.readyState === 'interactive') {

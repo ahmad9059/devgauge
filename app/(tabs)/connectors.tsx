@@ -1,109 +1,64 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { Linking } from 'react-native';
 
 import { ConnectorCard } from '@/components/connectors/connector-card';
-import {
-  Header,
-  Screen,
-  ScreenScroll,
-  SectionTitle,
-  Stack,
-} from '@/components/ui';
-import {
-  CONNECTOR_GROUP_LABELS,
-  connectorGroup,
-  type ConnectorGroup,
-} from '@/domain/provider-status';
-import { connectorMetadata } from '@/testing/fixtures/providers';
+import { Header, Screen, ScreenScroll, Stack } from '@/components/ui';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { isApiKeyProvider } from '@/providers/api-key/candidates';
 import { isSessionProvider } from '@/services/web-session/session-config';
-
-const GROUP_ORDER: ConnectorGroup[] = [
-  'available',
-  'candidate',
-  'experimental',
-  'blocked',
-];
+import { connectorMetadata } from '@/testing/fixtures/providers';
 
 export default function ConnectorsScreen() {
   const router = useRouter();
-  const providerFixtures = useProviderViews();
-
-  const groups = useMemo(() => {
-    const map = new Map<ConnectorGroup, typeof providerFixtures>();
-    for (const provider of providerFixtures) {
-      const group = connectorGroup(provider.state);
-      map.set(group, [...(map.get(group) ?? []), provider]);
-    }
-    return GROUP_ORDER.filter((group) => map.has(group)).map((group) => ({
-      group,
-      providers: map.get(group) ?? [],
-    }));
-  }, [providerFixtures]);
+  const providers = useProviderViews();
 
   return (
     <Screen>
       <ScreenScroll>
         <Header title="Connectors" subtitle="Connect a provider" />
-
-        {groups.map(({ group, providers }) => (
-          <Stack key={group} gap="lg">
-            <SectionTitle
-              caption={`${providers.length} provider${providers.length === 1 ? '' : 's'}`}
-            >
-              {CONNECTOR_GROUP_LABELS[group]}
-            </SectionTitle>
-            {providers.map((provider) => {
-              const metadata = connectorMetadata[provider.id];
-              const session = isSessionProvider(provider.id);
-              return (
-                <ConnectorCard
-                  key={`${provider.id}-${provider.state}`}
-                  provider={provider}
-                  authMethod={metadata.authMethod}
-                  dataSummary={metadata.dataSummary}
-                  retention={metadata.retention}
-                  onSignIn={
-                    session
-                      ? () =>
-                          router.push({
-                            pathname: '/session/[providerId]',
-                            params: { providerId: provider.id },
-                          })
-                      : undefined
-                  }
-                  onOpenUsage={
-                    session ? () => router.push('/(tabs)/usage') : undefined
-                  }
-                  onOpenDashboard={
-                    !session && provider.dashboardUrl
-                      ? () => Linking.openURL(provider.dashboardUrl as string)
-                      : undefined
-                  }
-                  onConnect={
-                    session
-                      ? undefined
-                      : () =>
-                          router.push(
-                            isApiKeyProvider(provider.id)
-                              ? {
-                                  pathname: '/apikey/[providerId]',
-                                  params: { providerId: provider.id },
-                                }
-                              : {
-                                  pathname: '/connect/[providerId]',
-                                  params: { providerId: provider.id },
-                                },
-                          )
-                  }
-                  onDisconnect={() => undefined}
-                />
-              );
-            })}
-          </Stack>
-        ))}
+        <Stack gap="md">
+          {providers.map((provider) => {
+            const metadata = connectorMetadata[provider.id];
+            const session = isSessionProvider(provider.id);
+            return (
+              <ConnectorCard
+                key={provider.id}
+                provider={provider}
+                authMethod={metadata.authMethod}
+                dataSummary={metadata.dataSummary}
+                retention={metadata.retention}
+                onSignIn={
+                  session
+                    ? () =>
+                        router.push({
+                          pathname: '/session/[providerId]',
+                          params: { providerId: provider.id },
+                        })
+                    : undefined
+                }
+                onOpenUsage={
+                  session ? () => router.push('/(tabs)/usage') : undefined
+                }
+                onConnect={
+                  session
+                    ? undefined
+                    : () =>
+                        router.push(
+                          isApiKeyProvider(provider.id)
+                            ? {
+                                pathname: '/apikey/[providerId]',
+                                params: { providerId: provider.id },
+                              }
+                            : {
+                                pathname: '/connect/[providerId]',
+                                params: { providerId: provider.id },
+                              },
+                        )
+                }
+                onDisconnect={() => undefined}
+              />
+            );
+          })}
+        </Stack>
       </ScreenScroll>
     </Screen>
   );

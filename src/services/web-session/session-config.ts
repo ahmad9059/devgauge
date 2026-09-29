@@ -3,12 +3,7 @@ import type { UsageWindowKind } from '@/domain/usage';
 import type { WindowKeyMap } from './usage-extract';
 
 export type SessionProviderId =
-  | 'claude'
-  | 'codex'
-  | 'github-copilot'
-  | 'command-code'
-  | 'opencode-go'
-  | 'gemini-cli';
+  'claude' | 'codex' | 'github-copilot' | 'command-code' | 'opencode-go';
 
 export type SessionProviderConfig = {
   label: string;
@@ -102,23 +97,6 @@ export const SESSION_PROVIDERS: Record<
     allowedHosts: ['opencode.ai'],
     keyMap: {
       five_hour: FIVE_HOUR,
-      weekly: WEEKLY,
-      monthly: MONTHLY,
-    },
-  },
-  'gemini-cli': {
-    label: 'Antigravity CLI',
-    usageUrl: 'https://antigravity.google.com',
-    allowedHosts: [
-      'antigravity.google',
-      'antigravity.google.com',
-      'accounts.google.com',
-    ],
-    keyMap: {
-      five_hour: FIVE_HOUR,
-      hourly: FIVE_HOUR,
-      daily: { label: 'Daily', kind: 'daily' },
-      seven_day: WEEKLY,
       weekly: WEEKLY,
       monthly: MONTHLY,
     },

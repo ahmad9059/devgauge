@@ -9,12 +9,11 @@ import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { formatRelativeMinutes } from '@/utils/format';
 import type { ProviderFixture } from '@/testing/fixtures/providers';
-import { Button, Card, Icon, StatusChip } from '@/components/ui';
-import { providerIcon } from '@/components/usage/provider-icon';
+import { Button, Card, StatusChip } from '@/components/ui';
+import { ProviderLogo } from '@/components/usage/provider-logo';
 
 export function ConnectorCard({
   provider,
-  authMethod,
   onConnect,
   onSignIn,
   onOpenUsage,
@@ -48,11 +47,7 @@ export function ConnectorCard({
   return (
     <Card testID={testID} elevated={isConnected}>
       <View style={styles.headerRow}>
-        <Icon
-          name={providerIcon(provider.id)}
-          size={22}
-          color={theme.colors.textSecondary}
-        />
+        <ProviderLogo id={provider.id} size={22} />
         <View style={styles.titleBlock}>
           <Text
             style={[typography.bodyStrong, { color: theme.colors.textPrimary }]}
@@ -75,10 +70,6 @@ export function ConnectorCard({
           icon={status.icon}
         />
       </View>
-
-      <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
-        {authMethod}
-      </Text>
 
       {relative ? (
         <Text
@@ -142,5 +133,10 @@ export function ConnectorCard({
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   titleBlock: { flex: 1, gap: spacing.xxs },
-  actions: { gap: spacing.sm },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
 });

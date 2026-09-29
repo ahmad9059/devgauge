@@ -8,14 +8,8 @@ import type {
   ProviderFixture,
   UsageWindow,
 } from '@/testing/fixtures/providers';
-import {
-  Card,
-  Icon,
-  IconButton,
-  ProgressBar,
-  StatusChip,
-} from '@/components/ui';
-import { providerIcon } from '@/components/usage/provider-icon';
+import { Card, IconButton, ProgressBar, StatusChip } from '@/components/ui';
+import { ProviderLogo } from '@/components/usage/provider-logo';
 
 function progressTone(
   percent: number | undefined,
@@ -61,11 +55,7 @@ export function ProviderCard({
 
   const header = (
     <View style={styles.headerRow}>
-      <Icon
-        name={providerIcon(provider.id)}
-        size={22}
-        color={theme.colors.textSecondary}
-      />
+      <ProviderLogo id={provider.id} size={22} />
       <View style={styles.titleBlock}>
         <Text
           style={[typography.bodyStrong, { color: theme.colors.textPrimary }]}
