@@ -10,7 +10,6 @@ import {
   Icon,
   ListRow,
   Notice,
-  RowDivider,
   Screen,
   ScreenScroll,
   SectionTitle,
@@ -148,7 +147,6 @@ export default function SettingsScreen() {
               }
               onPress={() => setThemeSheet(true)}
             />
-            <RowDivider />
             <ListRow
               title="Text size"
               subtitle="App-scaled on top of the system font setting"
@@ -188,7 +186,6 @@ export default function SettingsScreen() {
                 </Text>
               }
             />
-            <RowDivider />
             <ListRow
               title="Reset reminders"
               subtitle="Local reminders you schedule on this device"
@@ -211,13 +208,11 @@ export default function SettingsScreen() {
               showChevron
               onPress={() => router.push('/legal/privacy')}
             />
-            <RowDivider />
             <ListRow
               title="Terms of use"
               showChevron
               onPress={() => router.push('/legal/terms')}
             />
-            <RowDivider />
             <ListRow
               title="Provider disclosures"
               showChevron
@@ -237,7 +232,6 @@ export default function SettingsScreen() {
                 setDataAction('cache');
               }}
             />
-            <RowDivider />
             <ListRow
               title="Delete all local data"
               destructive
@@ -263,7 +257,6 @@ export default function SettingsScreen() {
               showChevron
               onPress={() => router.push('/support')}
             />
-            <RowDivider />
             <ListRow
               title="Licenses"
               showChevron
@@ -271,7 +264,6 @@ export default function SettingsScreen() {
             />
             {diagnosticsEnabled ? (
               <>
-                <RowDivider />
                 <ListRow
                   title="Diagnostics"
                   subtitle="Development and internal test builds only"

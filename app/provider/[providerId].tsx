@@ -5,7 +5,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   Button,
   Card,
-  CardDivider,
   EmptyState,
   ErrorState,
   Header,
@@ -129,7 +128,6 @@ export default function ProviderDetailScreen() {
                 </Text>
               }
             />
-            <CardDivider />
             <ListRow
               title="Source"
               trailing={
@@ -143,7 +141,6 @@ export default function ProviderDetailScreen() {
                 </Text>
               }
             />
-            <CardDivider />
             <ListRow
               title="Last updated"
               trailing={

@@ -35,13 +35,13 @@ describe('design tokens', () => {
     expect(touchTargets.tabBar).toBeGreaterThanOrEqual(touchTargets.minimum);
   });
 
-  it('keeps card radii restrained and sheets slightly softer', () => {
-    expect(radii.card).toBeGreaterThanOrEqual(6);
-    expect(radii.card).toBeLessThanOrEqual(12);
-    expect(radii.sheet).toBeGreaterThanOrEqual(10);
-    expect(radii.sheet).toBeLessThanOrEqual(16);
-    expect(radii.control).toBeGreaterThanOrEqual(4);
-    expect(radii.control).toBeLessThanOrEqual(10);
+  it('keeps card radii rounded and sheets softer', () => {
+    expect(radii.card).toBeGreaterThanOrEqual(10);
+    expect(radii.card).toBeLessThanOrEqual(18);
+    expect(radii.sheet).toBeGreaterThanOrEqual(16);
+    expect(radii.sheet).toBeLessThanOrEqual(24);
+    expect(radii.control).toBeGreaterThanOrEqual(8);
+    expect(radii.control).toBeLessThanOrEqual(14);
     expect(radii.pill).toBe(999);
   });
 

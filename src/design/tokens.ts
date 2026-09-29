@@ -21,13 +21,13 @@ export const sectionSpacing = {
   loose: spacing.xxl,
 } as const;
 
-// Restrained radii: Vercel surfaces are near-square, not pill-shaped.
+// Rounded but restrained corners.
 export const radii = {
-  xs: 3,
-  sm: 5,
-  control: 6,
-  card: 8,
-  sheet: 12,
+  xs: 6,
+  sm: 8,
+  control: 10,
+  card: 14,
+  sheet: 20,
   pill: 999,
 } as const;
 

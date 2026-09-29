@@ -7,7 +7,6 @@ import {
   Header,
   ListRow,
   Notice,
-  RowDivider,
   Screen,
   ScreenScroll,
   SectionTitle,
@@ -41,21 +40,18 @@ export default function DiagnosticsScreen() {
               showChevron
               onPress={() => router.push('/diagnostics/web-session')}
             />
-            <RowDivider />
             <ListRow
               title="Design system gallery"
               subtitle="Every provider and component state, both themes"
               showChevron
               onPress={() => router.push('/diagnostics/design-system')}
             />
-            <RowDivider />
             <ListRow
               title="Local storage self-test"
               subtitle="SQLCipher, migrations, and repository round-trip"
               showChevron
               onPress={() => router.push('/diagnostics/storage')}
             />
-            <RowDivider />
             <ListRow
               title="Demo connector"
               subtitle="Run the real pipeline with sample data"
