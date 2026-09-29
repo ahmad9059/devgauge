@@ -93,7 +93,7 @@ function DesignSystemGallery() {
             used={12}
             limit={100}
             unit="percent"
-            resetsLabel="3h"
+            resetsLabel="Resets in 3h"
           />
           <ProgressBar
             label="High"
@@ -102,7 +102,7 @@ function DesignSystemGallery() {
             limit={100}
             unit="percent"
             tone="warning"
-            resetsLabel="45m"
+            resetsLabel="Resets in 45m"
           />
           <ProgressBar
             label="Critical"
@@ -111,7 +111,7 @@ function DesignSystemGallery() {
             limit={100}
             unit="percent"
             tone="danger"
-            resetsLabel="5m"
+            resetsLabel="Resets in 5m"
           />
           <ProgressBar label="Unknown" unit="credits" />
         </Card>

@@ -17,6 +17,7 @@ import {
 } from '@/domain/provider-status';
 import { connectorMetadata } from '@/testing/fixtures/providers';
 import { useProviderViews } from '@/features/dashboard/app-providers';
+import { isApiKeyProvider } from '@/providers/api-key/candidates';
 import { isSessionProvider } from '@/services/web-session/session-config';
 
 const GROUP_ORDER: ConnectorGroup[] = [
@@ -85,10 +86,17 @@ export default function ConnectorsScreen() {
                     session
                       ? undefined
                       : () =>
-                          router.push({
-                            pathname: '/connect/[providerId]',
-                            params: { providerId: provider.id },
-                          })
+                          router.push(
+                            isApiKeyProvider(provider.id)
+                              ? {
+                                  pathname: '/apikey/[providerId]',
+                                  params: { providerId: provider.id },
+                                }
+                              : {
+                                  pathname: '/connect/[providerId]',
+                                  params: { providerId: provider.id },
+                                },
+                          )
                   }
                   onDisconnect={() => undefined}
                 />

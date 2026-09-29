@@ -14,6 +14,9 @@ export type SaveSessionInput = {
   fetchedAt: string;
   now: Date;
   nextId: () => string;
+  /** Defaults to a cookie-based web session. */
+  authMode?: 'web-session' | 'api-key';
+  credentialRef?: string | null;
 };
 
 export type SaveSessionResult = {
@@ -40,8 +43,8 @@ export async function saveSessionSnapshot(
     canonicalAccountKey: `session:${input.providerId}`,
     displayName: input.displayName,
     accountHint: null,
-    authMode: 'web-session',
-    credentialRef: null,
+    authMode: input.authMode ?? 'web-session',
+    credentialRef: input.credentialRef ?? null,
     status: 'connected',
     connectedAt: nowIso,
     disconnectedAt: null,

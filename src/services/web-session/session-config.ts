@@ -2,23 +2,28 @@ import type { UsageWindowKind } from '@/domain/usage';
 
 import type { WindowKeyMap } from './usage-extract';
 
-export type SessionProviderId = 'claude' | 'codex' | 'github-copilot';
+export type SessionProviderId =
+  'claude' | 'codex' | 'github-copilot' | 'gemini-cli';
 
 export type SessionProviderConfig = {
   label: string;
-  /** First-party page whose session fetches the usage data. */
+  /** First-party page whose session loads the usage data. */
   usageUrl: string;
   allowedHosts: string[];
   keyMap: WindowKeyMap;
 };
 
+const FIVE_HOUR: { label: string; kind: UsageWindowKind } = {
+  label: '5-hour window',
+  kind: 'rolling',
+};
 const WEEKLY: { label: string; kind: UsageWindowKind } = {
   label: 'Weekly',
   kind: 'weekly',
 };
-const FIVE_HOUR: { label: string; kind: UsageWindowKind } = {
-  label: '5-hour window',
-  kind: 'rolling',
+const MONTHLY: { label: string; kind: UsageWindowKind } = {
+  label: 'Monthly',
+  kind: 'monthly',
 };
 
 export const SESSION_PROVIDERS: Record<
@@ -51,24 +56,48 @@ export const SESSION_PROVIDERS: Record<
       'appleid.apple.com',
     ],
     keyMap: {
-      five_hour: FIVE_HOUR,
       primary: FIVE_HOUR,
-      secondary: WEEKLY,
-      weekly: WEEKLY,
-      seven_day: WEEKLY,
+      primary_window: FIVE_HOUR,
+      five_hour: FIVE_HOUR,
       rate_limit: FIVE_HOUR,
+      secondary: WEEKLY,
+      secondary_window: WEEKLY,
+      seven_day: WEEKLY,
+      weekly: WEEKLY,
     },
   },
   'github-copilot': {
     label: 'GitHub Copilot',
     usageUrl: 'https://github.com/settings/billing',
     allowedHosts: ['github.com', 'login.microsoftonline.com'],
-    keyMap: {},
+    keyMap: {
+      ai_credit: MONTHLY,
+      premium_request: MONTHLY,
+      credits: { label: 'Included credits', kind: 'monthly' },
+      requests: { label: 'Premium requests', kind: 'monthly' },
+    },
+  },
+  'gemini-cli': {
+    label: 'Antigravity CLI',
+    usageUrl: 'https://antigravity.google/product/antigravity-cli/',
+    allowedHosts: [
+      'antigravity.google',
+      'accounts.google.com',
+      'auth.antigravity.google',
+    ],
+    keyMap: {
+      five_hour: FIVE_HOUR,
+      hourly: FIVE_HOUR,
+      daily: { label: 'Daily', kind: 'daily' },
+      seven_day: WEEKLY,
+      weekly: WEEKLY,
+      monthly: MONTHLY,
+    },
   },
 };
 
 export function isSessionProvider(id: string): id is SessionProviderId {
-  return id === 'claude' || id === 'codex' || id === 'github-copilot';
+  return id in SESSION_PROVIDERS;
 }
 
 /** Returns the matched hostname when navigation is allowlisted, else null. */

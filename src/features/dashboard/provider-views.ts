@@ -52,6 +52,10 @@ function toNumber(value: string | null): number | undefined {
 }
 
 function toFixtureWindow(window: UsageWindowRecord, now: Date): FixtureWindow {
+  const parsedReset = window.resetsAt ? Date.parse(window.resetsAt) : NaN;
+  const resetsInMinutes = Number.isFinite(parsedReset)
+    ? Math.max(0, Math.round((parsedReset - now.getTime()) / 60_000))
+    : undefined;
   return {
     kind: fixtureKind(window.kind),
     label: window.label,
@@ -63,7 +67,11 @@ function toFixtureWindow(window: UsageWindowRecord, now: Date): FixtureWindow {
       window.utilization === null
         ? undefined
         : Math.round(window.utilization * 1000) / 10,
-    resetsInMinutes: minutesAgo(window.resetsAt, now),
+    resetsInMinutes,
+    resetsText:
+      window.resetsAt !== null && resetsInMinutes === undefined
+        ? window.resetsAt
+        : undefined,
   };
 }
 

@@ -45,6 +45,10 @@ function ThemedApp() {
           name="session/[providerId]"
           options={{ title: 'Sign in' }}
         />
+        <Stack.Screen
+          name="apikey/[providerId]"
+          options={{ title: 'API key' }}
+        />
       </Stack>
     </>
   );

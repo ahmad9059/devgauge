@@ -17,7 +17,7 @@ const STEPS = [
   {
     title: 'Connect a coding agent',
     subtitle:
-      'Claude, Codex, Command Code, OpenCode Go, GitHub Copilot, and Gemini CLI.',
+      'Claude, Codex, Command Code, OpenCode Go, GitHub Copilot, and Antigravity CLI.',
   },
   {
     title: 'See every window',

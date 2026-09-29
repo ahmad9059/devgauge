@@ -36,7 +36,7 @@ const DOCUMENTS: Record<
       'GitHub Copilot is release-disabled: the Android website-session feasibility and the GitHub App permission spike must pass first. Personal and organization billing are separate, never merged.',
       'Command Code and OpenCode Go are experimental and make no network request until a verified, read-only vendor contract is recorded.',
       'Claude and Codex are manual-only until their Android website-session gates pass; DevGauge opens the official usage page and can keep a local reset reminder.',
-      'Gemini CLI is the coding agent, not the consumer Gemini app. DevGauge shows only figures you share from the CLI, labeled with their source and time; they are not account-wide live quota.',
+      'Antigravity CLI is the coding agent, not the consumer Gemini app. DevGauge shows only figures you share from the CLI, labeled with their source and time; they are not account-wide live quota.',
     ],
   },
   licenses: {

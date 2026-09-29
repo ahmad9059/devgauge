@@ -6,10 +6,8 @@ import {
 
 export type CapturedResponse = { url: string; body: string };
 
-export type WindowKeyMap = Record<
-  string,
-  { label: string; kind: UsageWindowKind }
->;
+export type WindowKeyMapEntry = { label: string; kind: UsageWindowKind };
+export type WindowKeyMap = Record<string, WindowKeyMapEntry>;
 
 export type ExtractedUsage = {
   windows: UsageWindow[];
@@ -18,7 +16,7 @@ export type ExtractedUsage = {
 
 type RawWindow = {
   key: string;
-  value: number;
+  usedPercent: number;
   resetsAt: string | null;
 };
 
@@ -30,7 +28,7 @@ function pickNumber(
     const value = node[key];
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string' && value.trim() !== '') {
-      const parsed = Number(value);
+      const parsed = Number(value.replace(/[%,$]/g, ''));
       if (Number.isFinite(parsed)) return parsed;
     }
   }
@@ -48,14 +46,31 @@ function pickString(
   return null;
 }
 
-const UTILIZATION_KEYS = [
+// Providers differ: Claude reports utilization (used), Codex reports remaining.
+const USED_KEYS = [
   'utilization',
   'used_percent',
   'used_percentage',
+  'usedPercent',
   'percent_used',
-  'percent',
 ];
-const RESET_KEYS = ['resets_at', 'reset_at', 'resetsAt', 'resetAt', 'resets'];
+const REMAINING_KEYS = [
+  'remaining_percent',
+  'percent_remaining',
+  'remainingPercent',
+  'remaining',
+];
+const RESET_KEYS = [
+  'resets_at',
+  'reset_at',
+  'resetsAt',
+  'resetAt',
+  'resets_at_iso',
+];
+
+function toPercent(value: number): number {
+  return value <= 1 ? value * 100 : value;
+}
 
 function walk(
   node: unknown,
@@ -69,18 +84,25 @@ function walk(
     return;
   }
   const record = node as Record<string, unknown>;
-  const value = pickNumber(record, UTILIZATION_KEYS);
-  if (value !== null && knownAncestor !== null) {
-    out.push({
-      key: knownAncestor,
-      value: value <= 1 ? value * 100 : value,
-      resetsAt: pickString(record, RESET_KEYS),
-    });
+  if (knownAncestor !== null) {
+    const used = pickNumber(record, USED_KEYS);
+    const remaining = pickNumber(record, REMAINING_KEYS);
+    if (used !== null) {
+      out.push({
+        key: knownAncestor,
+        usedPercent: toPercent(used),
+        resetsAt: pickString(record, RESET_KEYS),
+      });
+    } else if (remaining !== null) {
+      out.push({
+        key: knownAncestor,
+        usedPercent: Math.max(0, 100 - toPercent(remaining)),
+        resetsAt: pickString(record, RESET_KEYS),
+      });
+    }
   }
   for (const [key, child] of Object.entries(record)) {
     if (child !== null && typeof child === 'object') {
-      // Track the nearest recognized key so nested shapes like
-      // { rate_limits: { primary: { used_percent } } } still map.
       walk(child, keyMap[key] ? key : knownAncestor, keyMap, out);
     }
   }
@@ -94,47 +116,69 @@ function parseBody(body: string): unknown {
   }
 }
 
-/**
- * Extracts usage windows from responses the provider's own page fetched. It
- * never reads passwords or form input; it only reads response bodies the site
- * itself requested. Tolerant to payload changes: unknown keys fall back to a
- * generic label, unknown utilization is skipped.
- */
+/** Highest used-percent value per key across all captured responses. */
+export function mergeRawWindows(raw: readonly RawWindow[]): RawWindow[] {
+  const found = new Map<string, RawWindow>();
+  for (const window of raw) {
+    const existing = found.get(window.key);
+    if (!existing || window.usedPercent > existing.usedPercent) {
+      found.set(window.key, window);
+    }
+  }
+  return [...found.values()];
+}
+
+export function toDomainWindows(
+  raw: readonly RawWindow[],
+  keyMap: WindowKeyMap,
+): UsageWindow[] {
+  return raw
+    .filter((window) => keyMap[window.key])
+    .map((window) =>
+      deriveWindow({
+        externalKey: `session.${window.key}`,
+        kind: keyMap[window.key].kind,
+        label: keyMap[window.key].label,
+        used: window.usedPercent.toFixed(1),
+        limit: '100',
+        unit: 'percent',
+        resetsAt: window.resetsAt,
+        derivation: 'provider',
+      }),
+    );
+}
+
+export type { RawWindow };
+
 export function extractUsageWindows(
   responses: readonly CapturedResponse[],
   keyMap: WindowKeyMap,
 ): ExtractedUsage {
-  const found = new Map<string, RawWindow>();
+  const raw = extractRawWindows(responses, keyMap);
   const matchedUrls: string[] = [];
-
   for (const response of responses) {
     const parsed = parseBody(response.body);
     if (parsed === null) continue;
-    const raw: RawWindow[] = [];
-    walk(parsed, null, keyMap, raw);
-    if (raw.length === 0) continue;
-    matchedUrls.push(response.url);
-    for (const window of raw) {
-      if (!keyMap[window.key]) continue;
-      const existing = found.get(window.key);
-      if (!existing || window.value > existing.value)
-        found.set(window.key, window);
-    }
+    const probe: RawWindow[] = [];
+    walk(parsed, null, keyMap, probe);
+    if (probe.length > 0) matchedUrls.push(response.url);
   }
+  return {
+    windows: toDomainWindows(raw, keyMap),
+    matchedUrls: [...new Set(matchedUrls)],
+  };
+}
 
-  const windows: UsageWindow[] = [...found.values()].map((window) => {
-    const mapping = keyMap[window.key];
-    return deriveWindow({
-      externalKey: `session.${window.key}`,
-      kind: mapping.kind,
-      label: mapping.label,
-      used: window.value.toFixed(1),
-      limit: '100',
-      unit: 'percent',
-      resetsAt: window.resetsAt,
-      derivation: 'provider',
-    });
-  });
-
-  return { windows, matchedUrls: [...new Set(matchedUrls)] };
+/** Merged raw windows from JSON responses, before text parsing. */
+export function extractRawWindows(
+  responses: readonly CapturedResponse[],
+  keyMap: WindowKeyMap,
+): RawWindow[] {
+  const raw: RawWindow[] = [];
+  for (const response of responses) {
+    const parsed = parseBody(response.body);
+    if (parsed === null) continue;
+    walk(parsed, null, keyMap, raw);
+  }
+  return mergeRawWindows(raw);
 }

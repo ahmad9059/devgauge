@@ -33,6 +33,8 @@ export type UsageWindow = {
   remaining?: number;
   percent?: number;
   resetsInMinutes?: number;
+  /** Raw reset text when the source does not give a parseable timestamp. */
+  resetsText?: string;
 };
 
 export type ProviderFixture = {
@@ -186,7 +188,7 @@ export const providerFixtures: ProviderFixture[] = [
   },
   {
     id: 'gemini-cli',
-    displayName: 'Gemini CLI',
+    displayName: 'Antigravity CLI',
     monogram: 'GM',
     tier: 'blocked',
     state: 'blocked',
@@ -262,7 +264,7 @@ export const providerFixtures: ProviderFixture[] = [
     },
     {
       id: 'gemini-cli',
-      displayName: 'Gemini CLI',
+      displayName: 'Antigravity CLI',
       monogram: 'GM',
       tier: 'blocked',
       state: 'blocked',

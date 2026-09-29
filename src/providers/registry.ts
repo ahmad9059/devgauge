@@ -82,7 +82,7 @@ export const providerDescriptors: Record<ProviderId, ProviderDescriptor> = {
   },
   'gemini-cli': {
     id: 'gemini-cli',
-    displayName: 'Gemini CLI',
+    displayName: 'Antigravity CLI',
     supportTier: 'blocked',
     authModes: ['manual', 'manual-import'],
     capabilities: {
@@ -94,8 +94,7 @@ export const providerDescriptors: Record<ProviderId, ProviderDescriptor> = {
     minimumRefreshIntervalSeconds: 0,
     allowlistedHosts: [],
     requiresCapabilityManifest: false,
-    firstPartyUsageUrl:
-      'https://geminicli.com/docs/resources/quota-and-pricing/',
+    firstPartyUsageUrl: 'https://antigravity.google/product/antigravity-cli/',
   },
 };
 

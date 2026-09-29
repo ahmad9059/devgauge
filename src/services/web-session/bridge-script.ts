@@ -23,6 +23,27 @@ export const USAGE_BRIDGE_SCRIPT = `
   function inspect(url, text) {
     if (looksLikeUsage(text)) post({ type: 'usage', url: String(url || ''), body: text });
   }
+  function postText() {
+    try {
+      var body = document.body;
+      if (!body) return;
+      var text = body.innerText || '';
+      if (text.length > 0 && text.length < 60000) post({ type: 'text', text: text });
+    } catch (e) {}
+  }
+  function schedule() {
+    postText();
+    setTimeout(postText, 2500);
+    setTimeout(postText, 6000);
+  }
+  try {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      schedule();
+    } else {
+      document.addEventListener('DOMContentLoaded', schedule);
+    }
+    window.addEventListener('load', schedule);
+  } catch (e) {}
   try {
     var originalFetch = window.fetch;
     if (originalFetch) {

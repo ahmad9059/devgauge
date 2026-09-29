@@ -18,9 +18,12 @@ import {
 } from '@/services/web-session/session-config';
 import { saveSessionSnapshot } from '@/services/web-session/session';
 import {
-  extractUsageWindows,
+  extractRawWindows,
+  mergeRawWindows,
+  toDomainWindows,
   type CapturedResponse,
 } from '@/services/web-session/usage-extract';
+import { parseUsageText } from '@/services/web-session/usage-text';
 
 /**
  * Embedded session. The provider page loads inside the app; after the user
@@ -34,6 +37,7 @@ export default function SessionScreen() {
   const reload = useReloadProviders();
   const webView = useRef<WebView>(null);
   const capturedRef = useRef<CapturedResponse[]>([]);
+  const pageTextRef = useRef('');
   const syncedRef = useRef(false);
   const [windows, setWindows] = useState<UsageWindow[]>([]);
   const [status, setStatus] = useState('Connecting…');
@@ -99,12 +103,22 @@ export default function SessionScreen() {
         type?: string;
         url?: string;
         body?: string;
+        text?: string;
       };
-      if (data.type !== 'usage' || typeof data.body !== 'string') return;
-      capturedRef.current.push({ url: data.url ?? '', body: data.body });
-      const extracted = extractUsageWindows(capturedRef.current, config.keyMap);
-      if (extracted.windows.length > 0) {
-        setWindows(extracted.windows);
+      if (data.type === 'usage' && typeof data.body === 'string') {
+        capturedRef.current.push({ url: data.url ?? '', body: data.body });
+      } else if (data.type === 'text' && typeof data.text === 'string') {
+        pageTextRef.current = data.text;
+      } else {
+        return;
+      }
+      const raw = mergeRawWindows([
+        ...extractRawWindows(capturedRef.current, config.keyMap),
+        ...parseUsageText(pageTextRef.current, config.keyMap),
+      ]);
+      const windows = toDomainWindows(raw, config.keyMap);
+      if (windows.length > 0) {
+        setWindows(windows);
         setStatus('Usage found. Finishing…');
       }
     } catch {

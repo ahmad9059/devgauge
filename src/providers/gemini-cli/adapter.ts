@@ -4,7 +4,7 @@ import { providerLink } from '@/services/links/provider-links';
 export function geminiCliDescriptor(): ProviderDescriptor {
   return {
     id: 'gemini-cli',
-    displayName: 'Gemini CLI',
+    displayName: 'Antigravity CLI',
     supportTier: 'blocked',
     authModes: ['manual', 'manual-import'],
     capabilities: {

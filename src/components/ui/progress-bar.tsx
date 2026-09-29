@@ -85,7 +85,7 @@ export function ProgressBar({
         <Text
           style={[typography.monoCaption, { color: theme.colors.textMuted }]}
         >
-          Resets in {resetsLabel}
+          {resetsLabel}
         </Text>
       ) : null}
     </View>
@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: spacing.sm,
   },
-  track: { height: 4, borderRadius: radii.xs, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: radii.xs, minWidth: 2 },
+  track: { height: 8, borderRadius: radii.pill, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: radii.pill, minWidth: 2 },
 });

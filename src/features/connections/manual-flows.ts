@@ -27,7 +27,7 @@ export function automaticSyncExplanation(providerId: ManualProviderId): string {
     case 'codex':
       return 'Automatic Codex sync is not available yet. DevGauge can open the official Codex usage page and keep a local reset reminder on this device.';
     case 'gemini-cli':
-      return 'Gemini CLI quota is shown only through figures you share from the CLI. They are labeled with their source and time and are not account-wide live usage.';
+      return 'Antigravity CLI usage is shown only through figures you share from the CLI. They are labeled with their source and time and are not account-wide live usage.';
   }
 }
 
