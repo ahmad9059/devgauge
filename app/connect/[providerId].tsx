@@ -8,7 +8,6 @@ import {
   ErrorState,
   Header,
   ListRow,
-  Notice,
   Screen,
   ScreenScroll,
   SectionTitle,
@@ -93,10 +92,6 @@ export default function ConnectScreen() {
           title="Not collected"
           subtitle="Passwords, browser cookies, and provider secrets are never logged or stored."
         />
-        <Notice tone="warning" icon="alert-outline">
-          In-app sessions are experimental. DevGauge reads only the usage the
-          provider page loads.
-        </Notice>
         <Button
           label="Close"
           variant="ghost"

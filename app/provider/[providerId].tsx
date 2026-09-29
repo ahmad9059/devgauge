@@ -10,7 +10,6 @@ import {
   ErrorState,
   Header,
   ListRow,
-  Notice,
   ProgressBar,
   Screen,
   ScreenScroll,
@@ -113,11 +112,6 @@ export default function ProviderDetailScreen() {
             }
           />
         )}
-
-        <Notice tone="info" icon="information-outline">
-          Values shown here are design fixtures. DevGauge has not fetched or
-          stored any usage.
-        </Notice>
 
         <SectionTitle>Connection</SectionTitle>
         <Card padded={false}>

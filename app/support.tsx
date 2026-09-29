@@ -3,7 +3,6 @@ import { Text } from 'react-native';
 import {
   Card,
   Header,
-  Notice,
   Screen,
   ScreenScroll,
   SectionTitle,
@@ -37,11 +36,6 @@ export default function SupportScreen() {
           title="Support"
           subtitle="Answers and diagnostics for this build"
         />
-        <Notice tone="info" icon="lifebuoy">
-          Support is documentation-only in this phase. No message is sent from
-          the app.
-        </Notice>
-
         <SectionTitle>Frequently asked</SectionTitle>
         {FAQ.map((item) => (
           <Card key={item.question}>
