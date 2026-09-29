@@ -17,7 +17,7 @@ import { useTheme } from '@/design/theme-provider';
 import { Icon, type IconName } from './icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'md' | 'lg';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export function Button({
   label,
@@ -45,7 +45,13 @@ export function Button({
   const { theme, typography } = useTheme();
   const inactive = disabled || loading;
   const minHeight =
-    size === 'lg' ? touchTargets.comfortable : touchTargets.minimum;
+    size === 'lg'
+      ? touchTargets.comfortable
+      : size === 'sm'
+        ? 44
+        : touchTargets.minimum;
+  const paddingVertical = size === 'sm' ? spacing.xs : spacing.sm;
+  const paddingHorizontal = size === 'sm' ? spacing.md : spacing.lg;
 
   const palette: Record<
     ButtonVariant,
@@ -76,8 +82,8 @@ export function Button({
 
   const style = ({ pressed }: { pressed: boolean }): ViewStyle => ({
     minHeight,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingVertical,
+    paddingHorizontal,
     borderRadius: radii.control,
     borderWidth: borderWidths.thin,
     borderColor: colors.border,

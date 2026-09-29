@@ -55,7 +55,7 @@ export function ProviderCard({
 
   const header = (
     <View style={styles.headerRow}>
-      <ProviderLogo id={provider.id} size={22} />
+      <ProviderLogo id={provider.id} size={30} />
       <View style={styles.titleBlock}>
         <Text
           style={[typography.bodyStrong, { color: theme.colors.textPrimary }]}

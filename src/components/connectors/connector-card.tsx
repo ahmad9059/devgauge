@@ -47,7 +47,7 @@ export function ConnectorCard({
   return (
     <Card testID={testID} elevated={isConnected}>
       <View style={styles.headerRow}>
-        <ProviderLogo id={provider.id} size={22} />
+        <ProviderLogo id={provider.id} size={30} />
         <View style={styles.titleBlock}>
           <Text
             style={[typography.bodyStrong, { color: theme.colors.textPrimary }]}
@@ -82,6 +82,7 @@ export function ConnectorCard({
       <View style={styles.actions}>
         {isConnected && onOpenUsage ? (
           <Button
+            size="sm"
             label="Open usage"
             icon="chart-timeline-variant"
             onPress={onOpenUsage}
@@ -89,6 +90,7 @@ export function ConnectorCard({
         ) : null}
         {onSignIn ? (
           <Button
+            size="sm"
             label={isConnected ? 'Sign in again (in-app)' : 'Sign in (in-app)'}
             icon="login-variant"
             accessibilityHint="Opens the provider page inside DevGauge"
@@ -97,6 +99,7 @@ export function ConnectorCard({
         ) : null}
         {isConnected && onDisconnect ? (
           <Button
+            size="sm"
             label="Disconnect"
             variant="secondary"
             icon="link-off"
@@ -105,6 +108,7 @@ export function ConnectorCard({
         ) : null}
         {!onSignIn && canConnect && onConnect ? (
           <Button
+            size="sm"
             label={isConnected ? 'Refresh connection' : 'Connect'}
             variant={isConnected ? 'secondary' : 'primary'}
             icon="link-variant"
@@ -113,6 +117,7 @@ export function ConnectorCard({
         ) : null}
         {!onSignIn && provider.state === 'blocked' && onOpenDashboard ? (
           <Button
+            size="sm"
             label="Open provider dashboard"
             variant="secondary"
             icon="open-in-new"

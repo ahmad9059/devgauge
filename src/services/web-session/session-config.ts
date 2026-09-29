@@ -60,10 +60,11 @@ export const SESSION_PROVIDERS: Record<
       primary_window: FIVE_HOUR,
       five_hour: FIVE_HOUR,
       rate_limit: FIVE_HOUR,
-      secondary: WEEKLY,
-      secondary_window: WEEKLY,
-      seven_day: WEEKLY,
-      weekly: WEEKLY,
+      // Codex reports the weekly window as remaining, not used.
+      secondary: { ...WEEKLY, remaining: true },
+      secondary_window: { ...WEEKLY, remaining: true },
+      seven_day: { ...WEEKLY, remaining: true },
+      weekly: { ...WEEKLY, remaining: true },
     },
   },
   'github-copilot': {

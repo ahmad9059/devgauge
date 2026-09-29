@@ -78,4 +78,24 @@ describe('page text parsing', () => {
     expect(windows[0]?.used).toBe('11.5');
     expect(windows[0]?.resetsAt).toBe('in 2 days');
   });
+
+  it('reads bare percentages under headings (Command Code)', () => {
+    const keyMap = SESSION_PROVIDERS['command-code'].keyMap;
+    const text = [
+      '5-HOUR LIMIT',
+      '1%',
+      'Resets in 4h 41m',
+      'WEEKLY LIMIT',
+      '89%',
+      'Resets in 1d',
+      'MONTHLY LIMIT',
+      '78%',
+      'Resets on Oct 15',
+    ].join('\n');
+    const windows = toDomainWindows(parseUsageText(text, keyMap), keyMap);
+    const byLabel = Object.fromEntries(windows.map((w) => [w.label, w.used]));
+    expect(byLabel['5-hour window']).toBe('1');
+    expect(byLabel['Weekly']).toBe('89');
+    expect(byLabel['Monthly']).toBe('78');
+  });
 });

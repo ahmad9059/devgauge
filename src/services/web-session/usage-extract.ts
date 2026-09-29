@@ -6,7 +6,12 @@ import {
 
 export type CapturedResponse = { url: string; body: string };
 
-export type WindowKeyMapEntry = { label: string; kind: UsageWindowKind };
+export type WindowKeyMapEntry = {
+  label: string;
+  kind: UsageWindowKind;
+  /** True when the provider reports this window as remaining, not used. */
+  remaining?: boolean;
+};
 export type WindowKeyMap = Record<string, WindowKeyMapEntry>;
 
 export type ExtractedUsage = {
@@ -88,9 +93,12 @@ function walk(
     const used = pickNumber(record, USED_KEYS);
     const remaining = pickNumber(record, REMAINING_KEYS);
     if (used !== null) {
+      const percent = toPercent(used);
       out.push({
         key: knownAncestor,
-        usedPercent: toPercent(used),
+        usedPercent: keyMap[knownAncestor]?.remaining
+          ? Math.max(0, 100 - percent)
+          : percent,
         resetsAt: pickString(record, RESET_KEYS),
       });
     } else if (remaining !== null) {
@@ -180,5 +188,6 @@ export function extractRawWindows(
     if (parsed === null) continue;
     walk(parsed, null, keyMap, raw);
   }
+  // `remaining` keys are already inverted inside `walk`.
   return mergeRawWindows(raw);
 }

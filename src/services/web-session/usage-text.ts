@@ -98,7 +98,11 @@ export function parseUsageText(
     if (fraction) {
       const limit = number(fraction[2]);
       if (limit > 0) push((number(fraction[1]) / limit) * 100);
+      continue;
     }
+    // Bare "NN%" under a section heading (e.g. "5-HOUR LIMIT 89%") is used.
+    const bare = /(?:^|[^\d.])(\d+(?:\.\d+)?)%\s*$/.exec(line);
+    if (bare) push(number(bare[1]));
   }
 
   return out;
