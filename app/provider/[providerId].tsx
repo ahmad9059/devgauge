@@ -22,15 +22,16 @@ import {
 import { Monogram } from '@/components/ui/monogram';
 import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
+import { useProviderViews } from '@/features/dashboard/app-providers';
 import { describeSource, describeState } from '@/domain/provider-status';
-import { findProviderFixture } from '@/testing/fixtures/providers';
 import { formatClockTime, formatRelativeMinutes } from '@/utils/format';
 
 export default function ProviderDetailScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
   const { theme, typography } = useTheme();
   const [actionsOpen, setActionsOpen] = useState(false);
-  const provider = findProviderFixture(providerId);
+  const providers = useProviderViews();
+  const provider = providers.find((item) => item.id === providerId);
 
   if (!provider) {
     return (

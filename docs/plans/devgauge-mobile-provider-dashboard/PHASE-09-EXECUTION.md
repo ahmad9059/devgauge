@@ -1,6 +1,6 @@
 # Phase 9 Execution Evidence — Product UX and Notifications
 
-> Status: **UX view-model/service layer, settings persistence, and notifications delivered and locally verified. No provider is enabled, so screens render the disabled/manual states; full on-device re-verification accompanies the next native build.** Evidence date: 2026-09-28.
+> Status: **UX view-model/service layer, settings persistence, and notifications delivered and locally verified. Screens now read real state from the encrypted database and the provider registry (no static demo usage); no provider is enabled, so they show the gated/manual states.** Evidence date: 2026-09-28.
 
 ## Implemented
 
@@ -17,7 +17,7 @@
 
 ## Acceptance criteria status
 
-- [x] All six providers render every applicable state, including user-shared Gemini CLI stats (view model + design-system gallery; no live data yet).
+- [x] All six providers render every applicable state, including user-shared Gemini CLI stats (screens read from the encrypted DB + registry; design-system gallery covers every state).
 - [x] No second account scope is silently dropped (`accountOptions` returns every connection; tested).
 - [x] Dashboard is useful offline and labels data age (cached snapshots + `freshnessLabel`).
 - [x] Unknown values never render as zero or unlimited.

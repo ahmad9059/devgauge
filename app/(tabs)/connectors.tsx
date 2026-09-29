@@ -16,10 +16,8 @@ import {
   connectorGroup,
   type ConnectorGroup,
 } from '@/domain/provider-status';
-import {
-  connectorMetadata,
-  providerFixtures,
-} from '@/testing/fixtures/providers';
+import { connectorMetadata } from '@/testing/fixtures/providers';
+import { useProviderViews } from '@/features/dashboard/app-providers';
 
 const GROUP_ORDER: ConnectorGroup[] = [
   'available',
@@ -30,6 +28,7 @@ const GROUP_ORDER: ConnectorGroup[] = [
 
 export default function ConnectorsScreen() {
   const router = useRouter();
+  const providerFixtures = useProviderViews();
 
   const groups = useMemo(() => {
     const map = new Map<ConnectorGroup, typeof providerFixtures>();
@@ -41,7 +40,7 @@ export default function ConnectorsScreen() {
       group,
       providers: map.get(group) ?? [],
     }));
-  }, []);
+  }, [providerFixtures]);
 
   return (
     <Screen>
@@ -51,9 +50,9 @@ export default function ConnectorsScreen() {
           subtitle="Plan support, data access, and retention before connecting"
         />
 
-        <Notice tone="info" icon="flask-outline">
-          Connector actions are design previews. No credentials are requested
-          and none is stored.
+        <Notice tone="info" icon="shield-lock-outline">
+          Connectors stay disabled until their provider gate and contract are
+          verified. A disabled connector never requests credentials.
         </Notice>
 
         {groups.map(({ group, providers }) => (

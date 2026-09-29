@@ -16,16 +16,15 @@ import {
   Stack,
 } from '@/components/ui';
 import { useTheme } from '@/design/theme-provider';
-import {
-  connectorMetadata,
-  findProviderFixture,
-} from '@/testing/fixtures/providers';
+import { connectorMetadata } from '@/testing/fixtures/providers';
+import { useProviderViews } from '@/features/dashboard/app-providers';
 
 export default function ConnectScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
   const { theme, typography } = useTheme();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const provider = findProviderFixture(providerId);
+  const providers = useProviderViews();
+  const provider = providers.find((item) => item.id === providerId);
 
   if (!provider) {
     return (

@@ -13,12 +13,13 @@ import {
 } from '@/components/ui';
 import { radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { providerFixtures } from '@/testing/fixtures/providers';
+import { useProviderViews } from '@/features/dashboard/app-providers';
 import { formatCountdown } from '@/utils/format';
 
 export default function UsageScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const providerFixtures = useProviderViews();
 
   const summary = useMemo(() => {
     const nearLimit = providerFixtures.filter((provider) =>
@@ -38,14 +39,14 @@ export default function UsageScreen() {
         provider.state === 'error',
     );
     return { nearLimit, nextReset, needsAttention };
-  }, []);
+  }, [providerFixtures]);
 
   return (
     <Screen>
       <ScreenScroll>
         <Header
           title="Usage"
-          subtitle="Static preview data · live connectors arrive in later phases"
+          subtitle="Local data · connectors are release-disabled until their gates pass"
           right={
             <IconButton
               icon="refresh"
@@ -55,9 +56,9 @@ export default function UsageScreen() {
           }
         />
 
-        <Notice tone="info" icon="flask-outline">
-          This dashboard is rendering design fixtures only. No provider is
-          connected and no usage is fetched.
+        <Notice tone="info" icon="shield-lock-outline">
+          Providers show their real release state from this device. No provider
+          request is made until a connector passes its gate.
         </Notice>
 
         <View
