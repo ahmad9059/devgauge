@@ -19,6 +19,15 @@ export default function ConnectorsScreen() {
           {providers.map((provider) => {
             const metadata = connectorMetadata[provider.id];
             const session = isSessionProvider(provider.id);
+            const google = provider.id === 'gemini-cli';
+            const signIn = session
+              ? {
+                  pathname: '/session/[providerId]' as const,
+                  params: { providerId: provider.id },
+                }
+              : google
+                ? { pathname: '/antigravity' as const }
+                : null;
             return (
               <ConnectorCard
                 key={provider.id}
@@ -26,20 +35,14 @@ export default function ConnectorsScreen() {
                 authMethod={metadata.authMethod}
                 dataSummary={metadata.dataSummary}
                 retention={metadata.retention}
-                onSignIn={
-                  session
-                    ? () =>
-                        router.push({
-                          pathname: '/session/[providerId]',
-                          params: { providerId: provider.id },
-                        })
+                onSignIn={signIn ? () => router.push(signIn) : undefined}
+                onOpenUsage={
+                  session || google
+                    ? () => router.push('/(tabs)/usage')
                     : undefined
                 }
-                onOpenUsage={
-                  session ? () => router.push('/(tabs)/usage') : undefined
-                }
                 onConnect={
-                  session
+                  signIn
                     ? undefined
                     : () =>
                         router.push(

@@ -33,7 +33,7 @@ const DOCUMENTS: Record<
     title: 'Provider disclosures',
     summary: 'Access method for each provider.',
     body: [
-      'Claude, Codex, GitHub Copilot, Command Code, OpenCode Go, and Antigravity CLI connect through an in-app session. DevGauge reads only the usage the provider page loads.',
+      'Claude, Codex, GitHub Copilot, Command Code, OpenCode Go, and Antigravity connect through an in-app session. DevGauge reads only the usage the provider page loads.',
       'Personal and organization billing are separate and are never merged.',
       'Usage data stays on this device; credentials are stored in secure storage.',
     ],

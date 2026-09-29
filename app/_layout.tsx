@@ -51,6 +51,10 @@ function ThemedApp() {
           options={{ title: 'API key' }}
         />
         <Stack.Screen name="sync" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="antigravity"
+          options={{ title: 'Antigravity', headerShown: false }}
+        />{' '}
       </Stack>
     </>
   );

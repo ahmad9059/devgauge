@@ -82,7 +82,7 @@ export const providerDescriptors: Record<ProviderId, ProviderDescriptor> = {
   },
   'gemini-cli': {
     id: 'gemini-cli',
-    displayName: 'Antigravity CLI',
+    displayName: 'Antigravity',
     supportTier: 'blocked',
     authModes: ['manual', 'manual-import'],
     capabilities: {

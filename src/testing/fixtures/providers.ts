@@ -188,7 +188,7 @@ export const providerFixtures: ProviderFixture[] = [
   },
   {
     id: 'gemini-cli',
-    displayName: 'Antigravity CLI',
+    displayName: 'Antigravity',
     monogram: 'GM',
     tier: 'blocked',
     state: 'blocked',
@@ -264,7 +264,7 @@ export const providerFixtures: ProviderFixture[] = [
     },
     {
       id: 'gemini-cli',
-      displayName: 'Antigravity CLI',
+      displayName: 'Antigravity',
       monogram: 'GM',
       tier: 'blocked',
       state: 'blocked',
