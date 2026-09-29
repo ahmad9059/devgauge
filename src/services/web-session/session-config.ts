@@ -3,7 +3,12 @@ import type { UsageWindowKind } from '@/domain/usage';
 import type { WindowKeyMap } from './usage-extract';
 
 export type SessionProviderId =
-  'claude' | 'codex' | 'github-copilot' | 'gemini-cli';
+  | 'claude'
+  | 'codex'
+  | 'github-copilot'
+  | 'command-code'
+  | 'opencode-go'
+  | 'gemini-cli';
 
 export type SessionProviderConfig = {
   label: string;
@@ -77,13 +82,37 @@ export const SESSION_PROVIDERS: Record<
       requests: { label: 'Premium requests', kind: 'monthly' },
     },
   },
+  'command-code': {
+    label: 'Command Code',
+    // Usage lives in the Studio console (no documented HTTP usage API).
+    usageUrl: 'https://commandcode.ai/usage',
+    allowedHosts: ['commandcode.ai'],
+    keyMap: {
+      five_hour: FIVE_HOUR,
+      hourly: FIVE_HOUR,
+      weekly: WEEKLY,
+      monthly: MONTHLY,
+      credits: { label: 'Credits', kind: 'billing' },
+    },
+  },
+  'opencode-go': {
+    label: 'OpenCode Go',
+    // Usage is tracked in the OpenCode console.
+    usageUrl: 'https://opencode.ai/auth',
+    allowedHosts: ['opencode.ai'],
+    keyMap: {
+      five_hour: FIVE_HOUR,
+      weekly: WEEKLY,
+      monthly: MONTHLY,
+    },
+  },
   'gemini-cli': {
     label: 'Antigravity CLI',
-    usageUrl: 'https://antigravity.google/product/antigravity-cli/',
+    usageUrl: 'https://antigravity.google.com',
     allowedHosts: [
       'antigravity.google',
+      'antigravity.google.com',
       'accounts.google.com',
-      'auth.antigravity.google',
     ],
     keyMap: {
       five_hour: FIVE_HOUR,
