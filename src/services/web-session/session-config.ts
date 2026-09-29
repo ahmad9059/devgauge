@@ -85,9 +85,18 @@ export function allowedSessionHost(
       return null;
     }
     const host = parsed.hostname.toLowerCase();
-    const allowed = SESSION_PROVIDERS[providerId].allowedHosts.includes(host);
+    const allowed = SESSION_PROVIDERS[providerId].allowedHosts.some(
+      (entry) => host === entry || host.endsWith(`.${entry}`),
+    );
     return allowed ? host : null;
   } catch {
     return null;
   }
 }
+
+/**
+ * A standard mobile Chrome user-agent. Some first-party pages refuse to render
+ * inside a bare WebView; presenting a normal browser UA keeps the real page.
+ */
+export const SESSION_USER_AGENT =
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36';

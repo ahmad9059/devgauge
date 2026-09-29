@@ -63,6 +63,12 @@ describe('session host allowlist', () => {
       allowedSessionHost('claude', 'https://claude.ai/settings/usage'),
     ).toBe('claude.ai');
     expect(allowedSessionHost('claude', 'https://evil.test/login')).toBeNull();
+    expect(allowedSessionHost('claude', 'https://api.claude.ai/usage')).toBe(
+      'api.claude.ai',
+    );
+    expect(
+      allowedSessionHost('claude', 'https://claude.ai.evil.test'),
+    ).toBeNull();
     expect(allowedSessionHost('claude', 'http://claude.ai/x')).toBeNull();
   });
 });

@@ -18,6 +18,7 @@ import {
 } from '@/domain/provider-status';
 import { connectorMetadata } from '@/testing/fixtures/providers';
 import { useProviderViews } from '@/features/dashboard/app-providers';
+import { isSessionProvider } from '@/services/web-session/session-config';
 
 const GROUP_ORDER: ConnectorGroup[] = [
   'available',
@@ -64,6 +65,7 @@ export default function ConnectorsScreen() {
             </SectionTitle>
             {providers.map((provider) => {
               const metadata = connectorMetadata[provider.id];
+              const session = isSessionProvider(provider.id);
               return (
                 <ConnectorCard
                   key={`${provider.id}-${provider.state}`}
@@ -71,16 +73,28 @@ export default function ConnectorsScreen() {
                   authMethod={metadata.authMethod}
                   dataSummary={metadata.dataSummary}
                   retention={metadata.retention}
+                  onSignIn={
+                    session
+                      ? () =>
+                          router.push({
+                            pathname: '/session/[providerId]',
+                            params: { providerId: provider.id },
+                          })
+                      : undefined
+                  }
                   onOpenDashboard={
-                    provider.dashboardUrl
+                    !session && provider.dashboardUrl
                       ? () => Linking.openURL(provider.dashboardUrl as string)
                       : undefined
                   }
-                  onConnect={() =>
-                    router.push({
-                      pathname: '/connect/[providerId]',
-                      params: { providerId: provider.id },
-                    })
+                  onConnect={
+                    session
+                      ? undefined
+                      : () =>
+                          router.push({
+                            pathname: '/connect/[providerId]',
+                            params: { providerId: provider.id },
+                          })
                   }
                   onDisconnect={() => undefined}
                 />

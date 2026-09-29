@@ -21,6 +21,7 @@ import {
   allowedSessionHost,
   isSessionProvider,
   SESSION_PROVIDERS,
+  SESSION_USER_AGENT,
 } from '@/services/web-session/session-config';
 import { saveSessionSnapshot } from '@/services/web-session/session';
 import {
@@ -153,11 +154,14 @@ export default function SessionScreen() {
             style={styles.webview}
             source={{ uri: config.usageUrl }}
             originWhitelist={['https://*']}
+            userAgent={SESSION_USER_AGENT}
+            setSupportMultipleWindows={false}
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             domStorageEnabled
             javaScriptEnabled
             injectedJavaScriptBeforeContentLoaded={USAGE_BRIDGE_SCRIPT}
+            injectedJavaScript={USAGE_BRIDGE_SCRIPT}
             onMessage={onMessage}
             onShouldStartLoadWithRequest={(request) => {
               const host = allowedSessionHost(providerId, request.url);

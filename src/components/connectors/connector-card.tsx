@@ -18,6 +18,7 @@ export function ConnectorCard({
   dataSummary,
   retention,
   onConnect,
+  onSignIn,
   onOpenDashboard,
   onDisconnect,
   testID,
@@ -30,6 +31,8 @@ export function ConnectorCard({
   /** How long local data is kept. */
   retention: string;
   onConnect?: () => void;
+  /** Opens the in-app provider sign-in (embedded session) instead of a browser. */
+  onSignIn?: () => void;
   onOpenDashboard?: () => void;
   onDisconnect?: () => void;
   testID?: string;
@@ -95,6 +98,14 @@ export function ConnectorCard({
       <CardDivider />
 
       <View style={styles.actions}>
+        {onSignIn ? (
+          <Button
+            label={isConnected ? 'Sign in again (in-app)' : 'Sign in (in-app)'}
+            icon="login-variant"
+            accessibilityHint="Opens the provider page inside DevGauge"
+            onPress={onSignIn}
+          />
+        ) : null}
         {isConnected && onDisconnect ? (
           <Button
             label="Disconnect"
@@ -103,7 +114,7 @@ export function ConnectorCard({
             onPress={onDisconnect}
           />
         ) : null}
-        {canConnect && onConnect ? (
+        {!onSignIn && canConnect && onConnect ? (
           <Button
             label={isConnected ? 'Refresh connection' : 'Connect'}
             variant={isConnected ? 'secondary' : 'primary'}
@@ -111,16 +122,16 @@ export function ConnectorCard({
             onPress={onConnect}
           />
         ) : null}
-        {provider.state === 'blocked' && onOpenDashboard ? (
+        {!onSignIn && provider.state === 'blocked' && onOpenDashboard ? (
           <Button
             label="Open provider dashboard"
             variant="secondary"
             icon="open-in-new"
-            accessibilityHint="Opens the provider's own website in your browser"
+            accessibilityHint="Opens the official provider website in your browser"
             onPress={onOpenDashboard}
           />
         ) : null}
-        {provider.state === 'candidate-disabled' ? (
+        {provider.state === 'candidate-disabled' && !onSignIn ? (
           <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
             {status.hint}
           </Text>
