@@ -19,6 +19,7 @@ import { useTheme } from '@/design/theme-provider';
 import { connectorMetadata } from '@/testing/fixtures/providers';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { providerUnavailableExplanation } from '@/features/connections/manual-flows';
+import { isSessionProvider } from '@/services/web-session/session-config';
 
 export default function ConnectScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
@@ -61,6 +62,27 @@ export default function ConnectScreen() {
         <Notice tone="info" icon="information-outline">
           {providerUnavailableExplanation(provider.id)}
         </Notice>
+
+        {isSessionProvider(provider.id) ? (
+          <Stack gap="sm">
+            <Button
+              label={`Sign in to ${provider.displayName}`}
+              icon="login-variant"
+              onPress={() =>
+                router.push({
+                  pathname: '/session/[providerId]',
+                  params: { providerId: provider.id },
+                })
+              }
+            />
+            <Text
+              style={[typography.caption, { color: theme.colors.textMuted }]}
+            >
+              Experimental: opens the provider page inside the app and reads
+              only the usage it loads.
+            </Text>
+          </Stack>
+        ) : null}
 
         <SectionTitle>Before you connect</SectionTitle>
         <Text style={[typography.body, { color: theme.colors.textSecondary }]}>

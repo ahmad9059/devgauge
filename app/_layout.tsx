@@ -41,6 +41,10 @@ function ThemedApp() {
           name="auth/callback/[providerId]"
           options={{ title: 'Authorization' }}
         />
+        <Stack.Screen
+          name="session/[providerId]"
+          options={{ title: 'Sign in' }}
+        />
       </Stack>
     </>
   );
