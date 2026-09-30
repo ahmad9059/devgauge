@@ -3,10 +3,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { DevGaugeLockup } from '@/components/brand/devgauge-lockup';
 import { ProviderCard } from '@/components/usage/provider-card';
+import { SyncControl } from '@/components/usage/sync-control';
 import {
   Button,
   EmptyState,
-  IconButton,
   Screen,
   ScreenScroll,
   Stack,
@@ -36,11 +36,7 @@ export default function UsageScreen() {
         <View style={styles.brandHeader}>
           <DevGaugeLockup />
           <View style={styles.actions}>
-            <IconButton
-              icon="refresh"
-              accessibilityLabel="Refresh all providers"
-              onPress={() => router.push('/sync')}
-            />
+            <SyncControl />
           </View>
         </View>
 

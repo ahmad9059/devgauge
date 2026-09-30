@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppErrorBoundary } from '@/components/app-error-boundary';
 import { ThemeProvider, useTheme } from '@/design/theme-provider';
 import { AppProvidersProvider } from '@/features/dashboard/app-providers';
-import { AutoSyncOnOpen } from '@/features/dashboard/auto-sync';
+import { SyncProvider } from '@/features/dashboard/sync-provider';
 import { SettingsSync } from '@/features/settings/settings-sync';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
@@ -64,9 +64,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AppProvidersProvider>
-        <ThemedApp />
-        <SettingsSync />
-        <AutoSyncOnOpen />
+        <SyncProvider>
+          <ThemedApp />
+          <SettingsSync />
+        </SyncProvider>
       </AppProvidersProvider>
     </ThemeProvider>
   );
