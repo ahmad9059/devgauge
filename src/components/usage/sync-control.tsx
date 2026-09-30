@@ -46,7 +46,7 @@ export function SyncControl() {
 
   const width = expansion.interpolate({
     inputRange: [0, 1],
-    outputRange: [touchTargets.iconButton, 88],
+    outputRange: [touchTargets.iconButton, 104],
   });
 
   return (
@@ -79,7 +79,7 @@ export function SyncControl() {
         ]}
       >
         {isSyncing && providerId ? (
-          <ProviderLogo id={providerId} size={26} />
+          <ProviderLogo id={providerId} size={28} />
         ) : null}
         <Animated.View
           style={{
@@ -93,7 +93,7 @@ export function SyncControl() {
             ],
           }}
         >
-          <Icon name="refresh" size={20} color={theme.colors.accent} />
+          <Icon name="refresh" size={24} color={theme.colors.accent} />
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -113,6 +113,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.md,
+    gap: spacing.xl,
   },
 });

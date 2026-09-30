@@ -74,6 +74,19 @@ export function parseUsageText(
     const key = sectionKey(line, keyMap);
     if (key) currentKey = key;
 
+    // Some responsive layouts put the reset label and its value into separate
+    // blocks, producing "Resets" then the date/time on the next text line.
+    if (/^resets?$/i.test(line)) {
+      const value = lines[index + 1]?.trim();
+      const previous = lastWindow();
+      if (value && previous !== null && previous.resetsAt === null) {
+        previous.resetsAt = value;
+      } else if (value) {
+        pendingReset = value;
+      }
+      continue;
+    }
+
     const reset = RESET.exec(line);
     if (reset) {
       const value = reset[1].trim();

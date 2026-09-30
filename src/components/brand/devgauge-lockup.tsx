@@ -20,5 +20,5 @@ export function DevGaugeLockup() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  image: { width: 36, height: 36 },
+  image: { width: 44, height: 44 },
 });

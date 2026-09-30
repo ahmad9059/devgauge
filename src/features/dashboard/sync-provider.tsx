@@ -68,6 +68,14 @@ type WebJob = {
   resolve: () => void;
 };
 
+function hasCodexPageUsage(windows: UsageWindow[]): boolean {
+  const fiveHour = windows.find((window) => window.kind === 'rolling');
+  const weekly = windows.find((window) => window.kind === 'weekly');
+  // For Codex, page text is the authoritative remaining-percent source. Wait
+  // for its reset labels as well, rather than persisting an early API payload.
+  return Boolean(fiveHour?.resetsAt && weekly?.resetsAt);
+}
+
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
@@ -239,7 +247,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           byKey.set(window.key, window);
         }
         const windows = toDomainWindows([...byKey.values()], config.keyMap);
-        if (windows.length > 0) void finishWebJob(windows);
+        const isReady =
+          windows.length > 0 &&
+          (job.provider.id !== 'codex' || hasCodexPageUsage(windows));
+        if (isReady) void finishWebJob(windows);
       } catch {
         // Ignore messages that are not bridge payloads.
       }

@@ -91,6 +91,29 @@ describe('page text parsing', () => {
     );
   });
 
+  it('reads Codex reset labels split from their date values', () => {
+    const text = [
+      '5 hour usage limit',
+      '42% remaining',
+      'Resets',
+      'Oct 1, 2026 12:29 AM',
+      'Weekly usage limit',
+      '88%',
+      'remaining',
+      'Resets',
+      'Oct 5, 2026 9:02 PM',
+    ].join('\n');
+    const windows = toDomainWindows(parseUsageText(text, codex), codex);
+    expect(windows.find((w) => w.label === '5-hour window')?.used).toBe('58');
+    expect(windows.find((w) => w.label === '5-hour window')?.resetsAt).toBe(
+      'Oct 1, 2026 12:29 AM',
+    );
+    expect(windows.find((w) => w.label === 'Weekly')?.used).toBe('12');
+    expect(windows.find((w) => w.label === 'Weekly')?.resetsAt).toBe(
+      'Oct 5, 2026 9:02 PM',
+    );
+  });
+
   it('reads included credits fractions (GitHub)', () => {
     const text = [
       'Included credits',
