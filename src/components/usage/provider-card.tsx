@@ -27,7 +27,11 @@ const KIND_ORDER = ['rolling', 'daily', 'weekly', 'monthly', 'billing-period'];
  * single bar per window type (worst pool) and the detail page breaks them out.
  */
 function cardWindows(windows: UsageWindow[]): UsageWindow[] {
-  if (!windows.some((window) => window.group)) return windows;
+  if (!windows.some((window) => window.group)) {
+    return [...windows].sort(
+      (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
+    );
+  }
   const byKind = new Map<string, UsageWindow>();
   for (const window of windows) {
     if (!window.group) continue;

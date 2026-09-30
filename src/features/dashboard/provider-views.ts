@@ -163,9 +163,18 @@ export function buildProviderViews(
         snapshot?.fetchedAt ?? active?.lastSuccessAt ?? null,
         input.now,
       ),
-      windows: (snapshot?.windows ?? []).map((window) =>
-        toFixtureWindow(window, input.now),
-      ),
+      windows: (snapshot?.windows ?? [])
+        .map((window) => toFixtureWindow(window, input.now))
+        .sort((a, b) => {
+          const order = [
+            'rolling',
+            'daily',
+            'weekly',
+            'monthly',
+            'billing-period',
+          ];
+          return order.indexOf(a.kind) - order.indexOf(b.kind);
+        }),
       note: noteFor(state),
       dashboardUrl: descriptor.firstPartyUsageUrl,
     };

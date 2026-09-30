@@ -105,9 +105,9 @@ try {
   await run('./gradlew', gradleArgs, path.resolve('android'), (line) => {
     const match = /^> Task (\S+)/.exec(line);
     if (!match) return;
-      completed.add(match[1]);
-      // Native plugins can add tasks during execution after the dry-run plan.
-      totalTasks = Math.max(totalTasks, completed.size);
+    completed.add(match[1]);
+    // Native plugins can add tasks during execution after the dry-run plan.
+    totalTasks = Math.max(totalTasks, completed.size);
     percent = totalTasks
       ? Math.min(98, 10 + Math.floor((completed.size / totalTasks) * 88))
       : 10;

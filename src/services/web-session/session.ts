@@ -24,12 +24,34 @@ export type SaveSessionResult = {
   windowCount: number;
 };
 
+const pendingSaves = new WeakMap<Database, Promise<unknown>>();
+
+/** Network capture is parallel; short writes on the shared SQLite handle queue. */
+export function saveSessionSnapshot(
+  input: SaveSessionInput,
+): Promise<SaveSessionResult> {
+  const previous = pendingSaves.get(input.db) ?? Promise.resolve();
+  const result = previous.then(
+    () => persistSessionSnapshot(input),
+    () => persistSessionSnapshot(input),
+  );
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  pendingSaves.set(input.db, tail);
+  void tail.then(() => {
+    if (pendingSaves.get(input.db) === tail) pendingSaves.delete(input.db);
+  });
+  return result;
+}
+
 /**
  * Persists a website-session snapshot: a web-session connection plus the
  * captured, normalized windows, written atomically. No credential material is
  * stored (the session lives in the WebView cookie store).
  */
-export async function saveSessionSnapshot(
+async function persistSessionSnapshot(
   input: SaveSessionInput,
 ): Promise<SaveSessionResult> {
   const connectionId = `session-${input.providerId}`;

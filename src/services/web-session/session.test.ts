@@ -74,6 +74,33 @@ describe('session host allowlist', () => {
 });
 
 describe('session persistence', () => {
+  it('persists parallel provider completions without overlapping shared SQLite transactions', async () => {
+    const db = await createMigratedTestDatabase();
+    let counter = 0;
+    const windows = extractUsageWindows(
+      [
+        response('https://claude.ai/api/usage', {
+          five_hour: { utilization: 0.42 },
+        }),
+      ],
+      claudeKeyMap,
+    ).windows;
+    await Promise.all(
+      ['claude', 'codex', 'command-code', 'gemini-cli'].map((providerId) =>
+        saveSessionSnapshot({
+          db,
+          providerId: providerId as
+            'claude' | 'codex' | 'command-code' | 'gemini-cli',
+          displayName: providerId,
+          windows,
+          fetchedAt: NOW.toISOString(),
+          now: NOW,
+          nextId: () => `parallel-${++counter}`,
+        }),
+      ),
+    );
+    expect((await latestByConnection(db)).size).toBe(4);
+  });
   it('writes a web-session connection and its windows', async () => {
     const db = await createMigratedTestDatabase();
     const extracted = extractUsageWindows(

@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import type { UsageWindow } from '@/domain/usage';
@@ -16,7 +16,10 @@ import { syncAntigravity } from '@/providers/antigravity/sync';
 import { getAppDatabase } from '@/services/app-database-store';
 import { createSecureStoreBackend } from '@/storage/secure-store-backend';
 import { createSecureVault } from '@/storage/secure-vault';
-import { USAGE_BRIDGE_SCRIPT } from '@/services/web-session/bridge-script';
+import {
+  createSyncBridgeScript,
+  refreshSessionScript,
+} from '@/services/web-session/bridge-script';
 import {
   allowedSessionHost,
   isSessionProvider,
@@ -47,6 +50,7 @@ const SYNCABLE: ProviderState[] = [
   'error',
 ];
 const PER_PROVIDER_TIMEOUT_MS = 12_000;
+const FAST_REFRESH_TIMEOUT_MS = 2500;
 
 type SyncStatus = {
   isSyncing: boolean;
@@ -63,6 +67,8 @@ type SyncContextValue = SyncStatus & {
 const SyncContext = createContext<SyncContextValue | null>(null);
 
 type WebJob = {
+  runId: number;
+  mode: 'api' | 'page';
   provider: ProviderFixture;
   captured: CapturedResponse[];
   text: string;
@@ -70,6 +76,14 @@ type WebJob = {
   timeout: ReturnType<typeof setTimeout>;
   resolve: (result: 'success' | 'retry' | 'stop') => void;
 };
+
+type WebHost = { provider: ProviderFixture; runId: number; epoch: number };
+const SESSION_SOURCES = Object.fromEntries(
+  Object.entries(SESSION_PROVIDERS).map(([id, config]) => [
+    id,
+    { uri: config.usageUrl },
+  ]),
+);
 
 function hasCodexPageUsage(windows: UsageWindow[]): boolean {
   const fiveHour = windows.find((window) => window.kind === 'rolling');
@@ -106,19 +120,31 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     syncingProviderIds: [],
     displayedProviderId: null,
   });
-  const [webProviders, setWebProviders] = useState<ProviderFixture[]>([]);
+  const [webHosts, setWebHosts] = useState<WebHost[]>([]);
+  const webRefs = useRef(new Map<ProviderId, WebView>());
   const jobsRef = useRef(new Map<ProviderId, WebJob>());
+  const nextRunId = useRef(0);
   const runningRef = useRef(false);
   const autoStartedRef = useRef(false);
 
   const finishWebJob = useCallback(
-    async (providerId: ProviderId, windows?: UsageWindow[]) => {
+    async (
+      providerId: ProviderId,
+      runId: number,
+      windows?: UsageWindow[],
+      failure: 'retry' | 'stop' = 'retry',
+    ) => {
       const job = jobsRef.current.get(providerId);
-      if (!job || job.done) return;
+      if (!job || job.done || job.runId !== runId) return;
       job.done = true;
       clearTimeout(job.timeout);
       jobsRef.current.delete(providerId);
-      let result: 'success' | 'retry' | 'stop' = 'retry';
+      webRefs.current
+        .get(providerId)
+        ?.injectJavaScript(
+          `if (window.__devgaugeRunId === ${runId}) window.__devgaugeCaptureActive = false; true;`,
+        );
+      let result: 'success' | 'retry' | 'stop' = failure;
       try {
         if (
           windows &&
@@ -136,30 +162,58 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             now: new Date(),
             nextId: () => `${job.provider.id}-${Date.now()}-${(ids += 1)}`,
           });
-          // This makes the completed provider card update before the next one starts.
+          // Paint the completed provider immediately while the others keep fetching.
           await reload();
           result = 'success';
         }
       } catch {
         // Keep the previous snapshot and advance to the next provider.
       } finally {
-        setWebProviders((current) =>
-          current.filter((provider) => provider.id !== providerId),
-        );
         job.resolve(result);
       }
     },
     [reload],
   );
 
+  const loadFullPage = useCallback(
+    (providerId: ProviderId, runId: number) => {
+      const job = jobsRef.current.get(providerId);
+      if (!job || job.runId !== runId || job.done || job.mode === 'page')
+        return;
+      clearTimeout(job.timeout);
+      job.mode = 'page';
+      job.captured = [];
+      job.text = '';
+      job.timeout = setTimeout(
+        () => void finishWebJob(providerId, runId),
+        PER_PROVIDER_TIMEOUT_MS,
+      );
+      // A fresh renderer also guarantees the fallback bridge gets the current
+      // attempt ID even if Android has not applied updated injection props yet.
+      setWebHosts((hosts) =>
+        hosts.map((host) =>
+          host.provider.id === providerId ? { ...host, epoch: runId } : host,
+        ),
+      );
+    },
+    [finishWebJob],
+  );
+
   const syncWebProvider = useCallback(
     (provider: ProviderFixture) =>
       new Promise<'success' | 'retry' | 'stop'>((resolve) => {
+        const runId = ++nextRunId.current;
+        const webView = webRefs.current.get(provider.id);
         const timeout = setTimeout(
-          () => void finishWebJob(provider.id),
-          PER_PROVIDER_TIMEOUT_MS,
+          () =>
+            webView
+              ? loadFullPage(provider.id, runId)
+              : void finishWebJob(provider.id, runId),
+          webView ? FAST_REFRESH_TIMEOUT_MS : PER_PROVIDER_TIMEOUT_MS,
         );
         jobsRef.current.set(provider.id, {
+          runId,
+          mode: webView ? 'api' : 'page',
           provider,
           captured: [],
           text: '',
@@ -167,9 +221,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           timeout,
           resolve,
         });
-        setWebProviders((current) => [...current, provider]);
+        setWebHosts((current) => {
+          const existing = current.find(
+            (host) => host.provider.id === provider.id,
+          );
+          const host = { provider, runId, epoch: existing?.epoch ?? runId };
+          return existing
+            ? current.map((item) =>
+                item.provider.id === provider.id ? host : item,
+              )
+            : [...current, host];
+        });
+        if (webView) webView.injectJavaScript(refreshSessionScript(runId));
       }),
-    [finishWebJob],
+    [finishWebJob, loadFullPage],
   );
 
   const startSync = useCallback(async () => {
@@ -188,7 +253,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       isSyncing: true,
       completedProviderIds: [],
       syncingProviderIds: targets.map((provider) => provider.id),
-      displayedProviderId: null,
+      displayedProviderId: targets[0].id,
     });
     let completionQueue = Promise.resolve();
     const acknowledge = (providerId: ProviderId) => {
@@ -267,6 +332,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [providers, startSync]);
 
+  // Idle sessions can be rebuilt after returning from the background, freeing
+  // the website renderers while DevGauge is not being used.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' && !runningRef.current) {
+        webRefs.current.clear();
+        setWebHosts([]);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
   const onMessage = useCallback(
     (providerId: ProviderId, event: WebViewMessageEvent) => {
       const job = jobsRef.current.get(providerId);
@@ -277,10 +354,28 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           url?: string;
           body?: string;
           text?: string;
+          runId?: number;
         };
+        if (data.runId !== job.runId) return;
+        if (data.type === 'fast-miss') {
+          loadFullPage(providerId, job.runId);
+          return;
+        }
         if (data.type === 'usage' && typeof data.body === 'string') {
-          job.captured.push({ url: data.url ?? '', body: data.body });
+          const response = { url: data.url ?? '', body: data.body };
+          const config = SESSION_PROVIDERS[job.provider.id];
+          if (extractRawWindows([response], config.keyMap).length === 0) return;
+          job.captured = [
+            ...job.captured.filter((captured) => captured.url !== response.url),
+            response,
+          ];
+          webRefs.current
+            .get(providerId)
+            ?.injectJavaScript(
+              `if (window.__devgaugeApproveQuotaUrl) window.__devgaugeApproveQuotaUrl(${JSON.stringify(response.url)}); true;`,
+            );
         } else if (data.type === 'text' && typeof data.text === 'string') {
+          if (job.mode === 'api') return;
           job.text = data.text;
         } else {
           return;
@@ -308,23 +403,40 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         const windows = toDomainWindows([...byKey.values()], config.keyMap);
         const isReady =
           windows.length > 0 &&
+          (job.provider.id !== 'claude' ||
+            (windows.some((window) => window.kind === 'rolling') &&
+              windows.some((window) => window.kind === 'weekly'))) &&
+          (job.provider.id !== 'command-code' ||
+            ['rolling', 'weekly', 'monthly'].every((kind) =>
+              windows.some((window) => window.kind === kind),
+            )) &&
           (job.provider.id !== 'codex' || hasCodexPageUsage(windows));
-        if (isReady) void finishWebJob(providerId, windows);
+        if (isReady) void finishWebJob(providerId, job.runId, windows);
       } catch {
         // Ignore messages that are not bridge payloads.
       }
     },
-    [finishWebJob],
+    [finishWebJob, loadFullPage],
   );
 
   return (
     <SyncContext.Provider value={{ ...status, startSync }}>
       {children}
-      {webProviders.map((provider) =>
+      {webHosts.map(({ provider, runId, epoch }) =>
         isSessionProvider(provider.id) ? (
-          <View key={provider.id} pointerEvents="none" style={styles.webHost}>
+          <View
+            key={`${provider.id}-${epoch}`}
+            pointerEvents="none"
+            style={styles.webHost}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
             <WebView
-              source={{ uri: SESSION_PROVIDERS[provider.id].usageUrl }}
+              ref={(webView) => {
+                if (webView) webRefs.current.set(provider.id, webView);
+                else webRefs.current.delete(provider.id);
+              }}
+              source={SESSION_SOURCES[provider.id]}
               originWhitelist={['https://*']}
               userAgent={SESSION_USER_AGENT}
               setSupportMultipleWindows={false}
@@ -332,10 +444,29 @@ export function SyncProvider({ children }: { children: ReactNode }) {
               thirdPartyCookiesEnabled
               domStorageEnabled
               javaScriptEnabled
-              injectedJavaScriptBeforeContentLoaded={USAGE_BRIDGE_SCRIPT}
-              injectedJavaScript={USAGE_BRIDGE_SCRIPT}
+              injectedJavaScriptBeforeContentLoaded={createSyncBridgeScript(
+                runId,
+              )}
+              injectedJavaScript={createSyncBridgeScript(runId)}
               onMessage={(event) => onMessage(provider.id, event)}
-              onError={() => void finishWebJob(provider.id)}
+              onError={() => void finishWebJob(provider.id, runId)}
+              onHttpError={(event) => {
+                // Resource failures (images/analytics) should not end a quota fetch.
+                if (
+                  event.nativeEvent.url !==
+                  SESSION_PROVIDERS[provider.id as SessionProviderId].usageUrl
+                )
+                  return;
+                const statusCode = event.nativeEvent.statusCode;
+                void finishWebJob(
+                  provider.id,
+                  runId,
+                  undefined,
+                  statusCode === 401 || statusCode === 403 || statusCode === 404
+                    ? 'stop'
+                    : 'retry',
+                );
+              }}
               onShouldStartLoadWithRequest={(request) =>
                 allowedSessionHost(
                   provider.id as SessionProviderId,
@@ -361,8 +492,8 @@ export function useSyncStatus(): SyncContextValue {
 const styles = StyleSheet.create({
   webHost: {
     position: 'absolute',
-    width: 1,
-    height: 1,
+    width: '100%',
+    height: '100%',
     right: 0,
     bottom: 0,
     overflow: 'hidden',

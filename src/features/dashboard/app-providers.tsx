@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -16,6 +15,7 @@ import type { ProviderConnection, SnapshotWithWindows } from '@/storage/types';
 import type { ProviderFixture } from '@/testing/fixtures/providers';
 
 import { buildProviderViews } from './provider-views';
+import { createCoalescedReload } from './coalesced-reload';
 
 type AppProvidersValue = {
   providers: ProviderFixture[];
@@ -46,17 +46,19 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
   );
   const [ready, setReady] = useState(false);
 
-  const reload = useCallback(async () => {
-    try {
-      const db = await getAppDatabase();
-      const storedConnections = await listConnections(db);
-      const snapshots = await latestByConnection(db);
-      setConnections(storedConnections);
-      setLatest(snapshots);
-    } finally {
-      setReady(true);
-    }
-  }, []);
+  const [reload] = useState(() =>
+    createCoalescedReload(async () => {
+      try {
+        const db = await getAppDatabase();
+        const storedConnections = await listConnections(db);
+        const snapshots = await latestByConnection(db);
+        setConnections(storedConnections);
+        setLatest(snapshots);
+      } finally {
+        setReady(true);
+      }
+    }),
+  );
 
   useEffect(() => {
     let active = true;
