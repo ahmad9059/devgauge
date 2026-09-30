@@ -119,6 +119,14 @@ export default function SessionScreen() {
         ]),
       );
       for (const window of parseUsageText(pageTextRef.current, config.keyMap)) {
+        if (sessionProvider === 'codex') {
+          for (const [key, captured] of byKey) {
+            if (config.keyMap[key].kind === config.keyMap[window.key].kind) {
+              window.resetsAt ??= captured.resetsAt;
+              byKey.delete(key);
+            }
+          }
+        }
         byKey.set(window.key, window);
       }
       const windows = toDomainWindows([...byKey.values()], config.keyMap);

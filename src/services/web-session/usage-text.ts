@@ -126,8 +126,12 @@ export function parseUsageText(
       } else if (qualifier === 'used') {
         push(value);
       } else {
-        // Bare "NN%" under a section heading (e.g. "5-HOUR LIMIT 89%") is used.
-        push(value);
+        // Codex's responsive page can omit the remaining qualifier entirely.
+        push(
+          currentKey && keyMap[currentKey].remaining
+            ? Math.max(0, 100 - value)
+            : value,
+        );
       }
     }
   }

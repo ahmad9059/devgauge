@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   type ViewStyle,
@@ -15,6 +14,7 @@ import {
 } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { Icon, type IconName } from './icon';
+import { MotionPressable as Pressable } from './motion-pressable';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';

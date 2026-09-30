@@ -102,9 +102,9 @@ function walk(
       const percent = toPercent(used);
       out.push({
         key: knownAncestor,
-        usedPercent: keyMap[knownAncestor]?.remaining
-          ? Math.max(0, 100 - percent)
-          : percent,
+        // Explicit API used-percent fields already measure consumption.
+        // The remaining flag applies to unqualified visible page percentages.
+        usedPercent: percent,
         resetsAt: pickReset(record, RESET_KEYS),
       });
     } else if (remaining !== null) {

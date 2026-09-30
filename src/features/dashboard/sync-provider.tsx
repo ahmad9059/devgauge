@@ -37,6 +37,7 @@ import type {
 } from '@/testing/fixtures/providers';
 
 import { useProviderViews, useReloadProviders } from './app-providers';
+import { retrySync } from './sync-retry';
 
 const SYNCABLE: ProviderState[] = [
   'connected',
@@ -52,6 +53,7 @@ type SyncStatus = {
   /** Completion order lets the status control acknowledge fast providers first. */
   completedProviderIds: ProviderId[];
   syncingProviderIds: ProviderId[];
+  displayedProviderId: ProviderId | null;
 };
 
 type SyncContextValue = SyncStatus & {
@@ -66,7 +68,7 @@ type WebJob = {
   text: string;
   done: boolean;
   timeout: ReturnType<typeof setTimeout>;
-  resolve: () => void;
+  resolve: (result: 'success' | 'retry' | 'stop') => void;
 };
 
 function hasCodexPageUsage(windows: UsageWindow[]): boolean {
@@ -102,6 +104,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     isSyncing: false,
     completedProviderIds: [],
     syncingProviderIds: [],
+    displayedProviderId: null,
   });
   const [webProviders, setWebProviders] = useState<ProviderFixture[]>([]);
   const jobsRef = useRef(new Map<ProviderId, WebJob>());
@@ -115,6 +118,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       job.done = true;
       clearTimeout(job.timeout);
       jobsRef.current.delete(providerId);
+      let result: 'success' | 'retry' | 'stop' = 'retry';
       try {
         if (
           windows &&
@@ -134,6 +138,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           });
           // This makes the completed provider card update before the next one starts.
           await reload();
+          result = 'success';
         }
       } catch {
         // Keep the previous snapshot and advance to the next provider.
@@ -141,14 +146,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         setWebProviders((current) =>
           current.filter((provider) => provider.id !== providerId),
         );
-        setStatus((current) => ({
-          ...current,
-          completedProviderIds: [...current.completedProviderIds, providerId],
-          syncingProviderIds: current.syncingProviderIds.filter(
-            (id) => id !== providerId,
-          ),
-        }));
-        job.resolve();
+        job.resolve(result);
       }
     },
     [reload],
@@ -156,7 +154,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const syncWebProvider = useCallback(
     (provider: ProviderFixture) =>
-      new Promise<void>((resolve) => {
+      new Promise<'success' | 'retry' | 'stop'>((resolve) => {
         const timeout = setTimeout(
           () => void finishWebJob(provider.id),
           PER_PROVIDER_TIMEOUT_MS,
@@ -190,45 +188,64 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       isSyncing: true,
       completedProviderIds: [],
       syncingProviderIds: targets.map((provider) => provider.id),
+      displayedProviderId: null,
     });
+    let completionQueue = Promise.resolve();
+    const acknowledge = (providerId: ProviderId) => {
+      completionQueue = completionQueue.then(async () => {
+        setStatus((current) => ({
+          ...current,
+          displayedProviderId: providerId,
+        }));
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      });
+    };
     try {
       await Promise.all(
         targets.map(async (provider) => {
-          if (provider.id === 'gemini-cli') {
-            try {
-              const db = await getAppDatabase();
-              let ids = 0;
-              await syncAntigravity({
-                db,
-                vault: createSecureVault(createSecureStoreBackend()),
-                fetchImpl: fetchWithTimeout,
-                nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
-              });
-              await reload();
-            } catch {
-              // The existing snapshot remains visible if an OAuth/API call fails.
-            } finally {
-              setStatus((current) => ({
-                ...current,
-                completedProviderIds: [
-                  ...current.completedProviderIds,
-                  provider.id,
-                ],
-                syncingProviderIds: current.syncingProviderIds.filter(
-                  (id) => id !== provider.id,
-                ),
-              }));
+          const success = await retrySync(async () => {
+            if (provider.id === 'gemini-cli') {
+              try {
+                const db = await getAppDatabase();
+                let ids = 0;
+                const result = await syncAntigravity({
+                  db,
+                  vault: createSecureVault(createSecureStoreBackend()),
+                  fetchImpl: fetchWithTimeout,
+                  nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
+                });
+                await reload();
+                return result === 'success'
+                  ? 'success'
+                  : result === 'needs-sign-in'
+                    ? 'stop'
+                    : 'retry';
+              } catch {
+                return 'retry';
+              }
+            } else {
+              return await syncWebProvider(provider);
             }
-          } else {
-            await syncWebProvider(provider);
-          }
+          });
+          setStatus((current) => ({
+            ...current,
+            completedProviderIds: success
+              ? [...current.completedProviderIds, provider.id]
+              : current.completedProviderIds,
+            syncingProviderIds: current.syncingProviderIds.filter(
+              (id) => id !== provider.id,
+            ),
+          }));
+          if (success) acknowledge(provider.id);
         }),
       );
+      await completionQueue;
     } finally {
       setStatus({
         isSyncing: false,
         completedProviderIds: [],
         syncingProviderIds: [],
+        displayedProviderId: null,
       });
       runningRef.current = false;
     }
@@ -243,8 +260,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         (isSessionProvider(provider.id) || provider.id === 'gemini-cli'),
     );
     if (!hasTarget) return;
-    autoStartedRef.current = true;
-    const timer = setTimeout(() => void startSync(), 0);
+    const timer = setTimeout(() => {
+      autoStartedRef.current = true;
+      void startSync();
+    }, 0);
     return () => clearTimeout(timer);
   }, [providers, startSync]);
 
@@ -274,6 +293,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           ]),
         );
         for (const window of parseUsageText(job.text, config.keyMap)) {
+          // Page/API aliases (primary vs primary_window) describe the same
+          // Codex quota. Replace that quota, not just an exact matching key.
+          if (providerId === 'codex') {
+            for (const [key, captured] of byKey) {
+              if (config.keyMap[key].kind === config.keyMap[window.key].kind) {
+                window.resetsAt ??= captured.resetsAt;
+                byKey.delete(key);
+              }
+            }
+          }
           byKey.set(window.key, window);
         }
         const windows = toDomainWindows([...byKey.values()], config.keyMap);
@@ -306,6 +335,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
               injectedJavaScriptBeforeContentLoaded={USAGE_BRIDGE_SCRIPT}
               injectedJavaScript={USAGE_BRIDGE_SCRIPT}
               onMessage={(event) => onMessage(provider.id, event)}
+              onError={() => void finishWebJob(provider.id)}
               onShouldStartLoadWithRequest={(request) =>
                 allowedSessionHost(
                   provider.id as SessionProviderId,

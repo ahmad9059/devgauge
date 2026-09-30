@@ -35,14 +35,14 @@ describe('remaining vs used', () => {
     expect(fiveHour?.resetsAt).toBe('2026-09-29T05:00:00.000Z');
   });
 
-  it('inverts Codex reported limit percentages and preserves timestamp resets', () => {
+  it('keeps explicit Codex API used percentages and preserves timestamp resets', () => {
     const raw = extractRawWindows(
       [
         {
           url: 'https://chatgpt.com/backend-api/usage',
           body: JSON.stringify({
-            primary_window: { used_percent: 0.77, reset_at: 1_791_234_567 },
-            secondary_window: { used_percent: 0.87, reset_at: 1_791_567_890 },
+            primary_window: { used_percent: 0.23, reset_at: 1_791_234_567 },
+            secondary_window: { used_percent: 0.13, reset_at: 1_791_567_890 },
           }),
         },
       ],
@@ -73,6 +73,17 @@ describe('remaining vs used', () => {
 });
 
 describe('page text parsing', () => {
+  it('treats bare Codex page values as remaining without double-inverting explicit qualifiers', () => {
+    for (const suffix of ['', ' remaining', '\nremaining']) {
+      const text = `5 hour usage limit\n100%${suffix}\nWeekly usage limit\n86%${suffix}`;
+      const windows = toDomainWindows(parseUsageText(text, codex), codex);
+      expect(windows.find((w) => w.kind === 'rolling')?.used).toBe('0');
+      expect(windows.find((w) => w.kind === 'weekly')?.used).toBe('14');
+    }
+    expect(
+      parseUsageText('Weekly usage limit\n14% used', codex)[0].usedPercent,
+    ).toBe(14);
+  });
   it('reads remaining percentages under section headings (Codex)', () => {
     const text = [
       '5 hour usage limit',
