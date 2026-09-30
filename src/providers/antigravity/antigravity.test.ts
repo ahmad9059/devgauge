@@ -8,6 +8,8 @@ import {
   tokenExchangeBody,
 } from '@/providers/antigravity/oauth';
 import {
+  extractDefaultTierId,
+  extractIneligibleReason,
   extractPlan,
   extractProjectId,
   loadAntigravityQuota,
@@ -116,7 +118,7 @@ describe('antigravity quota parsing', () => {
     expect(parseQuotaPayload({ ok: true })).toEqual([]);
   });
 
-  it('extracts the project id and plan', () => {
+  it('extracts the project id, plan, and onboarding tier', () => {
     expect(extractProjectId({ cloudaicompanionProject: 'proj-1' })).toBe(
       'proj-1',
     );
@@ -128,9 +130,20 @@ describe('antigravity quota parsing', () => {
     expect(extractPlan({ planInfo: { planType: 'STANDARD' } })).toBe(
       'STANDARD',
     );
+    expect(
+      extractDefaultTierId({
+        allowedTiers: [{ id: 'free-tier', isDefault: true }],
+      }),
+    ).toBe('free-tier');
+    expect(extractDefaultTierId({ allowedTiers: [{ id: 'x' }] })).toBeNull();
+    expect(
+      extractIneligibleReason({
+        ineligibleTiers: [{ reasonMessage: 'Not eligible' }],
+      }),
+    ).toBe('Not eligible');
   });
 
-  it('loads quota across loadCodeAssist, models, and the fallback', async () => {
+  it('loads models when loadCodeAssist returns a project', async () => {
     const calls: string[] = [];
     const fetchImpl: AntigravityFetch = async (url) => {
       calls.push(url);
@@ -140,6 +153,71 @@ describe('antigravity quota parsing', () => {
             cloudaicompanionProject: 'proj-1',
             currentTier: { name: 'Free' },
           }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          models: {
+            'gemini-3-pro': { quotaInfo: { remainingFraction: 0.4 } },
+          },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const quota = await loadAntigravityQuota('token', fetchImpl);
+    expect(quota.projectId).toBe('proj-1');
+    expect(quota.plan).toBe('Free');
+    expect(quota.windows.map((w) => w.label)).toEqual(['Gemini 3 Pro']);
+    expect(quota.windows[0].used).toBe('60');
+    expect(calls.some((url) => url.includes('onboardUser'))).toBe(false);
+  });
+
+  it('onboards an account without a project, then loads models', async () => {
+    const calls: string[] = [];
+    const fetchImpl: AntigravityFetch = async (url) => {
+      calls.push(url);
+      if (url.includes('loadCodeAssist')) {
+        return new Response(
+          JSON.stringify({
+            allowedTiers: [{ id: 'free-tier', isDefault: true }],
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.includes('onboardUser')) {
+        return new Response(
+          JSON.stringify({
+            done: true,
+            response: { cloudaicompanionProject: { id: 'managed-1' } },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          models: { 'gemini-3-pro': { quotaInfo: { remainingFraction: 1 } } },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const quota = await loadAntigravityQuota('token', fetchImpl, {
+      sleep: async () => {},
+    });
+    expect(quota.projectId).toBe('managed-1');
+    expect(calls.some((url) => url.includes('onboardUser'))).toBe(true);
+    expect(quota.windows[0].used).toBe('0');
+  });
+
+  it('falls back to retrieveUserQuota when no models are returned', async () => {
+    const calls: string[] = [];
+    const fetchImpl: AntigravityFetch = async (url) => {
+      calls.push(url);
+      if (url.includes('loadCodeAssist')) {
+        return new Response(
+          JSON.stringify({ cloudaicompanionProject: 'proj-1' }),
           { status: 200 },
         );
       }
@@ -155,10 +233,21 @@ describe('antigravity quota parsing', () => {
     };
 
     const quota = await loadAntigravityQuota('token', fetchImpl);
-    expect(quota.projectId).toBe('proj-1');
-    expect(quota.plan).toBe('Free');
     expect(quota.windows.map((w) => w.label)).toEqual(['Gemini Pro']);
     expect(quota.windows[0].used).toBe('70');
     expect(calls.some((url) => url.includes('retrieveUserQuota'))).toBe(true);
+  });
+
+  it('reports ineligible accounts without a project', async () => {
+    const fetchImpl: AntigravityFetch = async () =>
+      new Response(
+        JSON.stringify({
+          ineligibleTiers: [{ reasonMessage: 'Account not eligible' }],
+        }),
+        { status: 200 },
+      );
+    const quota = await loadAntigravityQuota('token', fetchImpl);
+    expect(quota.windows).toEqual([]);
+    expect(quota.detail).toBe('Account not eligible');
   });
 });
