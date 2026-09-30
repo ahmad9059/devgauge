@@ -52,6 +52,20 @@ async function makePkce(): Promise<Pkce> {
   };
 }
 
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 20_000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Antigravity sign-in: Google OAuth (public client + PKCE) inside the app, then
  * the Antigravity/Code Assist quota for the signed-in account. The token is held
@@ -110,15 +124,19 @@ export default function AntigravityScreen() {
     setBusy(true);
     try {
       setStatus('Exchanging sign-in…');
-      const tokenResponse = await fetch(ANTIGRAVITY_TOKEN_URL, {
+      const tokenResponse = await fetchWithTimeout(ANTIGRAVITY_TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: tokenExchangeBody({ code, verifier: pkceRef.current.verifier }),
       });
+      if (!tokenResponse.ok) {
+        const detail = (await tokenResponse.text()).slice(0, 140);
+        throw new Error(`token HTTP ${tokenResponse.status} ${detail}`);
+      }
       const token = parseTokenResponse(await tokenResponse.json());
 
       setStatus('Reading usage…');
-      const quotaResponse = await fetch(ANTIGRAVITY_QUOTA_ENDPOINT, {
+      const quotaResponse = await fetchWithTimeout(ANTIGRAVITY_QUOTA_ENDPOINT, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token.accessToken}`,
@@ -126,7 +144,14 @@ export default function AntigravityScreen() {
         },
         body: '{}',
       });
-      const windows = parseQuotaPayload(await quotaResponse.json());
+      const quotaText = await quotaResponse.text();
+      let quotaJson: unknown = null;
+      try {
+        quotaJson = JSON.parse(quotaText);
+      } catch {
+        quotaJson = null;
+      }
+      const windows = quotaJson ? parseQuotaPayload(quotaJson) : [];
       if (windows.length === 0) {
         windows.push(
           deriveWindow({
@@ -137,13 +162,22 @@ export default function AntigravityScreen() {
             derivation: 'provider',
           }),
         );
+        setStatus(
+          `Connected · quota HTTP ${quotaResponse.status}. ${
+            quotaText.slice(0, 120) || 'No quota buckets returned.'
+          }`,
+        );
+        setBusy(false);
+        return;
       }
       setStatus('Saving…');
       await save(windows);
-    } catch {
+    } catch (error) {
       handledRef.current = false;
       setBusy(false);
-      setStatus('Sign-in failed. Tap Reload to try again.');
+      setStatus(
+        `Sign-in failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   };
 
