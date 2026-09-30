@@ -26,7 +26,12 @@ export function ProviderLogo({
   id: ProviderId;
   size?: number;
 }) {
-  const style: ImageStyle = { width: size, height: size, borderRadius: 5 };
+  const style: ImageStyle = {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    overflow: 'hidden',
+  };
   return (
     <Image
       source={LOGOS[id]}

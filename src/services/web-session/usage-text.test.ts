@@ -67,6 +67,30 @@ describe('page text parsing', () => {
     expect(windows.find((w) => w.label === 'Weekly')?.used).toBe('1');
   });
 
+  it('inverts Codex remaining values split across text nodes', () => {
+    const text = ['Weekly usage limit', '89%', 'remaining'].join('\n');
+    const windows = toDomainWindows(parseUsageText(text, codex), codex);
+    expect(windows.find((w) => w.label === 'Weekly')?.used).toBe('11');
+  });
+
+  it('keeps Codex absolute reset dates for both quota windows', () => {
+    const text = [
+      '5 hour usage limit',
+      '42% remaining',
+      'Resets Oct 1, 2026 12:29 AM',
+      'Weekly usage limit',
+      '89% remaining',
+      'Resets Oct 5, 2026 9:02 PM',
+    ].join('\n');
+    const windows = toDomainWindows(parseUsageText(text, codex), codex);
+    expect(windows.find((w) => w.label === '5-hour window')?.resetsAt).toBe(
+      'Oct 1, 2026 12:29 AM',
+    );
+    expect(windows.find((w) => w.label === 'Weekly')?.resetsAt).toBe(
+      'Oct 5, 2026 9:02 PM',
+    );
+  });
+
   it('reads included credits fractions (GitHub)', () => {
     const text = [
       'Included credits',

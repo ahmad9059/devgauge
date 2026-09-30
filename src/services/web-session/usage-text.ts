@@ -10,7 +10,9 @@ const REMAINING = /(\d+(?:\.\d+)?)\s*%\s*remaining/i;
 const USED = /(\d+(?:\.\d+)?)\s*%\s*used/i;
 const FRACTION =
   /(\d[\d,]*(?:\.\d+)?)\s*\/\s*(\d[\d,]*(?:\.\d+)?)\s*(ai credits|credits|requests|tokens)?/i;
-const RESET = /resets?\s+(in\s+[^,.\n]+|on\s+[^,.\n]+)/i;
+// Codex writes absolute reset dates as "Resets Oct 1, 2026 12:29 AM";
+// other providers use "Resets in …" or "Resets on …". Preserve all of them.
+const RESET = /resets?\s+(.+)/i;
 
 function sectionKey(line: string, keyMap: WindowKeyMap): string | null {
   const lower = line.toLowerCase();
@@ -68,7 +70,7 @@ export function parseUsageText(
     out.push(window);
   };
 
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     const key = sectionKey(line, keyMap);
     if (key) currentKey = key;
 
@@ -100,9 +102,21 @@ export function parseUsageText(
       if (limit > 0) push((number(fraction[1]) / limit) * 100);
       continue;
     }
-    // Bare "NN%" under a section heading (e.g. "5-HOUR LIMIT 89%") is used.
+    // Some sites split the percentage and "remaining" into separate text nodes.
+    // Treat the adjacent qualifier as part of the value before considering it used.
     const bare = /(?:^|[^\d.])(\d+(?:\.\d+)?)%\s*$/.exec(line);
-    if (bare) push(number(bare[1]));
+    if (bare) {
+      const qualifier = lines[index + 1]?.toLowerCase().trim();
+      const value = number(bare[1]);
+      if (qualifier === 'remaining') {
+        push(Math.max(0, 100 - value));
+      } else if (qualifier === 'used') {
+        push(value);
+      } else {
+        // Bare "NN%" under a section heading (e.g. "5-HOUR LIMIT 89%") is used.
+        push(value);
+      }
+    }
   }
 
   return out;

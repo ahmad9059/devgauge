@@ -46,7 +46,7 @@ export function SyncControl() {
 
   const width = expansion.interpolate({
     inputRange: [0, 1],
-    outputRange: [touchTargets.iconButton, 80],
+    outputRange: [touchTargets.iconButton, 88],
   });
 
   return (
@@ -55,8 +55,11 @@ export function SyncControl() {
         styles.frame,
         {
           width,
-          backgroundColor: theme.colors.surfaceElevated,
-          borderColor: theme.colors.border,
+          backgroundColor: isSyncing
+            ? theme.colors.surfaceElevated
+            : 'transparent',
+          borderColor: isSyncing ? theme.colors.border : 'transparent',
+          borderWidth: isSyncing ? borderWidths.thin : 0,
         },
       ]}
     >
@@ -76,7 +79,7 @@ export function SyncControl() {
         ]}
       >
         {isSyncing && providerId ? (
-          <ProviderLogo id={providerId} size={24} />
+          <ProviderLogo id={providerId} size={26} />
         ) : null}
         <Animated.View
           style={{
@@ -101,7 +104,6 @@ const styles = StyleSheet.create({
   frame: {
     height: touchTargets.iconButton,
     borderRadius: radii.pill,
-    borderWidth: borderWidths.thin,
     overflow: 'hidden',
   },
   pressable: {
@@ -111,6 +113,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
 });
