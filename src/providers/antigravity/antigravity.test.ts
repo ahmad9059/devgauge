@@ -16,6 +16,7 @@ import {
   loadAntigravityQuota,
   mergeAntigravityWindows,
   parseGroupedQuota,
+  parseQuotaSummary,
   type AntigravityFetch,
 } from '@/providers/antigravity/quota';
 
@@ -87,7 +88,7 @@ describe('antigravity quota groups', () => {
     expect(antigravityGroupOf('chat_20706')).toBeNull();
   });
 
-  it('collapses per-model quotas into pool hourly/weekly windows', () => {
+  it('collapses per-model quotas into 5-hour pool windows', () => {
     const windows = parseGroupedQuota({
       models: {
         'gemini-3-pro': {
@@ -114,36 +115,83 @@ describe('antigravity quota groups', () => {
     expect(byKey['antigravity.gemini.five-hour'].label).toBe('5-hour limit');
   });
 
-  it('splits weekly from hourly using token type or reset distance', () => {
-    const now = Date.parse('2026-01-01T00:00:00Z');
-    const windows = parseGroupedQuota(
-      {
-        buckets: [
+  it('does not mislabel a long-reset legacy model quota as weekly', () => {
+    const windows = parseGroupedQuota({
+      buckets: [
+        {
+          modelId: 'gemini-3-pro',
+          remainingFraction: 0.5,
+          resetTime: '2099-01-01T00:00:00Z',
+          tokenType: 'WEEKLY',
+        },
+      ],
+    });
+    expect(windows.map((w) => w.externalKey)).toEqual([
+      'antigravity.gemini.five-hour',
+    ]);
+  });
+
+  it('reads both windows from the actual pooled quota summary', () => {
+    const windows = parseQuotaSummary({
+      groups: [
+        {
+          displayName: 'Gemini models',
+          buckets: [
+            {
+              bucketId: 'gemini-5h',
+              remainingFraction: 0.75,
+              resetTime: '2026-10-01T03:00:00Z',
+            },
+            {
+              bucketId: 'gemini-weekly',
+              remainingFraction: 0.9999,
+              resetTime: '2026-10-06T00:00:00Z',
+            },
+          ],
+        },
+        {
+          buckets: [
+            { bucketId: '3p-5h', remainingFraction: 0.4 },
+            { bucketId: '3p-weekly', remainingFraction: 1 },
+          ],
+        },
+      ],
+    });
+    expect(
+      Object.fromEntries(windows?.map((w) => [w.externalKey, w.used]) ?? []),
+    ).toEqual({
+      'antigravity.gemini.five-hour': '25',
+      'antigravity.gemini.weekly': '0.01',
+      'antigravity.claude-gpt.five-hour': '60',
+      'antigravity.claude-gpt.weekly': '0',
+    });
+    expect(windows?.find((w) => w.kind === 'weekly')?.resetsAt).toBe(
+      '2026-10-06T00:00:00Z',
+    );
+  });
+
+  it('accepts a wrapped summary and skips unknown/missing buckets without guessing', () => {
+    const windows = parseQuotaSummary({
+      response: {
+        groups: [
           {
-            modelId: 'gemini-3-pro',
-            remainingFraction: 0.5,
-            resetTime: '2026-01-05T00:00:00Z',
-          },
-          {
-            modelId: 'gemini-3-pro',
-            remainingFraction: 0.2,
-            resetTime: '2026-01-01T03:00:00Z',
-          },
-          {
-            modelId: 'claude-opus-4-6',
-            remainingFraction: 0.1,
-            tokenType: 'WEEKLY',
+            buckets: [
+              { bucketId: 'gemini-5h', remainingFraction: 0.5 },
+              { bucketId: 'gemini-weekly' },
+              { bucketId: 'gemini-image-weekly', remainingFraction: 0.1 },
+              { bucketId: '3p-weekly', remainingFraction: 0.6 },
+              null,
+            ],
           },
         ],
       },
-      now,
-    );
-    const byKey = Object.fromEntries(
-      windows.map((w) => [w.externalKey, w.used]),
-    );
-    expect(byKey['antigravity.gemini.weekly']).toBe('50');
-    expect(byKey['antigravity.gemini.five-hour']).toBe('80');
-    expect(byKey['antigravity.claude-gpt.weekly']).toBe('90');
+    });
+    expect(windows?.map((w) => w.externalKey)).toEqual([
+      'antigravity.gemini.five-hour',
+      'antigravity.claude-gpt.weekly',
+    ]);
+    expect(parseQuotaSummary({ groups: [] })).toEqual([]);
+    expect(parseQuotaSummary({ buckets: [] })).toBeNull();
   });
 
   it('merges windows from multiple payloads keeping the worst reading', () => {
@@ -185,7 +233,7 @@ describe('antigravity quota groups', () => {
 });
 
 describe('loadAntigravityQuota', () => {
-  it('onboards an account without a project, then loads pooled windows', async () => {
+  it('onboards an account and prefers the pooled summary over legacy endpoints', async () => {
     const calls: string[] = [];
     const fetchImpl: AntigravityFetch = async (url) => {
       calls.push(url);
@@ -206,11 +254,60 @@ describe('loadAntigravityQuota', () => {
           { status: 200 },
         );
       }
+      if (url.includes('retrieveUserQuotaSummary')) {
+        return new Response(
+          JSON.stringify({
+            groups: [
+              {
+                buckets: [
+                  { bucketId: 'gemini-5h', remainingFraction: 0.4 },
+                  { bucketId: 'gemini-weekly', remainingFraction: 0.9 },
+                  { bucketId: '3p-5h', remainingFraction: 1 },
+                  { bucketId: '3p-weekly', remainingFraction: 0.25 },
+                ],
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+      throw new Error('legacy endpoint should not be requested');
+    };
+
+    const quota = await loadAntigravityQuota('token', fetchImpl, {
+      sleep: async () => {},
+    });
+    expect(quota.projectId).toBe('managed-1');
+    expect(calls.some((url) => url.includes('onboardUser'))).toBe(true);
+    expect(calls.some((url) => url.includes('retrieveUserQuotaSummary'))).toBe(
+      true,
+    );
+    expect(calls.some((url) => url.includes('fetchAvailableModels'))).toBe(
+      false,
+    );
+    const byKey = Object.fromEntries(
+      quota.windows.map((w) => [w.externalKey, w.used]),
+    );
+    expect(byKey['antigravity.gemini.five-hour']).toBe('60');
+    expect(byKey['antigravity.claude-gpt.weekly']).toBe('75');
+    expect(byKey['antigravity.gemini.weekly']).toBe('10');
+  });
+
+  it('falls back to 5-hour only when the summary endpoint is unavailable', async () => {
+    const fetchImpl: AntigravityFetch = async (url) => {
+      if (url.includes('loadCodeAssist')) {
+        return new Response(
+          JSON.stringify({ cloudaicompanionProject: 'managed-1' }),
+          { status: 200 },
+        );
+      }
+      if (url.includes('retrieveUserQuotaSummary'))
+        return new Response('', { status: 404 });
       if (url.includes('fetchAvailableModels')) {
         return new Response(
           JSON.stringify({
             models: {
-              'gemini-3-pro': { quotaInfo: { remainingFraction: 0.4 } },
+              'gemini-3-pro': { quotaInfo: { remainingFraction: 0.5 } },
             },
           }),
           { status: 200 },
@@ -221,25 +318,57 @@ describe('loadAntigravityQuota', () => {
           buckets: [
             {
               modelId: 'claude-opus-4-6',
-              remainingFraction: 0.25,
-              tokenType: 'WEEKLY',
+              remainingFraction: 0.75,
+              resetTime: '2099-01-01T00:00:00Z',
             },
           ],
         }),
         { status: 200 },
       );
     };
+    const quota = await loadAntigravityQuota('token', fetchImpl);
+    expect(quota.windows.map((w) => w.externalKey)).toEqual([
+      'antigravity.claude-gpt.five-hour',
+      'antigravity.gemini.five-hour',
+    ]);
+    expect(quota.detail).toContain('5-hour only');
+  });
 
-    const quota = await loadAntigravityQuota('token', fetchImpl, {
-      sleep: async () => {},
-    });
-    expect(quota.projectId).toBe('managed-1');
-    expect(calls.some((url) => url.includes('onboardUser'))).toBe(true);
-    const byKey = Object.fromEntries(
-      quota.windows.map((w) => [w.externalKey, w.used]),
-    );
-    expect(byKey['antigravity.gemini.five-hour']).toBe('60');
-    expect(byKey['antigravity.claude-gpt.weekly']).toBe('75');
+  it('tries the production summary host when the daily host is unavailable', async () => {
+    const calls: string[] = [];
+    const fetchImpl: AntigravityFetch = async (url, init) => {
+      calls.push(url);
+      if (url.includes('loadCodeAssist')) {
+        return new Response(
+          JSON.stringify({ cloudaicompanionProject: 'managed-1' }),
+          { status: 200 },
+        );
+      }
+      if (url.startsWith('https://daily-'))
+        return new Response('', { status: 404 });
+      expect(init.body).toBe('{}');
+      return new Response(
+        JSON.stringify({
+          response: {
+            groups: [
+              {
+                buckets: [
+                  { bucketId: 'gemini-weekly', remainingFraction: 0.3 },
+                ],
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      );
+    };
+    const quota = await loadAntigravityQuota('token', fetchImpl);
+    expect(quota.windows.map((w) => w.externalKey)).toEqual([
+      'antigravity.gemini.weekly',
+    ]);
+    expect(
+      calls.filter((url) => url.includes('retrieveUserQuotaSummary')),
+    ).toHaveLength(2);
   });
 
   it('reports ineligible accounts without a project', async () => {

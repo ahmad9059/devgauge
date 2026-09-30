@@ -9,7 +9,8 @@ export function formatCount(
 ): string {
   switch (unit) {
     case 'percent':
-      return `${trim(value)}%`;
+      // Preserve small, real usage (e.g. a weekly quota at 99.99% remaining).
+      return `${value > 0 && value < 0.1 ? value.toFixed(2) : trim(value)}%`;
     case 'currency':
       return `$${trim(value)}`;
     case 'tokens':

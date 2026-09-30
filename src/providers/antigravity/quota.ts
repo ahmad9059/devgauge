@@ -6,6 +6,8 @@ export const ANTIGRAVITY_LOAD_ENDPOINT = `${ANTIGRAVITY_ENDPOINT}/${ANTIGRAVITY_
 export const ANTIGRAVITY_ONBOARD_ENDPOINT = `${ANTIGRAVITY_ENDPOINT}/${ANTIGRAVITY_API_VERSION}:onboardUser`;
 export const ANTIGRAVITY_MODELS_ENDPOINT = `${ANTIGRAVITY_ENDPOINT}/${ANTIGRAVITY_API_VERSION}:fetchAvailableModels`;
 export const ANTIGRAVITY_QUOTA_ENDPOINT = `${ANTIGRAVITY_ENDPOINT}/${ANTIGRAVITY_API_VERSION}:retrieveUserQuota`;
+export const ANTIGRAVITY_SUMMARY_ENDPOINT = `${ANTIGRAVITY_ENDPOINT}/${ANTIGRAVITY_API_VERSION}:retrieveUserQuotaSummary`;
+export const ANTIGRAVITY_DAILY_SUMMARY_ENDPOINT = `https://daily-cloudcode-pa.googleapis.com/${ANTIGRAVITY_API_VERSION}:retrieveUserQuotaSummary`;
 
 // The Code Assist API rejects requests that do not identify as a known client.
 export const ANTIGRAVITY_REQUEST_HEADERS = {
@@ -73,7 +75,6 @@ const RESET_KEYS = [
   'resetAt',
   'resets_at',
 ];
-const TOKEN_KEYS = ['tokenType', 'token_type'];
 // Keys that only group a quota (e.g. `{ models: { id: { quotaInfo: {...} } } }`);
 // the nearest non-wrapper ancestor is the model identifier.
 const WRAPPER_KEYS = new Set([
@@ -91,14 +92,9 @@ const WRAPPER_KEYS = new Set([
   'fiveHourQuotaInfo',
 ]);
 
-const WEEK_HINT = /week|7.?day|seven/i;
-const FIVE_HOUR_HINT = /hour|session|5.?hour|five|quota/i;
-const WEEKLY_RESET_THRESHOLD_MS = 36 * 60 * 60 * 1000;
-
 type RawEntry = {
   modelKey: string | null;
   path: string[];
-  tokenType: string | null;
   remaining: number;
   resetTime: string | null;
 };
@@ -115,7 +111,6 @@ function collect(node: unknown, path: string[], out: RawEntry[]): void {
     out.push({
       modelKey: pickString(record, MODEL_KEYS) ?? modelKeyFromPath(path),
       path,
-      tokenType: pickString(record, TOKEN_KEYS),
       remaining,
       resetTime: pickString(record, RESET_KEYS),
     });
@@ -150,17 +145,6 @@ export function antigravityGroupOf(
   return null;
 }
 
-function windowKeyOf(entry: RawEntry, now: number): AntigravityWindowKey {
-  const tokens = [...entry.path, entry.tokenType ?? ''].join(' ');
-  if (WEEK_HINT.test(tokens)) return 'weekly';
-  if (FIVE_HOUR_HINT.test(tokens)) return 'five-hour';
-  const reset = entry.resetTime ? Date.parse(entry.resetTime) : Number.NaN;
-  if (Number.isFinite(reset) && reset - now > WEEKLY_RESET_THRESHOLD_MS) {
-    return 'weekly';
-  }
-  return 'five-hour';
-}
-
 function earlierReset(
   a: string | null | undefined,
   b: string | null,
@@ -175,14 +159,11 @@ function earlierReset(
 }
 
 /**
- * Turns Code Assist quota payloads (`fetchAvailableModels` and
- * `retrieveUserQuota`) into hourly/weekly windows per shared model pool,
- * without listing every model.
+ * Legacy Code Assist model endpoints only report the 5-hour window. Never
+ * infer a weekly window from a long reset time: an exhausted 5-hour pool can
+ * also have a multi-day reset when the weekly limit has been reached.
  */
-export function parseGroupedQuota(
-  json: unknown,
-  now = Date.now(),
-): UsageWindow[] {
+export function parseGroupedQuota(json: unknown): UsageWindow[] {
   const raw: RawEntry[] = [];
   collect(json, [], raw);
 
@@ -200,7 +181,7 @@ export function parseGroupedQuota(
     if (!entry.modelKey) continue;
     const group = antigravityGroupOf(entry.modelKey);
     if (!group) continue;
-    const window = windowKeyOf(entry, now);
+    const window = 'five-hour';
     const key = `${group}.${window}`;
     const existing = merged.get(key);
     const resetTime = earlierReset(existing?.resetTime, entry.resetTime);
@@ -221,13 +202,70 @@ export function parseGroupedQuota(
         externalKey: `antigravity.${item.group}.${item.window}`,
         kind: item.window === 'weekly' ? 'weekly' : 'rolling',
         label: ANTIGRAVITY_WINDOW_LABELS[item.window],
-        used: ((1 - item.remaining) * 100).toFixed(1),
+        used: ((1 - item.remaining) * 100).toFixed(4),
         limit: '100',
         unit: 'percent',
         resetsAt: item.resetTime,
         derivation: 'provider',
       }),
     );
+}
+
+/**
+ * The quota-summary endpoint reports the actual shared-pool windows. Return
+ * null when this is not a summary so callers can fall back to the legacy 5h
+ * endpoint; an empty summary is still an authoritative response.
+ */
+export function parseQuotaSummary(json: unknown): UsageWindow[] | null {
+  if (!json || typeof json !== 'object') return null;
+  const root = json as Record<string, unknown>;
+  const wrapped = root.response;
+  const summary =
+    wrapped && typeof wrapped === 'object'
+      ? (wrapped as Record<string, unknown>)
+      : root;
+  if (!Array.isArray(summary.groups)) return null;
+
+  const bucketWindows: Record<
+    string,
+    [AntigravityGroupKey, AntigravityWindowKey]
+  > = {
+    'gemini-5h': ['gemini', 'five-hour'],
+    'gemini-weekly': ['gemini', 'weekly'],
+    '3p-5h': ['claude-gpt', 'five-hour'],
+    '3p-weekly': ['claude-gpt', 'weekly'],
+  };
+  const windows = new Map<string, UsageWindow>();
+  for (const group of summary.groups) {
+    if (!group || typeof group !== 'object') continue;
+    const buckets = (group as Record<string, unknown>).buckets;
+    if (!Array.isArray(buckets)) continue;
+    for (const bucket of buckets) {
+      if (!bucket || typeof bucket !== 'object') continue;
+      const entry = bucket as Record<string, unknown>;
+      const id = entry.bucketId;
+      if (typeof id !== 'string' || !Object.hasOwn(bucketWindows, id)) continue;
+      if (windows.has(id)) continue;
+      // A missing fraction means unknown, not 100% or 0% used.
+      const fraction = pickNumber(entry, ['remainingFraction']);
+      if (fraction === null || fraction < 0 || fraction > 1) continue;
+      const [pool, window] = bucketWindows[id];
+      windows.set(
+        id,
+        deriveWindow({
+          externalKey: `antigravity.${pool}.${window}`,
+          kind: window === 'weekly' ? 'weekly' : 'rolling',
+          label: ANTIGRAVITY_WINDOW_LABELS[window],
+          used: ((1 - fraction) * 100).toFixed(4),
+          limit: '100',
+          unit: 'percent',
+          resetsAt: pickString(entry, RESET_KEYS),
+          derivation: 'provider',
+        }),
+      );
+    }
+  }
+  return [...windows.values()];
 }
 
 /** Merges grouped windows from multiple payloads, keeping the worst reading. */
@@ -412,8 +450,8 @@ async function safePost(
  * Loads the signed-in account's Cloud Code Assist quota, mirroring the official
  * client flow: `loadCodeAssist` resolves the project/plan (onboarding via
  * `onboardUser` when the account has no managed project yet), then
- * `fetchAvailableModels` and `retrieveUserQuota` supply the per-pool
- * hourly/weekly limits.
+ * `retrieveUserQuotaSummary` supplies the actual pooled 5-hour and weekly
+ * windows. Older accounts/endpoints fall back to per-model 5-hour data.
  */
 export async function loadAntigravityQuota(
   accessToken: string,
@@ -481,6 +519,28 @@ export async function loadAntigravityQuota(
     }
   }
 
+  // The Antigravity client uses the daily Cloud Code host first; older
+  // accounts/builds may only support the endpoint on one of the two hosts.
+  const summaryStatuses: number[] = [];
+  for (const url of [
+    ANTIGRAVITY_DAILY_SUMMARY_ENDPOINT,
+    ANTIGRAVITY_SUMMARY_ENDPOINT,
+  ]) {
+    const summary = await safePost(fetchImpl, url, headers, '{}');
+    summaryStatuses.push(summary.status);
+    if (summary.status >= 200 && summary.status < 300) {
+      const windows = parseQuotaSummary(summary.json);
+      if (windows !== null) {
+        return {
+          windows,
+          projectId,
+          plan,
+          detail: `summary HTTP ${summary.status}${windows.length === 0 ? ': no usable buckets' : ''}`,
+        };
+      }
+    }
+  }
+
   const body = buildProjectBody(projectId);
   const models = await safePost(
     fetchImpl,
@@ -502,10 +562,11 @@ export async function loadAntigravityQuota(
 
   if (windows.length === 0) {
     detail =
+      `summary HTTP ${summaryStatuses.join('/')}: unavailable · ` +
       `models HTTP ${models.status}: ${snippet(models.text)} · ` +
       `quota HTTP ${quota.status}: ${snippet(quota.text)}`;
   } else {
-    detail = `models HTTP ${models.status}, quota HTTP ${quota.status}`;
+    detail = `summary HTTP ${summaryStatuses.join('/')}, models HTTP ${models.status}, quota HTTP ${quota.status} (5-hour only)`;
   }
 
   return { windows, projectId, plan, detail };

@@ -12,6 +12,7 @@ import {
 describe('usage formatting', () => {
   it('formats counts by unit', () => {
     expect(formatCount(42, 'percent')).toBe('42%');
+    expect(formatCount(0.01, 'percent')).toBe('0.01%');
     expect(formatCount(18.5, 'currency')).toBe('$18.5');
     expect(formatCount(640, 'requests')).toBe('640 requests');
     expect(formatCount(12, 'credits')).toBe('12 credits');
