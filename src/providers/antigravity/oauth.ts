@@ -116,6 +116,16 @@ export function tokenExchangeBody(input: {
   });
 }
 
+export function tokenRefreshBody(refreshToken: string): string {
+  const secret = antigravityClientSecret();
+  return encodeForm({
+    client_id: antigravityClientId(),
+    ...(secret ? { client_secret: secret } : {}),
+    refresh_token: refreshToken,
+    grant_type: 'refresh_token',
+  });
+}
+
 export type AntigravityToken = {
   accessToken: string;
   refreshToken?: string;

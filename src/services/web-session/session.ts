@@ -15,7 +15,7 @@ export type SaveSessionInput = {
   now: Date;
   nextId: () => string;
   /** Defaults to a cookie-based web session. */
-  authMode?: 'web-session' | 'api-key';
+  authMode?: 'web-session' | 'api-key' | 'oauth-pkce';
   credentialRef?: string | null;
 };
 

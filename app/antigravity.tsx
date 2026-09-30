@@ -30,6 +30,9 @@ import { loadAntigravityQuota } from '@/providers/antigravity/quota';
 import { base64UrlEncode } from '@/services/auth/pkce';
 import { getAppDatabase } from '@/services/app-database-store';
 import { saveSessionSnapshot } from '@/services/web-session/session';
+import { buildCredentialRef, createSecureVault } from '@/storage/secure-vault';
+import { createSecureStoreBackend } from '@/storage/secure-store-backend';
+import type { AntigravityToken } from '@/providers/antigravity/oauth';
 
 type Pkce = { verifier: string; challenge: string; state: string };
 
@@ -100,8 +103,26 @@ export default function AntigravityScreen() {
     };
   }, []);
 
-  const save = async (windows: UsageWindow[]) => {
+  const save = async (windows: UsageWindow[], token: AntigravityToken) => {
     const db = await getAppDatabase();
+    const credentialRef = buildCredentialRef(
+      'gemini-cli',
+      'session-gemini-cli',
+      'oauth',
+    );
+    await createSecureVault(createSecureStoreBackend()).save(credentialRef, {
+      version: 1,
+      kind: 'oauth',
+      accessToken: token.accessToken,
+      ...(token.refreshToken ? { refreshToken: token.refreshToken } : {}),
+      ...(token.expiresIn
+        ? {
+            expiresAt: new Date(
+              Date.now() + token.expiresIn * 1000,
+            ).toISOString(),
+          }
+        : {}),
+    });
     let ids = 0;
     await saveSessionSnapshot({
       db,
@@ -111,6 +132,8 @@ export default function AntigravityScreen() {
       fetchedAt: new Date().toISOString(),
       now: new Date(),
       nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
+      authMode: 'oauth-pkce',
+      credentialRef,
     });
     await reload();
     router.replace('/(tabs)/usage');
@@ -169,7 +192,7 @@ export default function AntigravityScreen() {
         return;
       }
       setStatus('Saving…');
-      await save(quota.windows);
+      await save(quota.windows, token);
     } catch (error) {
       setBusy(false);
       setStatus(`Sign-in failed: ${message(error)}`);

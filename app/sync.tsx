@@ -7,6 +7,7 @@ import { Header, Screen } from '@/components/ui';
 import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import type { UsageWindow } from '@/domain/usage';
+import { syncAntigravity } from '@/providers/antigravity/sync';
 import {
   useProviderViews,
   useReloadProviders,
@@ -22,6 +23,8 @@ import {
   type SessionProviderId,
 } from '@/services/web-session/session-config';
 import { saveSessionSnapshot } from '@/services/web-session/session';
+import { createSecureVault } from '@/storage/secure-vault';
+import { createSecureStoreBackend } from '@/storage/secure-store-backend';
 import {
   extractRawWindows,
   toDomainWindows,
@@ -38,9 +41,22 @@ const SYNCABLE: ProviderState[] = [
 ];
 const PER_PROVIDER_TIMEOUT_MS = 12_000;
 
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
- * Refreshes every connected provider by re-opening its session page (cookies
- * persist in the WebView store), reading the usage it loads, and saving it.
+ * Refreshes website sessions through their persisted WebView cookies and
+ * Antigravity using its saved OAuth credential in Android secure storage.
  * Runs sequentially with a spinner, then returns to the dashboard.
  */
 export default function SyncScreen() {
@@ -50,7 +66,8 @@ export default function SyncScreen() {
   const providers = useProviderViews();
   const targets = providers.filter(
     (provider) =>
-      isSessionProvider(provider.id) && SYNCABLE.includes(provider.state),
+      (isSessionProvider(provider.id) || provider.id === 'gemini-cli') &&
+      SYNCABLE.includes(provider.state),
   );
 
   const [index, setIndex] = useState(0);
@@ -73,9 +90,9 @@ export default function SyncScreen() {
   };
 
   const advance = async (windows?: UsageWindow[]) => {
-    if (handledRef.current || !current || !config) return;
+    if (handledRef.current || !current) return;
     handledRef.current = true;
-    if (windows && windows.length > 0) {
+    if (config && windows && windows.length > 0) {
       try {
         const db = await getAppDatabase();
         let ids = 0;
@@ -112,6 +129,28 @@ export default function SyncScreen() {
     capturedRef.current = [];
     textRef.current = '';
     if (!current) return;
+    if (current.id === 'gemini-cli') {
+      let active = true;
+      void (async () => {
+        try {
+          const db = await getAppDatabase();
+          let ids = 0;
+          await syncAntigravity({
+            db,
+            vault: createSecureVault(createSecureStoreBackend()),
+            fetchImpl: fetchWithTimeout,
+            nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
+          });
+        } catch {
+          // Continue with other providers; the previous snapshot remains.
+        } finally {
+          if (active) void advance();
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }
     const timer = setTimeout(() => void advance(), PER_PROVIDER_TIMEOUT_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -152,7 +191,13 @@ export default function SyncScreen() {
   return (
     <Screen edges={['left', 'right', 'bottom']}>
       <View style={styles.screen}>
-        <Header title="Syncing" subtitle={config?.label ?? 'Finishing'} />
+        <Header
+          title="Syncing"
+          subtitle={
+            config?.label ??
+            (current?.id === 'gemini-cli' ? 'Antigravity' : 'Finishing')
+          }
+        />
         <View style={styles.statusRow}>
           <ActivityIndicator size="small" color={theme.colors.textSecondary} />
           <Text
@@ -162,8 +207,8 @@ export default function SyncScreen() {
               { color: theme.colors.textSecondary },
             ]}
           >
-            {config
-              ? `Syncing ${config.label} · ${index + 1}/${targets.length}`
+            {current
+              ? `Syncing ${config?.label ?? 'Antigravity'} · ${index + 1}/${targets.length}`
               : 'Done'}
           </Text>
         </View>
