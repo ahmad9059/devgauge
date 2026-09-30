@@ -13,6 +13,14 @@ case "${JAVA_HOME:-}" in
   /opt/android-studio/jbr) export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+$JAVA_TOOL_OPTIONS }--enable-native-access=ALL-UNNAMED" ;;
 esac
 
+# Local, gitignored build secrets (Antigravity OAuth client). Expo inlines
+# EXPO_PUBLIC_* values into the bundle at build time.
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
 # Internal tester build only. It is debug-key signed by the generated Android
 # template, and the diagnostic route is never enabled in production builds.
 export APP_VARIANT=preview

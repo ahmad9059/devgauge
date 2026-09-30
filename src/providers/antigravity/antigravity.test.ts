@@ -17,6 +17,10 @@ import {
   type AntigravityFetch,
 } from '@/providers/antigravity/quota';
 
+// The real values are injected from a gitignored .env at build time.
+process.env.EXPO_PUBLIC_ANTIGRAVITY_CLIENT_ID = 'test-client-id';
+process.env.EXPO_PUBLIC_ANTIGRAVITY_CLIENT_SECRET = 'test-secret';
+
 describe('antigravity oauth', () => {
   it('builds the Google authorize URL with PKCE and required scopes', () => {
     const url = buildAuthorizeUrl({ challenge: 'CH', state: 'ST' });

@@ -2,12 +2,16 @@
 // policy blocks OAuth 2.0 authorization inside embedded WebViews, so the flow
 // opens Google's consent page in a Chrome Custom Tab (a real browser surface)
 // and the redirect page shows a code the user pastes back into the app. PKCE
-// binds the pasted code to this session; the client id/secret identify the
-// Antigravity "installed app" client (the secret is not treated as confidential
-// for installed apps and is shipped by the public CLI).
-export const ANTIGRAVITY_CLIENT_ID =
-  'REDACTED.apps.googleusercontent.com';
-export const ANTIGRAVITY_CLIENT_SECRET = 'REDACTED';
+// binds the pasted code to this session. The client id/secret identify the
+// Antigravity "installed app" client (the secret is not confidential for
+// installed apps and is shipped by the public CLI); they are injected at build
+// time from a local, gitignored .env so they are never committed.
+export function antigravityClientId(): string {
+  return process.env.EXPO_PUBLIC_ANTIGRAVITY_CLIENT_ID ?? '';
+}
+export function antigravityClientSecret(): string {
+  return process.env.EXPO_PUBLIC_ANTIGRAVITY_CLIENT_SECRET ?? '';
+}
 export const ANTIGRAVITY_REDIRECT_URI =
   'https://antigravity.google/oauth-callback';
 export const ANTIGRAVITY_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -37,7 +41,7 @@ export function buildAuthorizeUrl(input: {
 }): string {
   const query = encodeForm({
     access_type: 'offline',
-    client_id: ANTIGRAVITY_CLIENT_ID,
+    client_id: antigravityClientId(),
     code_challenge: input.challenge,
     code_challenge_method: 'S256',
     prompt: 'consent',
@@ -101,9 +105,10 @@ export function tokenExchangeBody(input: {
   code: string;
   verifier: string;
 }): string {
+  const secret = antigravityClientSecret();
   return encodeForm({
-    client_id: ANTIGRAVITY_CLIENT_ID,
-    client_secret: ANTIGRAVITY_CLIENT_SECRET,
+    client_id: antigravityClientId(),
+    ...(secret ? { client_secret: secret } : {}),
     code: input.code,
     code_verifier: input.verifier,
     grant_type: 'authorization_code',
