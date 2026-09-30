@@ -19,7 +19,19 @@ const CLIENT_METADATA = {
   pluginType: 'GEMINI',
 };
 
-type Bucket = { model: string; remaining: number; resetTime: string | null };
+/** Antigravity shared pools. Models in each pool share its hourly/weekly limits. */
+export type AntigravityGroupKey = 'gemini' | 'claude-gpt';
+export type AntigravityWindowKey = 'weekly' | 'five-hour';
+
+export const ANTIGRAVITY_GROUP_LABELS: Record<AntigravityGroupKey, string> = {
+  gemini: 'Gemini models',
+  'claude-gpt': 'Claude and GPT models',
+};
+
+export const ANTIGRAVITY_WINDOW_LABELS: Record<AntigravityWindowKey, string> = {
+  'five-hour': '5-hour limit',
+  weekly: 'Weekly limit',
+};
 
 function pickNumber(
   node: Record<string, unknown>,
@@ -61,6 +73,7 @@ const RESET_KEYS = [
   'resetAt',
   'resets_at',
 ];
+const TOKEN_KEYS = ['tokenType', 'token_type'];
 // Keys that only group a quota (e.g. `{ models: { id: { quotaInfo: {...} } } }`);
 // the nearest non-wrapper ancestor is the model identifier.
 const WRAPPER_KEYS = new Set([
@@ -74,66 +87,173 @@ const WRAPPER_KEYS = new Set([
   'rate_limits',
   'modelQuotas',
   'model_quotas',
+  'weeklyQuotaInfo',
+  'fiveHourQuotaInfo',
 ]);
 
-function findBuckets(
-  node: unknown,
-  out: Bucket[],
-  parentKey: string | null,
-): void {
+const WEEK_HINT = /week|7.?day|seven/i;
+const FIVE_HOUR_HINT = /hour|session|5.?hour|five|quota/i;
+const WEEKLY_RESET_THRESHOLD_MS = 36 * 60 * 60 * 1000;
+
+type RawEntry = {
+  modelKey: string | null;
+  path: string[];
+  tokenType: string | null;
+  remaining: number;
+  resetTime: string | null;
+};
+
+function collect(node: unknown, path: string[], out: RawEntry[]): void {
   if (node === null || typeof node !== 'object') return;
   if (Array.isArray(node)) {
-    for (const child of node) findBuckets(child, out, parentKey);
+    for (const child of node) collect(child, path, out);
     return;
   }
   const record = node as Record<string, unknown>;
   const remaining = pickNumber(record, REMAINING_KEYS);
   if (remaining !== null && remaining >= 0 && remaining <= 1) {
-    const model = pickString(record, MODEL_KEYS) ?? parentKey ?? 'antigravity';
     out.push({
-      model,
+      modelKey: pickString(record, MODEL_KEYS) ?? modelKeyFromPath(path),
+      path,
+      tokenType: pickString(record, TOKEN_KEYS),
       remaining,
       resetTime: pickString(record, RESET_KEYS),
     });
   }
   for (const [key, child] of Object.entries(record)) {
     if (child !== null && typeof child === 'object') {
-      const nextParent = WRAPPER_KEYS.has(key) ? parentKey : key;
-      findBuckets(child, out, nextParent);
+      collect(child, [...path, key], out);
     }
   }
 }
 
-function humanize(model: string): string {
-  return model
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+function modelKeyFromPath(path: readonly string[]): string | null {
+  for (let index = path.length - 1; index >= 0; index -= 1) {
+    const key = path[index];
+    if (!WRAPPER_KEYS.has(key)) return key;
+  }
+  return null;
 }
 
-/** Turns a Code Assist / Antigravity quota payload into usage windows. */
-export function parseQuotaPayload(json: unknown): UsageWindow[] {
-  const buckets: Bucket[] = [];
-  findBuckets(json, buckets, null);
+/** Maps a model id to its shared Antigravity quota pool. */
+export function antigravityGroupOf(
+  modelId: string,
+): AntigravityGroupKey | null {
+  const value = modelId.toLowerCase();
+  if (
+    value.includes('claude') ||
+    value.includes('gpt') ||
+    value.includes('oss')
+  )
+    return 'claude-gpt';
+  if (value.includes('gemini')) return 'gemini';
+  return null;
+}
 
-  const byModel = new Map<string, Bucket>();
-  for (const bucket of buckets) {
-    const existing = byModel.get(bucket.model);
-    if (!existing || bucket.remaining < existing.remaining) {
-      byModel.set(bucket.model, bucket);
+function windowKeyOf(entry: RawEntry, now: number): AntigravityWindowKey {
+  const tokens = [...entry.path, entry.tokenType ?? ''].join(' ');
+  if (WEEK_HINT.test(tokens)) return 'weekly';
+  if (FIVE_HOUR_HINT.test(tokens)) return 'five-hour';
+  const reset = entry.resetTime ? Date.parse(entry.resetTime) : Number.NaN;
+  if (Number.isFinite(reset) && reset - now > WEEKLY_RESET_THRESHOLD_MS) {
+    return 'weekly';
+  }
+  return 'five-hour';
+}
+
+function earlierReset(
+  a: string | null | undefined,
+  b: string | null,
+): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  const aTime = Date.parse(a);
+  const bTime = Date.parse(b);
+  if (!Number.isFinite(aTime)) return b;
+  if (!Number.isFinite(bTime)) return a;
+  return bTime < aTime ? b : a;
+}
+
+/**
+ * Turns Code Assist quota payloads (`fetchAvailableModels` and
+ * `retrieveUserQuota`) into hourly/weekly windows per shared model pool,
+ * without listing every model.
+ */
+export function parseGroupedQuota(
+  json: unknown,
+  now = Date.now(),
+): UsageWindow[] {
+  const raw: RawEntry[] = [];
+  collect(json, [], raw);
+
+  const merged = new Map<
+    string,
+    {
+      group: AntigravityGroupKey;
+      window: AntigravityWindowKey;
+      remaining: number;
+      resetTime: string | null;
+    }
+  >();
+
+  for (const entry of raw) {
+    if (!entry.modelKey) continue;
+    const group = antigravityGroupOf(entry.modelKey);
+    if (!group) continue;
+    const window = windowKeyOf(entry, now);
+    const key = `${group}.${window}`;
+    const existing = merged.get(key);
+    const resetTime = earlierReset(existing?.resetTime, entry.resetTime);
+    if (!existing || entry.remaining < existing.remaining) {
+      merged.set(key, { group, window, remaining: entry.remaining, resetTime });
+    } else {
+      merged.set(key, { ...existing, resetTime });
     }
   }
 
-  return [...byModel.values()].map((bucket) =>
-    deriveWindow({
-      externalKey: `antigravity.${bucket.model}`,
-      kind: 'rolling',
-      label: humanize(bucket.model),
-      used: ((1 - bucket.remaining) * 100).toFixed(1),
-      limit: '100',
-      unit: 'percent',
-      resetsAt: bucket.resetTime,
-      derivation: 'provider',
-    }),
+  return [...merged.values()]
+    .sort((a, b) => {
+      if (a.group !== b.group) return a.group === 'gemini' ? -1 : 1;
+      return a.window === 'five-hour' ? -1 : 1;
+    })
+    .map((item) =>
+      deriveWindow({
+        externalKey: `antigravity.${item.group}.${item.window}`,
+        kind: item.window === 'weekly' ? 'weekly' : 'rolling',
+        label: ANTIGRAVITY_WINDOW_LABELS[item.window],
+        used: ((1 - item.remaining) * 100).toFixed(1),
+        limit: '100',
+        unit: 'percent',
+        resetsAt: item.resetTime,
+        derivation: 'provider',
+      }),
+    );
+}
+
+/** Merges grouped windows from multiple payloads, keeping the worst reading. */
+export function mergeAntigravityWindows(
+  lists: readonly UsageWindow[][],
+): UsageWindow[] {
+  const byKey = new Map<string, UsageWindow>();
+  for (const list of lists) {
+    for (const window of list) {
+      const existing = byKey.get(window.externalKey);
+      if (!existing) {
+        byKey.set(window.externalKey, window);
+        continue;
+      }
+      const keep =
+        (window.utilization ?? 0) > (existing.utilization ?? 0)
+          ? window
+          : existing;
+      byKey.set(window.externalKey, {
+        ...keep,
+        resetsAt: earlierReset(existing.resetsAt, window.resetsAt),
+      });
+    }
+  }
+  return [...byKey.values()].sort((a, b) =>
+    a.externalKey.localeCompare(b.externalKey),
   );
 }
 
@@ -266,12 +386,34 @@ function operationUrl(name: string): string {
   return `${ANTIGRAVITY_ENDPOINT}/${ANTIGRAVITY_API_VERSION}/${name}`;
 }
 
+type Payload = { status: number; text: string; json: unknown };
+
+/** POSTs a request and never throws, so a single failing endpoint is not fatal. */
+async function safePost(
+  fetchImpl: AntigravityFetch,
+  url: string,
+  headers: Record<string, string>,
+  body: string,
+): Promise<Payload> {
+  try {
+    const response = await fetchImpl(url, { method: 'POST', headers, body });
+    const text = await response.text();
+    return { status: response.status, text, json: safeJson(text) };
+  } catch (error) {
+    return {
+      status: 0,
+      text: error instanceof Error ? error.message : String(error),
+      json: null,
+    };
+  }
+}
+
 /**
  * Loads the signed-in account's Cloud Code Assist quota, mirroring the official
  * client flow: `loadCodeAssist` resolves the project/plan (onboarding via
  * `onboardUser` when the account has no managed project yet), then
- * `fetchAvailableModels` returns per-model remaining fractions, with
- * `retrieveUserQuota` as a fallback.
+ * `fetchAvailableModels` and `retrieveUserQuota` supply the per-pool
+ * hourly/weekly limits.
  */
 export async function loadAntigravityQuota(
   accessToken: string,
@@ -319,10 +461,9 @@ export async function loadAntigravityQuota(
         operation && typeof operation === 'object'
           ? (operation as Record<string, unknown>)
           : null;
-      const response = record?.response;
       projectId =
-        extractProjectId(response) ??
-        (record && record.done ? null : extractProjectId(record));
+        extractProjectId(record?.response) ??
+        (record?.done ? null : extractProjectId(record));
       if (projectId) break;
       const name =
         record && typeof record.name === 'string' ? record.name : null;
@@ -340,29 +481,31 @@ export async function loadAntigravityQuota(
     }
   }
 
-  const modelsResponse = await fetchImpl(ANTIGRAVITY_MODELS_ENDPOINT, {
-    method: 'POST',
+  const body = buildProjectBody(projectId);
+  const models = await safePost(
+    fetchImpl,
+    ANTIGRAVITY_MODELS_ENDPOINT,
     headers,
-    body: buildProjectBody(projectId),
-  });
-  const modelsText = await modelsResponse.text();
-  const modelsJson = safeJson(modelsText);
-  let windows = modelsJson ? parseQuotaPayload(modelsJson) : [];
+    body,
+  );
+  const quota = await safePost(
+    fetchImpl,
+    ANTIGRAVITY_QUOTA_ENDPOINT,
+    headers,
+    body,
+  );
+
+  const windows = mergeAntigravityWindows([
+    models.json ? parseGroupedQuota(models.json) : [],
+    quota.json ? parseGroupedQuota(quota.json) : [],
+  ]);
 
   if (windows.length === 0) {
-    const quotaResponse = await fetchImpl(ANTIGRAVITY_QUOTA_ENDPOINT, {
-      method: 'POST',
-      headers,
-      body: buildProjectBody(projectId),
-    });
-    const quotaText = await quotaResponse.text();
-    const quotaJson = safeJson(quotaText);
-    windows = quotaJson ? parseQuotaPayload(quotaJson) : [];
     detail =
-      `models HTTP ${modelsResponse.status}: ${snippet(modelsText)} · ` +
-      `quota HTTP ${quotaResponse.status}: ${snippet(quotaText)}`;
+      `models HTTP ${models.status}: ${snippet(models.text)} · ` +
+      `quota HTTP ${quota.status}: ${snippet(quota.text)}`;
   } else {
-    detail = `models HTTP ${modelsResponse.status}`;
+    detail = `models HTTP ${models.status}, quota HTTP ${quota.status}`;
   }
 
   return { windows, projectId, plan, detail };

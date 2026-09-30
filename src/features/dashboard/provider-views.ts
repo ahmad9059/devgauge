@@ -51,14 +51,31 @@ function toNumber(value: string | null): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+const GROUP_LABELS: Record<string, string> = {
+  gemini: 'Gemini models',
+  'claude-gpt': 'Claude and GPT models',
+};
+
+/**
+ * Antigravity stores its pool windows as `antigravity.<pool>.<window>`; the
+ * detail page renders one section per pool.
+ */
+function groupFromExternalKey(externalKey: string): string | undefined {
+  const [prefix, pool] = externalKey.split('.');
+  if (prefix !== 'antigravity' || !pool) return undefined;
+  return GROUP_LABELS[pool] ?? pool;
+}
+
 function toFixtureWindow(window: UsageWindowRecord, now: Date): FixtureWindow {
   const parsedReset = window.resetsAt ? Date.parse(window.resetsAt) : NaN;
   const resetsInMinutes = Number.isFinite(parsedReset)
     ? Math.max(0, Math.round((parsedReset - now.getTime()) / 60_000))
     : undefined;
+  const group = groupFromExternalKey(window.externalKey);
   return {
     kind: fixtureKind(window.kind),
     label: window.label,
+    ...(group !== undefined ? { group } : {}),
     unit: window.unit,
     used: toNumber(window.usedDecimal),
     limit: toNumber(window.limitDecimal),

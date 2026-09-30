@@ -27,6 +27,8 @@ export type UsageWindowKind =
 export type UsageWindow = {
   kind: UsageWindowKind;
   label: string;
+  /** Shared pool shown as a section on the provider detail page. */
+  group?: string;
   unit: UsageUnit;
   used?: number;
   limit?: number;

@@ -22,7 +22,25 @@ import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { describeSource, describeState } from '@/domain/provider-status';
+import type { UsageWindow as ProviderWindow } from '@/testing/fixtures/providers';
 import { formatClockTime, formatRelativeMinutes } from '@/utils/format';
+
+/** Splits windows into their shared-pool sections (Antigravity), else one list. */
+function groupWindows(
+  windows: ProviderWindow[],
+): { group: string | undefined; windows: ProviderWindow[] }[] {
+  const sections = new Map<
+    string,
+    { group: string | undefined; windows: ProviderWindow[] }
+  >();
+  for (const window of windows) {
+    const key = window.group ?? '';
+    const section = sections.get(key);
+    if (section) section.windows.push(window);
+    else sections.set(key, { group: window.group, windows: [window] });
+  }
+  return [...sections.values()];
+}
 
 export default function ProviderDetailScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
@@ -84,23 +102,25 @@ export default function ProviderDetailScreen() {
         ) : null}
 
         {hasWindows ? (
-          <Card>
-            <SectionTitle>Usage windows</SectionTitle>
-            {provider.windows.map((window) => (
-              <ProgressBar
-                key={`${window.kind}-${window.label}`}
-                label={window.label}
-                percent={window.percent}
-                used={window.used}
-                limit={window.limit}
-                unit={window.unit}
-                resetsLabel={formatClockTime(
-                  new Date(),
-                  window.resetsInMinutes,
-                )}
-              />
-            ))}
-          </Card>
+          groupWindows(provider.windows).map((section) => (
+            <Card key={section.group ?? 'usage'}>
+              <SectionTitle>{section.group ?? 'Usage windows'}</SectionTitle>
+              {section.windows.map((window) => (
+                <ProgressBar
+                  key={`${window.group ?? ''}-${window.kind}-${window.label}`}
+                  label={window.label}
+                  percent={window.percent}
+                  used={window.used}
+                  limit={window.limit}
+                  unit={window.unit}
+                  resetsLabel={formatClockTime(
+                    new Date(),
+                    window.resetsInMinutes,
+                  )}
+                />
+              ))}
+            </Card>
+          ))
         ) : (
           <EmptyState
             icon="chart-box-outline"

@@ -20,6 +20,27 @@ function progressTone(
   return 'accent';
 }
 
+const KIND_ORDER = ['rolling', 'daily', 'weekly', 'monthly', 'billing-period'];
+
+/**
+ * Antigravity reports one window per shared pool; the card collapses those to a
+ * single bar per window type (worst pool) and the detail page breaks them out.
+ */
+function cardWindows(windows: UsageWindow[]): UsageWindow[] {
+  if (!windows.some((window) => window.group)) return windows;
+  const byKind = new Map<string, UsageWindow>();
+  for (const window of windows) {
+    if (!window.group) continue;
+    const existing = byKind.get(window.kind);
+    if (!existing || (window.percent ?? 0) > (existing.percent ?? 0)) {
+      byKind.set(window.kind, { ...window, group: undefined });
+    }
+  }
+  return [...byKind.values()].sort(
+    (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
+  );
+}
+
 function windowLabel(window: UsageWindow): string {
   return window.label;
 }
@@ -76,7 +97,7 @@ export function ProviderCard({
 
   const body = hasWindows ? (
     <View style={styles.windows}>
-      {provider.windows.map((window) => (
+      {cardWindows(provider.windows).map((window) => (
         <ProgressBar
           key={`${provider.id}-${window.kind}-${window.label}`}
           label={windowLabel(window)}
