@@ -29,6 +29,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: 'devgauge',
     plugins: [
       'expo-font',
+      // Required by the Expo Router config plugin in SDK 57+.
+      'expo-router',
       // Google blocks OAuth inside app WebViews, so sign-in opens a Chrome
       // Custom Tab (expo-web-browser) and the code is pasted back.
       'expo-web-browser',
