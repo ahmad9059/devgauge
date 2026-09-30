@@ -14,9 +14,9 @@ import { useTheme } from '@/design/theme-provider';
 import { deriveWindow, type UsageWindow } from '@/domain/usage';
 import { useReloadProviders } from '@/features/dashboard/app-providers';
 import {
-  ANTIGRAVITY_HOSTS,
   ANTIGRAVITY_TOKEN_URL,
   buildAuthorizeUrl,
+  isAllowedAntigravityHost,
   parseCallbackUrl,
   parseTokenResponse,
   tokenExchangeBody,
@@ -227,10 +227,7 @@ export default function AntigravityScreen() {
                 try {
                   const match = /^https:\/\/([^/?#]+)/.exec(request.url);
                   const host = match ? match[1].toLowerCase() : '';
-                  return ANTIGRAVITY_HOSTS.some(
-                    (allowed) =>
-                      host === allowed || host.endsWith(`.${allowed}`),
-                  );
+                  return isAllowedAntigravityHost(host);
                 } catch {
                   return false;
                 }

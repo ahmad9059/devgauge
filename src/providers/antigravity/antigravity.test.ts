@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildAuthorizeUrl,
+  isAllowedAntigravityHost,
   parseCallbackUrl,
   parseTokenResponse,
   tokenExchangeBody,
@@ -47,6 +48,17 @@ describe('antigravity oauth', () => {
   it('validates the token response', () => {
     expect(parseTokenResponse({ access_token: 't' }).accessToken).toBe('t');
     expect(() => parseTokenResponse({})).toThrow();
+  });
+
+  it('allows Google-owned hosts but nothing else', () => {
+    expect(isAllowedAntigravityHost('accounts.google.com')).toBe(true);
+    expect(isAllowedAntigravityHost('accounts.google.co.uk')).toBe(true);
+    expect(isAllowedAntigravityHost('content-foo.googleusercontent.com')).toBe(
+      true,
+    );
+    expect(isAllowedAntigravityHost('oauth2.googleapis.com')).toBe(true);
+    expect(isAllowedAntigravityHost('evil.test')).toBe(false);
+    expect(isAllowedAntigravityHost('google.com.evil.test')).toBe(false);
   });
 });
 

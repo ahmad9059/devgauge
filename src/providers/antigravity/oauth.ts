@@ -25,6 +25,27 @@ export const ANTIGRAVITY_HOSTS = [
   'antigravity.google',
 ];
 
+/**
+ * Google sign-in redirects across many hosts (regional account domains,
+ * googleusercontent, etc.). Allow any Google-owned host so the login and
+ * consent flow is not blocked mid-redirect, while everything else stays blocked.
+ */
+export function isAllowedAntigravityHost(host: string): boolean {
+  const value = host.toLowerCase();
+  if (
+    ANTIGRAVITY_HOSTS.some(
+      (allowed) => value === allowed || value.endsWith(`.${allowed}`),
+    )
+  ) {
+    return true;
+  }
+  if (value === 'google.com' || value.endsWith('.google.com')) return true;
+  if (/^accounts\.google\.[a-z.]+$/.test(value)) return true;
+  if (value.endsWith('.googleusercontent.com')) return true;
+  if (value === 'googleusercontent.com') return true;
+  return false;
+}
+
 function encodeForm(params: Record<string, string>): string {
   return Object.entries(params)
     .map(
