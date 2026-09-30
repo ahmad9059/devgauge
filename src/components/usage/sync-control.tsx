@@ -16,7 +16,8 @@ import { useSyncStatus } from '@/features/dashboard/sync-provider';
 /** Idle: Sync All. While working: provider logo + the same rotating refresh icon. */
 export function SyncControl() {
   const { theme } = useTheme();
-  const { isSyncing, providerName, providerId, startSync } = useSyncStatus();
+  const { isSyncing, completedProviderIds, syncingProviderIds, startSync } =
+    useSyncStatus();
   const [expansion] = useState(() => new Animated.Value(0));
   const [rotation] = useState(() => new Animated.Value(0));
 
@@ -44,9 +45,14 @@ export function SyncControl() {
     return () => animation.stop();
   }, [isSyncing, rotation]);
 
+  const providerIds = [...completedProviderIds, ...syncingProviderIds];
+  const pillWidth = Math.min(
+    320,
+    64 + providerIds.length * 36 + Math.max(0, providerIds.length - 1) * 8,
+  );
   const width = expansion.interpolate({
     inputRange: [0, 1],
-    outputRange: [touchTargets.iconButton, 104],
+    outputRange: [touchTargets.iconButton, pillWidth],
   });
 
   return (
@@ -67,7 +73,7 @@ export function SyncControl() {
         accessibilityRole="button"
         accessibilityLabel={
           isSyncing
-            ? `Syncing ${providerName ?? 'provider'}`
+            ? `Syncing ${syncingProviderIds.length} provider${syncingProviderIds.length === 1 ? '' : 's'}`
             : 'Refresh all providers'
         }
         accessibilityState={{ disabled: isSyncing, busy: isSyncing }}
@@ -78,9 +84,11 @@ export function SyncControl() {
           { opacity: pressed && !isSyncing ? opacities.pressed : 1 },
         ]}
       >
-        {isSyncing && providerId ? (
-          <ProviderLogo id={providerId} size={28} />
-        ) : null}
+        {isSyncing
+          ? providerIds.map((providerId) => (
+              <ProviderLogo key={providerId} id={providerId} size={28} />
+            ))
+          : null}
         <Animated.View
           style={{
             transform: [

@@ -35,6 +35,27 @@ describe('remaining vs used', () => {
     expect(fiveHour?.resetsAt).toBe('2026-09-29T05:00:00.000Z');
   });
 
+  it('inverts Codex reported limit percentages and preserves timestamp resets', () => {
+    const raw = extractRawWindows(
+      [
+        {
+          url: 'https://chatgpt.com/backend-api/usage',
+          body: JSON.stringify({
+            primary_window: { used_percent: 0.77, reset_at: 1_791_234_567 },
+            secondary_window: { used_percent: 0.87, reset_at: 1_791_567_890 },
+          }),
+        },
+      ],
+      codex,
+    );
+    const windows = toDomainWindows(raw, codex);
+    expect(windows.find((w) => w.label === '5-hour window')?.used).toBe('23');
+    expect(windows.find((w) => w.label === 'Weekly')?.used).toBe('13');
+    expect(windows.find((w) => w.label === '5-hour window')?.resetsAt).toBe(
+      '2026-10-05T21:09:27.000Z',
+    );
+  });
+
   it('keeps used-percent payloads (Claude utilization)', () => {
     const raw = extractRawWindows(
       [

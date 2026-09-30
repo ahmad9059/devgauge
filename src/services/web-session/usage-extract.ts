@@ -40,13 +40,19 @@ function pickNumber(
   return null;
 }
 
-function pickString(
+function pickReset(
   node: Record<string, unknown>,
   keys: string[],
 ): string | null {
   for (const key of keys) {
     const value = node[key];
     if (typeof value === 'string' && value.trim() !== '') return value;
+    // Codex returns reset_at as a Unix timestamp in some page/API variants.
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const milliseconds = value < 100_000_000_000 ? value * 1000 : value;
+      const date = new Date(milliseconds);
+      if (!Number.isNaN(date.getTime())) return date.toISOString();
+    }
   }
   return null;
 }
@@ -99,13 +105,13 @@ function walk(
         usedPercent: keyMap[knownAncestor]?.remaining
           ? Math.max(0, 100 - percent)
           : percent,
-        resetsAt: pickString(record, RESET_KEYS),
+        resetsAt: pickReset(record, RESET_KEYS),
       });
     } else if (remaining !== null) {
       out.push({
         key: knownAncestor,
         usedPercent: Math.max(0, 100 - toPercent(remaining)),
-        resetsAt: pickString(record, RESET_KEYS),
+        resetsAt: pickReset(record, RESET_KEYS),
       });
     }
   }

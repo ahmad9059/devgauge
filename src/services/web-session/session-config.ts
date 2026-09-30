@@ -56,11 +56,11 @@ export const SESSION_PROVIDERS: Record<
       'appleid.apple.com',
     ],
     keyMap: {
-      primary: FIVE_HOUR,
-      primary_window: FIVE_HOUR,
-      five_hour: FIVE_HOUR,
-      rate_limit: FIVE_HOUR,
-      // Codex reports the weekly window as remaining, not used.
+      // Codex presents both limit windows as percentage remaining, not used.
+      primary: { ...FIVE_HOUR, remaining: true },
+      primary_window: { ...FIVE_HOUR, remaining: true },
+      five_hour: { ...FIVE_HOUR, remaining: true },
+      rate_limit: { ...FIVE_HOUR, remaining: true },
       secondary: { ...WEEKLY, remaining: true },
       secondary_window: { ...WEEKLY, remaining: true },
       seven_day: { ...WEEKLY, remaining: true },

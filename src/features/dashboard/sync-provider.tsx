@@ -49,8 +49,9 @@ const PER_PROVIDER_TIMEOUT_MS = 12_000;
 
 type SyncStatus = {
   isSyncing: boolean;
-  providerName: string | null;
-  providerId: ProviderId | null;
+  /** Completion order lets the status control acknowledge fast providers first. */
+  completedProviderIds: ProviderId[];
+  syncingProviderIds: ProviderId[];
 };
 
 type SyncContextValue = SyncStatus & {
@@ -99,21 +100,21 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const reload = useReloadProviders();
   const [status, setStatus] = useState<SyncStatus>({
     isSyncing: false,
-    providerName: null,
-    providerId: null,
+    completedProviderIds: [],
+    syncingProviderIds: [],
   });
-  const [webProvider, setWebProvider] = useState<ProviderFixture | null>(null);
-  const jobRef = useRef<WebJob | null>(null);
+  const [webProviders, setWebProviders] = useState<ProviderFixture[]>([]);
+  const jobsRef = useRef(new Map<ProviderId, WebJob>());
   const runningRef = useRef(false);
   const autoStartedRef = useRef(false);
 
   const finishWebJob = useCallback(
-    async (windows?: UsageWindow[]) => {
-      const job = jobRef.current;
+    async (providerId: ProviderId, windows?: UsageWindow[]) => {
+      const job = jobsRef.current.get(providerId);
       if (!job || job.done) return;
       job.done = true;
       clearTimeout(job.timeout);
-      jobRef.current = null;
+      jobsRef.current.delete(providerId);
       try {
         if (
           windows &&
@@ -137,7 +138,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       } catch {
         // Keep the previous snapshot and advance to the next provider.
       } finally {
-        setWebProvider(null);
+        setWebProviders((current) =>
+          current.filter((provider) => provider.id !== providerId),
+        );
+        setStatus((current) => ({
+          ...current,
+          completedProviderIds: [...current.completedProviderIds, providerId],
+          syncingProviderIds: current.syncingProviderIds.filter(
+            (id) => id !== providerId,
+          ),
+        }));
         job.resolve();
       }
     },
@@ -148,18 +158,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     (provider: ProviderFixture) =>
       new Promise<void>((resolve) => {
         const timeout = setTimeout(
-          () => void finishWebJob(),
+          () => void finishWebJob(provider.id),
           PER_PROVIDER_TIMEOUT_MS,
         );
-        jobRef.current = {
+        jobsRef.current.set(provider.id, {
           provider,
           captured: [],
           text: '',
           done: false,
           timeout,
           resolve,
-        };
-        setWebProvider(provider);
+        });
+        setWebProviders((current) => [...current, provider]);
       }),
     [finishWebJob],
   );
@@ -174,33 +184,52 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (targets.length === 0) return;
 
     runningRef.current = true;
+    // Defer the visual transition outside an app-open effect.
+    await Promise.resolve();
+    setStatus({
+      isSyncing: true,
+      completedProviderIds: [],
+      syncingProviderIds: targets.map((provider) => provider.id),
+    });
     try {
-      for (const provider of targets) {
-        setStatus({
-          isSyncing: true,
-          providerName: provider.displayName,
-          providerId: provider.id,
-        });
-        if (provider.id === 'gemini-cli') {
-          try {
-            const db = await getAppDatabase();
-            let ids = 0;
-            await syncAntigravity({
-              db,
-              vault: createSecureVault(createSecureStoreBackend()),
-              fetchImpl: fetchWithTimeout,
-              nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
-            });
-            await reload();
-          } catch {
-            // The existing snapshot remains visible if an OAuth/API call fails.
+      await Promise.all(
+        targets.map(async (provider) => {
+          if (provider.id === 'gemini-cli') {
+            try {
+              const db = await getAppDatabase();
+              let ids = 0;
+              await syncAntigravity({
+                db,
+                vault: createSecureVault(createSecureStoreBackend()),
+                fetchImpl: fetchWithTimeout,
+                nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
+              });
+              await reload();
+            } catch {
+              // The existing snapshot remains visible if an OAuth/API call fails.
+            } finally {
+              setStatus((current) => ({
+                ...current,
+                completedProviderIds: [
+                  ...current.completedProviderIds,
+                  provider.id,
+                ],
+                syncingProviderIds: current.syncingProviderIds.filter(
+                  (id) => id !== provider.id,
+                ),
+              }));
+            }
+          } else {
+            await syncWebProvider(provider);
           }
-        } else {
-          await syncWebProvider(provider);
-        }
-      }
+        }),
+      );
     } finally {
-      setStatus({ isSyncing: false, providerName: null, providerId: null });
+      setStatus({
+        isSyncing: false,
+        completedProviderIds: [],
+        syncingProviderIds: [],
+      });
       runningRef.current = false;
     }
   }, [providers, reload, syncWebProvider]);
@@ -215,12 +244,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     );
     if (!hasTarget) return;
     autoStartedRef.current = true;
-    void startSync();
+    const timer = setTimeout(() => void startSync(), 0);
+    return () => clearTimeout(timer);
   }, [providers, startSync]);
 
   const onMessage = useCallback(
-    (event: WebViewMessageEvent) => {
-      const job = jobRef.current;
+    (providerId: ProviderId, event: WebViewMessageEvent) => {
+      const job = jobsRef.current.get(providerId);
       if (!job || !isSessionProvider(job.provider.id)) return;
       try {
         const data = JSON.parse(event.nativeEvent.data) as {
@@ -250,7 +280,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         const isReady =
           windows.length > 0 &&
           (job.provider.id !== 'codex' || hasCodexPageUsage(windows));
-        if (isReady) void finishWebJob(windows);
+        if (isReady) void finishWebJob(providerId, windows);
       } catch {
         // Ignore messages that are not bridge payloads.
       }
@@ -258,38 +288,34 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [finishWebJob],
   );
 
-  const sessionConfig =
-    webProvider && isSessionProvider(webProvider.id)
-      ? SESSION_PROVIDERS[webProvider.id]
-      : null;
-
   return (
     <SyncContext.Provider value={{ ...status, startSync }}>
       {children}
-      {webProvider && sessionConfig ? (
-        <View pointerEvents="none" style={styles.webHost}>
-          <WebView
-            key={webProvider.id}
-            source={{ uri: sessionConfig.usageUrl }}
-            originWhitelist={['https://*']}
-            userAgent={SESSION_USER_AGENT}
-            setSupportMultipleWindows={false}
-            sharedCookiesEnabled
-            thirdPartyCookiesEnabled
-            domStorageEnabled
-            javaScriptEnabled
-            injectedJavaScriptBeforeContentLoaded={USAGE_BRIDGE_SCRIPT}
-            injectedJavaScript={USAGE_BRIDGE_SCRIPT}
-            onMessage={onMessage}
-            onShouldStartLoadWithRequest={(request) =>
-              allowedSessionHost(
-                webProvider.id as SessionProviderId,
-                request.url,
-              ) !== null
-            }
-          />
-        </View>
-      ) : null}
+      {webProviders.map((provider) =>
+        isSessionProvider(provider.id) ? (
+          <View key={provider.id} pointerEvents="none" style={styles.webHost}>
+            <WebView
+              source={{ uri: SESSION_PROVIDERS[provider.id].usageUrl }}
+              originWhitelist={['https://*']}
+              userAgent={SESSION_USER_AGENT}
+              setSupportMultipleWindows={false}
+              sharedCookiesEnabled
+              thirdPartyCookiesEnabled
+              domStorageEnabled
+              javaScriptEnabled
+              injectedJavaScriptBeforeContentLoaded={USAGE_BRIDGE_SCRIPT}
+              injectedJavaScript={USAGE_BRIDGE_SCRIPT}
+              onMessage={(event) => onMessage(provider.id, event)}
+              onShouldStartLoadWithRequest={(request) =>
+                allowedSessionHost(
+                  provider.id as SessionProviderId,
+                  request.url,
+                ) !== null
+              }
+            />
+          </View>
+        ) : null,
+      )}
     </SyncContext.Provider>
   );
 }
