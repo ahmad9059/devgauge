@@ -29,6 +29,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: 'devgauge',
     plugins: [
       'expo-font',
+      // Google blocks OAuth inside app WebViews, so sign-in opens a Chrome
+      // Custom Tab (expo-web-browser) and the code is pasted back.
+      'expo-web-browser',
       // SQLCipher encrypts the local usage database; the key lives in SecureStore.
       ['expo-sqlite', { useSQLCipher: true }],
       // Excludes SecureStore ciphertext from Android backup.

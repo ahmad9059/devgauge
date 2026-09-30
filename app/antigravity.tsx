@@ -4,27 +4,29 @@ import {
   getRandomBytesAsync,
 } from 'expo-crypto';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import WebView from 'react-native-webview';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-import { Button, Header, Notice, Screen } from '@/components/ui';
-import { spacing } from '@/design/tokens';
+import { Button, Header, Notice, Screen, ScreenScroll } from '@/components/ui';
+import { borderWidths, radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { deriveWindow, type UsageWindow } from '@/domain/usage';
+import type { UsageWindow } from '@/domain/usage';
 import { useReloadProviders } from '@/features/dashboard/app-providers';
 import {
   ANTIGRAVITY_TOKEN_URL,
   buildAuthorizeUrl,
-  isAllowedAntigravityHost,
-  parseCallbackUrl,
+  extractAuthCode,
   parseTokenResponse,
   tokenExchangeBody,
 } from '@/providers/antigravity/oauth';
-import {
-  ANTIGRAVITY_QUOTA_ENDPOINT,
-  parseQuotaPayload,
-} from '@/providers/antigravity/quota';
+import { loadAntigravityQuota } from '@/providers/antigravity/quota';
 import { base64UrlEncode } from '@/services/auth/pkce';
 import { getAppDatabase } from '@/services/app-database-store';
 import { saveSessionSnapshot } from '@/services/web-session/session';
@@ -66,36 +68,32 @@ async function fetchWithTimeout(
   }
 }
 
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
- * Antigravity sign-in: Google OAuth (public client + PKCE) inside the app, then
- * the Antigravity/Code Assist quota for the signed-in account. The token is held
- * in memory for the quota request only; no password is ever read.
+ * Antigravity sign-in. Google blocks OAuth inside embedded WebViews, so the
+ * consent page opens in a Chrome Custom Tab (a real browser surface) and the
+ * code shown on the redirect page is pasted back here. PKCE + the client secret
+ * complete the exchange, then the Cloud Code Assist quota is read. The access
+ * token is used in memory only; the password is never seen by DevGauge.
  */
 export default function AntigravityScreen() {
   const router = useRouter();
   const { theme, typography } = useTheme();
   const reload = useReloadProviders();
   const pkceRef = useRef<Pkce | null>(null);
-  const handledRef = useRef(false);
-  const [url, setUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState('Sign in with Google.');
+  const [status, setStatus] = useState(
+    'Open Google sign-in to read your quota.',
+  );
+  const [pasted, setPasted] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const startAuth = async () => {
-    handledRef.current = false;
-    const pkce = await makePkce();
-    pkceRef.current = pkce;
-    setUrl(buildAuthorizeUrl({ challenge: pkce.challenge, state: pkce.state }));
-  };
 
   useEffect(() => {
     let active = true;
     void makePkce().then((pkce) => {
-      if (!active) return;
-      pkceRef.current = pkce;
-      setUrl(
-        buildAuthorizeUrl({ challenge: pkce.challenge, state: pkce.state }),
-      );
+      if (active) pkceRef.current = pkce;
     });
     return () => {
       active = false;
@@ -118,73 +116,75 @@ export default function AntigravityScreen() {
     router.replace('/(tabs)/usage');
   };
 
-  const handleCode = async (code: string) => {
-    if (handledRef.current || !pkceRef.current) return;
-    handledRef.current = true;
+  const openSignIn = async () => {
+    setBusy(true);
+    try {
+      const pkce = pkceRef.current ?? (await makePkce());
+      pkceRef.current = pkce;
+      setStatus('Sign in and approve access; then copy the code shown.');
+      await WebBrowser.openBrowserAsync(
+        buildAuthorizeUrl({ challenge: pkce.challenge, state: pkce.state }),
+        { showTitle: true, enableBarCollapsing: true },
+      );
+      setStatus('Paste the code from the browser to finish.');
+    } catch (error) {
+      setStatus(`Could not open the browser: ${message(error)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submit = async () => {
+    const code = extractAuthCode(pasted);
+    if (!code) {
+      setStatus('No authorization code found. Copy the code from the page.');
+      return;
+    }
+    const pkce = pkceRef.current;
+    if (!pkce) {
+      setStatus('Sign-in session expired. Tap Open Google sign-in again.');
+      return;
+    }
     setBusy(true);
     try {
       setStatus('Exchanging sign-in…');
       const tokenResponse = await fetchWithTimeout(ANTIGRAVITY_TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: tokenExchangeBody({ code, verifier: pkceRef.current.verifier }),
+        body: tokenExchangeBody({ code, verifier: pkce.verifier }),
       });
       if (!tokenResponse.ok) {
-        const detail = (await tokenResponse.text()).slice(0, 140);
+        const detail = (await tokenResponse.text()).slice(0, 180);
         throw new Error(`token HTTP ${tokenResponse.status} ${detail}`);
       }
       const token = parseTokenResponse(await tokenResponse.json());
 
       setStatus('Reading usage…');
-      const quotaResponse = await fetchWithTimeout(ANTIGRAVITY_QUOTA_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-      });
-      const quotaText = await quotaResponse.text();
-      let quotaJson: unknown = null;
-      try {
-        quotaJson = JSON.parse(quotaText);
-      } catch {
-        quotaJson = null;
-      }
-      const windows = quotaJson ? parseQuotaPayload(quotaJson) : [];
-      if (windows.length === 0) {
-        windows.push(
-          deriveWindow({
-            externalKey: 'antigravity.account',
-            kind: 'rolling',
-            label: 'Antigravity',
-            unit: 'percent',
-            derivation: 'provider',
-          }),
-        );
-        setStatus(
-          `Connected · quota HTTP ${quotaResponse.status}. ${
-            quotaText.slice(0, 120) || 'No quota buckets returned.'
-          }`,
-        );
+      const quota = await loadAntigravityQuota(token.accessToken, (url, init) =>
+        fetchWithTimeout(url, init),
+      );
+      if (quota.windows.length === 0) {
         setBusy(false);
+        setStatus(`Connected, but no quota was returned (${quota.detail}).`);
         return;
       }
       setStatus('Saving…');
-      await save(windows);
+      await save(quota.windows);
     } catch (error) {
-      handledRef.current = false;
       setBusy(false);
-      setStatus(
-        `Sign-in failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      setStatus(`Sign-in failed: ${message(error)}`);
     }
   };
 
   return (
     <Screen edges={['left', 'right', 'bottom']}>
-      <View style={styles.screen}>
+      <ScreenScroll>
         <Header title="Antigravity" subtitle="Sign in with Google" />
+        <Notice tone="info" icon="information-outline">
+          Google blocks sign-in inside app WebViews, so DevGauge opens the
+          consent page in a browser tab. Your password is never seen by
+          DevGauge.
+        </Notice>
         <View style={styles.statusRow}>
           {busy ? (
             <ActivityIndicator
@@ -194,68 +194,65 @@ export default function AntigravityScreen() {
           ) : null}
           <Text
             accessibilityLiveRegion="polite"
-            style={[
-              typography.monoCaption,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[typography.body, { color: theme.colors.textSecondary }]}
           >
             {status}
           </Text>
         </View>
-        <Notice tone="info" icon="information-outline">
-          DevGauge reads only your model quota. Your password is never seen and
-          the token is not stored.
-        </Notice>
-        <View style={styles.webviewWrap}>
-          {url ? (
-            <WebView
-              style={styles.webview}
-              source={{ uri: url }}
-              originWhitelist={['https://*']}
-              setSupportMultipleWindows={false}
-              sharedCookiesEnabled
-              thirdPartyCookiesEnabled
-              domStorageEnabled
-              javaScriptEnabled
-              onShouldStartLoadWithRequest={(request) => {
-                const callback = parseCallbackUrl(request.url);
-                if (callback) {
-                  if (callback.kind === 'code') void handleCode(callback.code);
-                  else setStatus(`Google returned: ${callback.error}`);
-                  return false;
-                }
-                try {
-                  const match = /^https:\/\/([^/?#]+)/.exec(request.url);
-                  const host = match ? match[1].toLowerCase() : '';
-                  return isAllowedAntigravityHost(host);
-                } catch {
-                  return false;
-                }
-              }}
-            />
-          ) : (
-            <ActivityIndicator color={theme.colors.textSecondary} />
-          )}
-        </View>
         <Button
-          label="Reload"
-          variant="ghost"
-          icon="refresh"
-          onPress={() => void startAuth()}
+          label="Open Google sign-in"
+          icon="open-in-new"
+          onPress={() => void openSignIn()}
+          fullWidth
         />
-      </View>
+        <View style={styles.form}>
+          <Text
+            style={[
+              typography.labelStrong,
+              { color: theme.colors.textPrimary },
+            ]}
+          >
+            Paste the code from the browser
+          </Text>
+          <TextInput
+            value={pasted}
+            onChangeText={setPasted}
+            placeholder="Authorization code"
+            placeholderTextColor={theme.colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline
+            style={[
+              typography.monoValue,
+              styles.input,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.controlBorder,
+                color: theme.colors.textPrimary,
+              },
+            ]}
+          />
+          <Button
+            label="Submit code"
+            icon="check"
+            variant="secondary"
+            onPress={() => void submit()}
+            disabled={pasted.trim() === '' || busy}
+          />
+        </View>
+      </ScreenScroll>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: spacing.lg, gap: spacing.md },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  webviewWrap: {
-    flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-    justifyContent: 'center',
+  form: { gap: spacing.sm },
+  input: {
+    minHeight: 88,
+    borderWidth: borderWidths.thin,
+    borderRadius: radii.control,
+    padding: spacing.md,
+    textAlignVertical: 'top',
   },
-  webview: { flex: 1 },
 });

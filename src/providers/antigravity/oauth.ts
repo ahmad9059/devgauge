@@ -1,8 +1,13 @@
-// Google OAuth (public client + PKCE) used by Antigravity CLI. The client id is
-// the Antigravity CLI application's public OAuth client; there is no secret, so
-// PKCE is required. Owner-authorized; treated as an experimental integration.
+// Google OAuth for Antigravity / Cloud Code Assist. Google's secure-browser
+// policy blocks OAuth 2.0 authorization inside embedded WebViews, so the flow
+// opens Google's consent page in a Chrome Custom Tab (a real browser surface)
+// and the redirect page shows a code the user pastes back into the app. PKCE
+// binds the pasted code to this session; the client id/secret identify the
+// Antigravity "installed app" client (the secret is not treated as confidential
+// for installed apps and is shipped by the public CLI).
 export const ANTIGRAVITY_CLIENT_ID =
   'REDACTED.apps.googleusercontent.com';
+export const ANTIGRAVITY_CLIENT_SECRET = 'REDACTED';
 export const ANTIGRAVITY_REDIRECT_URI =
   'https://antigravity.google/oauth-callback';
 export const ANTIGRAVITY_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
@@ -16,35 +21,6 @@ export const ANTIGRAVITY_SCOPES = [
   'https://www.googleapis.com/auth/aicode',
   'openid',
 ];
-
-/** Hosts the Antigravity sign-in flow may contact. */
-export const ANTIGRAVITY_HOSTS = [
-  'accounts.google.com',
-  'oauth2.googleapis.com',
-  'cloudcode-pa.googleapis.com',
-  'antigravity.google',
-];
-
-/**
- * Google sign-in redirects across many hosts (regional account domains,
- * googleusercontent, etc.). Allow any Google-owned host so the login and
- * consent flow is not blocked mid-redirect, while everything else stays blocked.
- */
-export function isAllowedAntigravityHost(host: string): boolean {
-  const value = host.toLowerCase();
-  if (
-    ANTIGRAVITY_HOSTS.some(
-      (allowed) => value === allowed || value.endsWith(`.${allowed}`),
-    )
-  ) {
-    return true;
-  }
-  if (value === 'google.com' || value.endsWith('.google.com')) return true;
-  if (/^accounts\.google\.[a-z.]+$/.test(value)) return true;
-  if (value.endsWith('.googleusercontent.com')) return true;
-  if (value === 'googleusercontent.com') return true;
-  return false;
-}
 
 function encodeForm(params: Record<string, string>): string {
   return Object.entries(params)
@@ -76,10 +52,13 @@ export function buildAuthorizeUrl(input: {
 export type AntigravityCallback =
   { kind: 'code'; code: string } | { kind: 'error'; error: string };
 
+/** Reads one query parameter from a URL or a bare "a=1&b=2" query string. */
 function queryParam(url: string, name: string): string | null {
   const queryIndex = url.indexOf('?');
-  if (queryIndex < 0) return null;
-  const query = url.slice(queryIndex + 1).split('#')[0];
+  let query = queryIndex >= 0 ? url.slice(queryIndex + 1) : url;
+  const hashIndex = query.indexOf('#');
+  if (hashIndex >= 0) query = query.slice(0, hashIndex);
+  if (!query.includes('=')) return null;
   for (const pair of query.split('&')) {
     const equals = pair.indexOf('=');
     const key = decodeURIComponent(equals < 0 ? pair : pair.slice(0, equals));
@@ -102,12 +81,29 @@ export function parseCallbackUrl(url: string): AntigravityCallback | null {
   return null;
 }
 
+/**
+ * Accepts whatever the user pasted after signing in: a bare authorization code,
+ * a full redirect URL, or just the `code=…&state=…` query fragment.
+ */
+export function extractAuthCode(input: string): string | null {
+  const value = input.trim();
+  if (value === '') return null;
+  if (value.includes('code=')) {
+    const code = queryParam(value, 'code');
+    return code !== null && code !== '' ? code : null;
+  }
+  if (value.includes('error=')) return null;
+  // A bare authorization code (Google codes use URL-safe characters).
+  return /^[A-Za-z0-9._~+/=-]+$/.test(value) ? value : null;
+}
+
 export function tokenExchangeBody(input: {
   code: string;
   verifier: string;
 }): string {
   return encodeForm({
     client_id: ANTIGRAVITY_CLIENT_ID,
+    client_secret: ANTIGRAVITY_CLIENT_SECRET,
     code: input.code,
     code_verifier: input.verifier,
     grant_type: 'authorization_code',
