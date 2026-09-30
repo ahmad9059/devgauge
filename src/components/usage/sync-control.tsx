@@ -1,14 +1,8 @@
-import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  Pressable,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
 
 import { Icon } from '@/components/ui';
+import { ProviderLogo } from './provider-logo';
 import {
   borderWidths,
   opacities,
@@ -19,11 +13,12 @@ import {
 import { useTheme } from '@/design/theme-provider';
 import { useSyncStatus } from '@/features/dashboard/sync-provider';
 
-/** Idle: a compact Sync All icon. While working: provider name + live spinner. */
+/** Idle: Sync All. While working: provider logo + the same rotating refresh icon. */
 export function SyncControl() {
-  const { theme, typography } = useTheme();
-  const { isSyncing, providerName, startSync } = useSyncStatus();
+  const { theme } = useTheme();
+  const { isSyncing, providerName, providerId, startSync } = useSyncStatus();
   const [expansion] = useState(() => new Animated.Value(0));
+  const [rotation] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(expansion, {
@@ -34,9 +29,24 @@ export function SyncControl() {
     }).start();
   }, [expansion, isSyncing]);
 
+  useEffect(() => {
+    rotation.setValue(0);
+    if (!isSyncing) return;
+    const animation = Animated.loop(
+      Animated.timing(rotation, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [isSyncing, rotation]);
+
   const width = expansion.interpolate({
     inputRange: [0, 1],
-    outputRange: [touchTargets.iconButton, 190],
+    outputRange: [touchTargets.iconButton, 80],
   });
 
   return (
@@ -65,23 +75,23 @@ export function SyncControl() {
           { opacity: pressed && !isSyncing ? opacities.pressed : 1 },
         ]}
       >
-        {isSyncing ? (
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.labelStrong,
-              styles.label,
-              { color: theme.colors.textPrimary },
-            ]}
-          >
-            {providerName ?? 'Syncing'}
-          </Text>
+        {isSyncing && providerId ? (
+          <ProviderLogo id={providerId} size={24} />
         ) : null}
-        {isSyncing ? (
-          <ActivityIndicator color={theme.colors.accent} size="small" />
-        ) : (
+        <Animated.View
+          style={{
+            transform: [
+              {
+                rotate: rotation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '360deg'],
+                }),
+              },
+            ],
+          }}
+        >
           <Icon name="refresh" size={20} color={theme.colors.accent} />
-        )}
+        </Animated.View>
       </Pressable>
     </Animated.View>
   );
@@ -97,11 +107,10 @@ const styles = StyleSheet.create({
   pressable: {
     flex: 1,
     minHeight: touchTargets.iconButton,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     gap: spacing.sm,
   },
-  label: { flex: 1, textAlign: 'left' },
 });

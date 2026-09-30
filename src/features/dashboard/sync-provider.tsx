@@ -11,6 +11,7 @@ import { StyleSheet, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import type { UsageWindow } from '@/domain/usage';
+import type { ProviderId } from '@/domain/providers';
 import { syncAntigravity } from '@/providers/antigravity/sync';
 import { getAppDatabase } from '@/services/app-database-store';
 import { createSecureStoreBackend } from '@/storage/secure-store-backend';
@@ -49,6 +50,7 @@ const PER_PROVIDER_TIMEOUT_MS = 12_000;
 type SyncStatus = {
   isSyncing: boolean;
   providerName: string | null;
+  providerId: ProviderId | null;
 };
 
 type SyncContextValue = SyncStatus & {
@@ -90,6 +92,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SyncStatus>({
     isSyncing: false,
     providerName: null,
+    providerId: null,
   });
   const [webProvider, setWebProvider] = useState<ProviderFixture | null>(null);
   const jobRef = useRef<WebJob | null>(null);
@@ -165,7 +168,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     runningRef.current = true;
     try {
       for (const provider of targets) {
-        setStatus({ isSyncing: true, providerName: provider.displayName });
+        setStatus({
+          isSyncing: true,
+          providerName: provider.displayName,
+          providerId: provider.id,
+        });
         if (provider.id === 'gemini-cli') {
           try {
             const db = await getAppDatabase();
@@ -185,7 +192,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
       }
     } finally {
-      setStatus({ isSyncing: false, providerName: null });
+      setStatus({ isSyncing: false, providerName: null, providerId: null });
       runningRef.current = false;
     }
   }, [providers, reload, syncWebProvider]);
