@@ -27,13 +27,4 @@ export APP_VARIANT=preview
 export EXPO_PUBLIC_SPIKE_TEST=1
 export NODE_ENV=production
 
-rm -f artifacts/devgauge-phase1-preview.apk
-npx expo prebuild --platform android --clean --no-install
-(
-  cd android
-  ./gradlew assembleRelease --no-daemon --max-workers=2
-)
-
-mkdir -p artifacts
-cp android/app/build/outputs/apk/release/app-release.apk artifacts/devgauge-phase1-preview.apk
-echo "Internal test APK: artifacts/devgauge-phase1-preview.apk"
+node scripts/build-progress.mjs

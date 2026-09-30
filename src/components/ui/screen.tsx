@@ -1,7 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
-  Animated,
-  Easing,
   ScrollView,
   StyleSheet,
   View,
@@ -22,27 +20,14 @@ export function Screen({
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
   testID?: string;
 }) {
-  const { theme, reduceMotion } = useTheme();
-  const [opacity] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    const animation = Animated.timing(opacity, {
-      toValue: 1,
-      duration: reduceMotion ? 0 : 180,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
-    animation.start();
-    return () => animation.stop();
-  }, [opacity, reduceMotion]);
+  const { theme } = useTheme();
   return (
     <SafeAreaView
       edges={edges}
       testID={testID}
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Animated.View style={[styles.flex, { opacity }]}>
-        {children}
-      </Animated.View>
+      {children}
     </SafeAreaView>
   );
 }

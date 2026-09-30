@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { MotionPressable as Pressable } from './motion-pressable';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { borderWidths, radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';

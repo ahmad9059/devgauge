@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
@@ -29,20 +28,8 @@ export function ProgressBar({
   tone?: 'accent' | 'warning' | 'danger';
   testID?: string;
 }) {
-  const { theme, typography, reduceMotion } = useTheme();
+  const { theme, typography } = useTheme();
   const value = clampPercent(percent);
-  const [fill] = useState(() => new Animated.Value(value / 100));
-  const [trackWidth, setTrackWidth] = useState(0);
-  useEffect(() => {
-    const animation = Animated.timing(fill, {
-      toValue: value / 100,
-      duration: reduceMotion ? 0 : 200,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
-    animation.start();
-    return () => animation.stop();
-  }, [fill, value, reduceMotion]);
   const fillColor =
     tone === 'danger'
       ? theme.colors.danger
@@ -85,25 +72,12 @@ export function ProgressBar({
         </Text>
       </View>
       <View
-        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
         style={[styles.track, { backgroundColor: theme.colors.progressTrack }]}
       >
-        <Animated.View
+        <View
           style={[
             styles.fill,
-            {
-              width: '100%',
-              backgroundColor: fillColor,
-              transform: [
-                {
-                  translateX: fill.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-trackWidth / 2, 0],
-                  }),
-                },
-                { scaleX: fill },
-              ],
-            },
+            { width: `${value}%`, backgroundColor: fillColor },
           ]}
         />
       </View>

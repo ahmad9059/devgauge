@@ -1,13 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import {
-  Animated,
-  Easing,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import type { ReactNode } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { borderWidths, radii, spacing } from '@/design/tokens';
@@ -28,38 +20,16 @@ export function Sheet({
   testID?: string;
 }) {
   const { theme, typography, reduceMotion } = useTheme();
-  const [mounted, setMounted] = useState(visible);
-  const [progress] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (visible) setMounted(true);
-      Animated.timing(progress, {
-        toValue: visible ? 1 : 0,
-        duration: reduceMotion ? 0 : visible ? 200 : 140,
-        easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished && !visible) setMounted(false);
-      });
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      progress.stopAnimation();
-    };
-  }, [visible, reduceMotion, progress]);
   return (
     <Modal
-      visible={mounted}
+      visible={visible}
       transparent
-      animationType="none"
+      animationType={reduceMotion ? 'none' : 'slide'}
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View
-        style={[
-          styles.backdrop,
-          { backgroundColor: theme.colors.overlay, opacity: progress },
-        ]}
+      <View
+        style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}
       >
         <Pressable
           style={styles.backdropPress}
@@ -68,23 +38,13 @@ export function Sheet({
           onPress={onClose}
         />
         <SafeAreaView edges={['bottom']} style={styles.sheetWrapper}>
-          <Animated.View
+          <View
             testID={testID}
             style={[
               styles.sheet,
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,
-                transform: [
-                  {
-                    translateY: reduceMotion
-                      ? 0
-                      : progress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [24, 0],
-                        }),
-                  },
-                ],
               },
             ]}
           >
@@ -105,9 +65,9 @@ export function Sheet({
               />
             </View>
             <View style={styles.body}>{children}</View>
-          </Animated.View>
+          </View>
         </SafeAreaView>
-      </Animated.View>
+      </View>
     </Modal>
   );
 }
