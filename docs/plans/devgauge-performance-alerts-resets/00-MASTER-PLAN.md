@@ -52,7 +52,7 @@ Proceed under these defaults during implementation; routine choices need no new 
 | 3 | Fix usage, reset timestamps and persistence | 1 | Implemented; regressions pass; final native QA pending |
 | 4 | Speed up and unify sync | 3 | Shared runtime and policy implemented; signed-in measurements pending |
 | 5 | Deliver thresholds and reset notifications | 3, 4 | Scoped settings/journal/reconciliation implemented; native delivery matrix partial |
-| 6 | Claude/Codex earned reset offers and redemption | 3, 4; feasibility independent | Contract/model/handoff implemented; direct transport unproved |
+| 6 | Claude/Codex earned reset offers and redemption | 3, 4; feasibility independent | Earned-reset UI removed per owner revision; direct redemption excluded from revised scope |
 | 7 | Working provider actions and microinteractions | 4, 5, 6 integration | Implemented; full device/accessibility QA pending |
 | 8 | Release verification and completion report | 2–7 | Automated/artifact audit reported; native/live/production gates open |
 
@@ -70,3 +70,7 @@ Execute 1, 2, 3, 4, 5, 6, 7, 8; Phase 6 discovery may start earlier. External bl
 ## 7. Next Step
 
 Continue authorized verification of final artifacts, account-bound earned-reset transport, notification/device/accessibility behavior and signed-in sync performance. EXECUTION-LOG.md and BASELINE.md record committed work and measured evidence. Irreversible account reset consumption still requires the user's explicit in-app confirmation.
+
+## Owner detail-page revision
+
+The owner withdrew earned-reset UI because redemption cannot happen in DevGauge. Remove that section/handoff and show Refresh, Reauthorize and Disconnect inline below Connection. Use device-local reset time without GMT/offset labels, semantic connected/stale colors and correct just-now freshness. This supersedes Phase 6’s original visible section/redemption requirement; historical contract findings remain documented. Other live/device/production gates remain open.

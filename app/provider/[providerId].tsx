@@ -1,5 +1,4 @@
 import { supportsMountedUsage } from '@/providers/registry';
-import { EarnedResetSection } from '@/features/connections/earned-reset-section';
 import { useSyncStatus } from '@/features/dashboard/sync-provider';
 import { getAppDatabase } from '@/services/app-database-store';
 import { disconnectConnection } from '@/services/local-data';
@@ -24,7 +23,6 @@ import {
   ScreenScroll,
   SectionTitle,
   Sheet,
-  Stack,
   StatusChip,
 } from '@/components/ui';
 import { Monogram } from '@/components/ui/monogram';
@@ -68,7 +66,6 @@ export default function ProviderDetailScreen() {
   );
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionsOpen, setActionsOpen] = useState(false);
   const providers = useProviderViews();
   const provider = providers.find((item) => item.id === providerId);
 
@@ -96,9 +93,8 @@ export default function ProviderDetailScreen() {
       authMode: provider.authMode,
     });
   const refresh = () => {
-    setActionsOpen(false);
     setActionError(null);
-    void startSync(provider.id, 'retry').catch(() =>
+    void startSync(provider.id, 'manual').catch(() =>
       setActionError('Could not refresh. Retry or reconnect this provider.'),
     );
   };
@@ -116,7 +112,11 @@ export default function ProviderDetailScreen() {
             : outcome?.status === 'cancelled'
               ? 'Refresh cancelled.'
               : outcome?.status === 'skipped'
-                ? 'Refresh skipped because this connection is not currently eligible.'
+                ? outcome.reason === 'not-yet-due'
+                  ? 'Refresh is paused until the current cooldown ends.'
+                  : outcome.reason === 'fresh-cache'
+                    ? 'Usage is already up to date.'
+                    : 'Reconnect this provider to refresh usage.'
                 : outcome?.status === 'success'
                   ? 'Usage refreshed.'
                   : null;
@@ -188,7 +188,6 @@ export default function ProviderDetailScreen() {
                             day: 'numeric',
                             hour: 'numeric',
                             minute: '2-digit',
-                            timeZoneName: 'short',
                           })
                         : window.resetsText
                           ? `Resets ${window.resetsText} (time unverified)`
@@ -209,24 +208,12 @@ export default function ProviderDetailScreen() {
           />
         )}
 
-        {provider.id === 'claude' || provider.id === 'codex' ? (
-          <EarnedResetSection providerId={provider.id} />
-        ) : null}
         <SectionTitle>Connection</SectionTitle>
         <Card padded={false}>
           <View style={styles.cardPad}>
             <ListRow
               title="Status"
-              trailing={
-                <Text
-                  style={[
-                    typography.label,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  {status.label}
-                </Text>
-              }
+              trailing={<StatusChip label={status.label} tone={status.tone} />}
             />
             <ListRow
               title="Source"
@@ -257,70 +244,61 @@ export default function ProviderDetailScreen() {
           </View>
         </Card>
 
-        <Stack gap="sm">
-          <Button
-            label="Card actions"
-            variant="secondary"
-            icon="dots-horizontal"
-            onPress={() => setActionsOpen(true)}
-          />
-        </Stack>
-      </ScreenScroll>
-
-      <Sheet
-        visible={actionsOpen}
-        title={`${provider.displayName} actions`}
-        onClose={() => setActionsOpen(false)}
-      >
-        <Text style={[typography.body, { color: theme.colors.textSecondary }]}>
-          {status.hint}
-        </Text>
-        <Button
-          label={syncing ? 'Refreshing…' : 'Refresh now'}
-          loading={syncing}
-          disabled={working || !canRefresh}
-          onPress={refresh}
-        />
+        <View style={styles.actionsRow}>
+          <View style={styles.actionCell}>
+            <Button
+              label={syncing ? 'Cancel' : 'Refresh'}
+              variant="secondary"
+              fullWidth
+              style={styles.actionButton}
+              disabled={working || (!syncing && !canRefresh)}
+              accessibilityHint={
+                syncing ? 'Cancel this refresh' : 'Refresh provider usage'
+              }
+              onPress={syncing ? () => cancelProvider(provider.id) : refresh}
+            />
+          </View>
+          <View style={styles.actionCell}>
+            <Button
+              label="Reauthorize"
+              variant="secondary"
+              fullWidth
+              style={styles.actionButton}
+              disabled={working}
+              onPress={() => {
+                cancelProvider(provider.id);
+                if (provider.id === 'gemini-cli') router.push('/antigravity');
+                else
+                  router.push({
+                    pathname: '/session/[providerId]',
+                    params: { providerId: provider.id },
+                  });
+              }}
+            />
+          </View>
+          <View style={styles.actionCell}>
+            <Button
+              label="Disconnect"
+              variant="danger"
+              fullWidth
+              style={styles.actionButton}
+              disabled={
+                working || (!provider.connectionId && !pendingDisconnectId)
+              }
+              onPress={() => setDisconnectOpen(true)}
+            />
+          </View>
+        </View>
         {!canRefresh ? (
           <Text
-            style={[typography.body, { color: theme.colors.textSecondary }]}
+            style={[typography.caption, { color: theme.colors.textSecondary }]}
           >
             Connect a supported live session to refresh. Manual imports must be
             updated from their source.
           </Text>
         ) : null}
-        {syncing ? (
-          <Button
-            label="Cancel refresh"
-            variant="ghost"
-            onPress={() => cancelProvider(provider.id)}
-          />
-        ) : null}
-        <Button
-          label="Reauthorize"
-          variant="secondary"
-          disabled={working}
-          onPress={() => {
-            setActionsOpen(false);
-            cancelProvider(provider.id);
-            if (provider.id === 'gemini-cli') router.push('/antigravity');
-            else
-              router.push({
-                pathname: '/session/[providerId]',
-                params: { providerId: provider.id },
-              });
-          }}
-        />
-        <Button
-          label="Disconnect"
-          variant="danger"
-          disabled={working || (!provider.connectionId && !pendingDisconnectId)}
-          onPress={() => {
-            setActionsOpen(false);
-            setDisconnectOpen(true);
-          }}
-        />
-      </Sheet>
+      </ScreenScroll>
+
       <Sheet
         visible={disconnectOpen}
         title="Disconnect provider"
@@ -389,9 +367,13 @@ export default function ProviderDetailScreen() {
 const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  actionsRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
+  actionCell: { flex: 1, minWidth: 0 },
+  actionButton: { paddingHorizontal: spacing.sm, flexGrow: 1 },
   cardPad: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
 });

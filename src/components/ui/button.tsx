@@ -30,6 +30,7 @@ export function Button({
   accessibilityHint,
   fullWidth = false,
   testID,
+  style: customStyle,
 }: {
   label: string;
   onPress?: () => void;
@@ -41,6 +42,7 @@ export function Button({
   accessibilityHint?: string;
   fullWidth?: boolean;
   testID?: string;
+  style?: ViewStyle;
 }) {
   const { theme, typography } = useTheme();
   const inactive = disabled || loading;
@@ -94,6 +96,7 @@ export function Button({
     gap: spacing.sm,
     alignSelf: fullWidth ? 'stretch' : 'flex-start',
     opacity: inactive ? opacities.disabled : pressed ? opacities.pressed : 1,
+    ...customStyle,
   });
 
   return (
@@ -112,7 +115,12 @@ export function Button({
       ) : icon ? (
         <Icon name={icon} size={20} color={colors.text} />
       ) : null}
-      <Text style={[typography.labelStrong, { color: colors.text }]}>
+      <Text
+        style={[
+          typography.labelStrong,
+          { color: colors.text, flexShrink: 1, textAlign: 'center' },
+        ]}
+      >
         {label}
       </Text>
     </Pressable>

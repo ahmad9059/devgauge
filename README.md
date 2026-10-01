@@ -23,7 +23,7 @@ Shrinking and resource removal are configured through Expo prebuild. Production 
 
 The three-tab dashboard reads encrypted connections and usage snapshots, with provider detail, sign-in, support, legal and diagnostics screens. The mounted runtime refreshes website sessions for Claude, Codex, Copilot, Command Code and OpenCode Go, plus Antigravity OAuth sessions. Startup, foreground and manual refresh share concurrency, deduplication, deadline and cooldown handling. Legacy provider adapters retain their independent release/capability gates; their disabled flags do not mean the mounted application makes no requests.
 
-Usage alerts and reset reminders are configured in Settings → Usage alerts & resets. Rules persist provider/account/window scope, thresholds, lead time, quiet hours and generic lock-screen copy by default. The scheduler journals pending/denied/failed operations and reconciles native reminders on startup and return. Thresholds can only react to consumption observed by a sync; known local reset alarms can run while the app is closed. Manual reset reminders can be added, edited and deleted. Earned reset sections show unknown availability and explicit first-party handoffs; direct redemption is incomplete.
+Usage alerts and reset reminders are configured in Settings → Usage alerts & resets. Rules persist provider/account/window scope, thresholds, lead time, quiet hours and generic lock-screen copy by default. The scheduler journals pending/denied/failed operations and reconciles native reminders on startup and return. Thresholds can only react to consumption observed by a sync; known local reset alarms can run while the app is closed. Manual reset reminders can be added, edited and deleted. Earned reset controls are omitted because DevGauge cannot redeem them. Provider detail actions are shown inline below Connection; reset times follow the device’s local timezone.
 
 Disconnect cancels the selected connection’s refresh and reminders, removes vault credentials and deletes local history. Browser/WebView sign-in can remain: global cookie deletion would affect unrelated providers. Delete-all cancels owned reminders before deleting data and the encryption key. Remote revocation remains provider-dependent.
 
@@ -46,6 +46,6 @@ The interface follows a monochrome, Vercel-style design language: Geist and Geis
 
 ## Release status
 
-Implementation is in progress. Preview artifacts are available for internal verification. Production is **NO-GO** pending owner configuration, signed-in provider checks, cookie/deletion review, direct earned-reset transport and final device/accessibility evidence. The original goal is not complete.
+Implementation is in progress. Preview artifacts are available for internal verification. Production is **NO-GO** pending owner configuration, signed-in provider checks, cookie/deletion review and final device/accessibility evidence. The original goal is not complete.
 
 See [release readiness](docs/release/release-readiness.md), the [privacy & data inventory](docs/release/privacy-data-inventory.md), the [mobile QA matrix](docs/release/mobile-qa-matrix.md), and the [provider incident runbook](docs/operations/provider-incident-runbook.md).
