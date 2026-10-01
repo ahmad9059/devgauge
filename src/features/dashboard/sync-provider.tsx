@@ -45,6 +45,7 @@ import {
   toDomainWindows,
   type CapturedResponse,
 } from '@/services/web-session/usage-extract';
+import { isQuotaReady } from '@/services/web-session/quota-readiness';
 import { parseUsageText } from '@/services/web-session/usage-text';
 import type {
   ProviderView,
@@ -103,17 +104,6 @@ const SESSION_SOURCES = Object.fromEntries(
     { uri: config.usageUrl },
   ]),
 );
-
-function hasCodexPageUsage(windows: UsageWindow[]): boolean {
-  const fiveHour = windows.find((window) => window.kind === 'rolling');
-  const weekly = windows.find((window) => window.kind === 'weekly');
-  // For Codex, page text is the authoritative remaining-percent source. Wait
-  // for its reset labels as well, rather than persisting an early API payload.
-  return Boolean(
-    (fiveHour?.resetsAt || fiveHour?.resetsSourceText) &&
-    (weekly?.resetsAt || weekly?.resetsSourceText),
-  );
-}
 
 function fetchWithSignal(signal: AbortSignal) {
   return async (url: string, init: RequestInit): Promise<Response> => {
@@ -537,16 +527,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           config.keyMap,
           job.capturedAt,
         );
-        const isReady =
-          windows.length > 0 &&
-          (job.provider.id !== 'claude' ||
-            (windows.some((window) => window.kind === 'rolling') &&
-              windows.some((window) => window.kind === 'weekly'))) &&
-          (job.provider.id !== 'command-code' ||
-            ['rolling', 'weekly', 'monthly'].every((kind) =>
-              windows.some((window) => window.kind === kind),
-            )) &&
-          (job.provider.id !== 'codex' || hasCodexPageUsage(windows));
+        const isReady = isQuotaReady(job.provider.id, windows);
         if (isReady) void finishWebJob(providerId, job.runId, windows);
       } catch {
         // Ignore messages that are not bridge payloads.
