@@ -5,7 +5,11 @@ import type { UsageWindow } from '@/domain/usage';
 import type { Database } from '@/storage/database';
 import { upsertConnectionInTransaction } from '@/storage/repositories/connections';
 import { saveRefreshInTransaction } from '@/storage/repositories/usage';
-import type { UsageSnapshotRecord, UsageWindowRecord } from '@/storage/types';
+import type {
+  RefreshTrigger,
+  UsageSnapshotRecord,
+  UsageWindowRecord,
+} from '@/storage/types';
 
 export type SaveSessionInput = {
   db: Database;
@@ -19,6 +23,9 @@ export type SaveSessionInput = {
   /** Defaults to a cookie-based web session. */
   authMode?: 'web-session' | 'api-key' | 'oauth-pkce';
   credentialRef?: string | null;
+  trigger?: RefreshTrigger;
+  /** Absent means the capture start was not measured; duration stays unknown. */
+  startedAt?: Date;
 };
 
 export type SaveSessionResult = {
@@ -87,7 +94,12 @@ async function persistSessionSnapshot(
       fetchedAt: input.fetchedAt,
       source: 'live',
       providerSchemaVersion: 1,
-      isPartial: false,
+      isPartial: input.windows.some(
+        (window) =>
+          window.used === null ||
+          window.limit === null ||
+          window.resetsAt === null,
+      ),
       responseFingerprint: null,
       createdAt: nowIso,
     };
@@ -122,15 +134,17 @@ async function persistSessionSnapshot(
       attempt: {
         id: input.nextId(),
         connectionId,
-        startedAt: nowIso,
+        startedAt: input.startedAt?.toISOString() ?? nowIso,
         completedAt: nowIso,
-        trigger: 'manual',
+        trigger: input.trigger ?? 'manual',
         outcome: 'success',
         httpStatus: 200,
         errorCode: null,
         retryAfterAt: null,
         requestId: null,
-        durationMs: 0,
+        durationMs: input.startedAt
+          ? Math.max(0, input.now.getTime() - input.startedAt.getTime())
+          : null,
         safeDetail: null,
       },
       snapshot: { snapshot, windows },

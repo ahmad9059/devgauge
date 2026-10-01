@@ -74,6 +74,33 @@ describe('session host allowlist', () => {
 });
 
 describe('session persistence', () => {
+  it('records the measured trigger and elapsed capture time, leaving unmeasured durations unknown', async () => {
+    const db = await createMigratedTestDatabase();
+    let id = 0;
+    const input = {
+      db,
+      providerId: 'claude' as const,
+      displayName: 'Claude',
+      windows: [],
+      fetchedAt: NOW.toISOString(),
+      now: NOW,
+      nextId: () => `timing-${++id}`,
+    };
+    await saveSessionSnapshot({
+      ...input,
+      trigger: 'foreground',
+      startedAt: new Date(NOW.getTime() - 1234),
+    });
+    await saveSessionSnapshot(input);
+    const attempts = await db.all<{
+      trigger: string;
+      duration_ms: number | null;
+    }>('SELECT trigger,duration_ms FROM refresh_attempts ORDER BY id');
+    expect(attempts).toEqual([
+      { trigger: 'foreground', duration_ms: 1234 },
+      { trigger: 'manual', duration_ms: null },
+    ]);
+  });
   it('rolls back connection freshness and attempts when snapshot persistence fails', async () => {
     const db = await createMigratedTestDatabase();
     let counter = 0;

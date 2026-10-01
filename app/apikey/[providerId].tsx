@@ -54,6 +54,7 @@ export default function ApiKeyScreen() {
   }
 
   const connect = async (apiKey: string) => {
+    const startedAt = new Date();
     setBusy(true);
     setError(null);
     try {
@@ -84,6 +85,7 @@ export default function ApiKeyScreen() {
         providerId,
         displayName: `${candidate.host} API key`,
         windows: probe.windows,
+        startedAt,
         fetchedAt: new Date().toISOString(),
         now: new Date(),
         nextId: () => `${connectionId}-${Date.now()}-${(ids += 1)}`,

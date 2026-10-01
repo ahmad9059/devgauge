@@ -175,6 +175,7 @@ export async function syncAntigravity(
   const connection = await getConnection(db, CONNECTION_ID);
   if (!connection || connection.status === 'disconnected')
     return 'needs-sign-in';
+  const startedAt = now();
   let quota: NormalizedUsageResult;
   try {
     quota = await fetchAntigravityUsage(input);
@@ -197,6 +198,7 @@ export async function syncAntigravity(
     providerId: 'gemini-cli',
     displayName: 'Antigravity',
     windows: quota.windows,
+    startedAt,
     fetchedAt: now().toISOString(),
     now: now(),
     nextId,
