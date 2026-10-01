@@ -1,8 +1,7 @@
-import { Tabs } from 'expo-router';
+import { TopTabs } from 'expo-router/js-top-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/ui';
-import { SwipeTabs } from '@/components/navigation/swipe-tabs';
 import { touchTargets } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 
@@ -11,18 +10,20 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
   return (
-    <Tabs
-      screenLayout={({ children, route, navigation }) => (
-        <SwipeTabs tab={route.name} navigate={navigation.navigate}>
-          {children}
-        </SwipeTabs>
-      )}
+    <TopTabs
+      initialRouteName="usage"
+      tabBarPosition="bottom"
       screenOptions={{
-        headerShown: false,
+        swipeEnabled: true,
+        animationEnabled: true,
+        tabBarShowIcon: true,
+        tabBarIndicatorStyle: { height: 0 },
         tabBarActiveTintColor: theme.colors.accent,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: {
           backgroundColor: theme.colors.tabBar,
+          elevation: 0,
+          shadowOpacity: 0,
           borderTopColor: theme.colors.tabBarBorder,
           borderTopWidth: 1,
           height: touchTargets.tabBar + insets.bottom,
@@ -34,48 +35,48 @@ export default function TabLayout() {
         sceneStyle: { backgroundColor: theme.colors.background },
       }}
     >
-      <Tabs.Screen
+      <TopTabs.Screen
         name="usage"
         options={{
           title: 'Usage',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }: { color: string }) => (
             <Icon
               name="chart-timeline-variant"
-              size={size}
+              size={24}
               color={color}
               accessibilityHidden={false}
             />
           ),
         }}
       />
-      <Tabs.Screen
+      <TopTabs.Screen
         name="connectors"
         options={{
           title: 'Connectors',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }: { color: string }) => (
             <Icon
               name="connection"
-              size={size}
+              size={24}
               color={color}
               accessibilityHidden={false}
             />
           ),
         }}
       />
-      <Tabs.Screen
+      <TopTabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }: { color: string }) => (
             <Icon
               name="cog-outline"
-              size={size}
+              size={24}
               color={color}
               accessibilityHidden={false}
             />
           ),
         }}
       />
-    </Tabs>
+    </TopTabs>
   );
 }
