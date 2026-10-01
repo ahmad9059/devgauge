@@ -28,6 +28,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     icon: './assets/icon.png',
     scheme: 'devgauge',
     plugins: [
+      [
+        'expo-build-properties',
+        {
+          android: {
+            enableMinifyInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
+          },
+        },
+      ],
       'expo-font',
       // Required by the Expo Router config plugin in SDK 57+.
       'expo-router',
