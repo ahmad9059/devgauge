@@ -1,5 +1,15 @@
 # Completion audit — incomplete
 
+## Owner-requested UI revision (2026-10-01)
+
+The owner withdrew earned-reset controls from the app. Provider detail now omits that section and the Card actions menu, and places Refresh, Reauthorize and Disconnect in one horizontal row below Connection. Connection status uses semantic colors. Absolute reset timestamps use the device's local time without a GMT/timezone suffix. Fresh snapshots show “just now” even when the coarse display clock slightly precedes their capture timestamp. Usage cards place their update label at the bottom right.
+
+Claude capture recognizes Current session, All models and model-specific weekly headings, keeps reset text with its own section, and enriches equal-value duplicate API captures without mixing different quota values. If a Claude main quota lacks reset timing, a warm API capture falls back to the page; page capture continues until reset labels arrive or the existing 12-second deadline saves verified partial usage. Provider date text without an explicit timezone remains display-only.
+
+Codex now captures the optional Workspace monthly credit limit as a third bar. The owner's example preserves 378 / 1,000 credits used (37.8% consumption), rather than losing the exact counts behind the rounded 62% remaining. Reset text survives even when copied onto the same line as credit counts. Sign-in and background refresh both allow page data to arrive before committing the main quotas; warm captures missing workspace data use the page fallback. Personal accounts without workspace limits keep their ordinary two bars. Long progress labels/values wrap within the app's existing design. These changes are covered by **425 passing tests**; live account behavior still needs the owner's device test.
+
+The sections below retain the earlier audit and artifact measurements. The updated device artifact and native UI checks are recorded in QA-REPORT.md; the older APK references below are historical.
+
 Generated 2026-10-01 from all eight phase documents, master plan, execution/native logs, current gate output and actual Git history. **The original goal is not complete.** This report records delivered work and missing proof; its filename does not certify completion.
 
 Branch `main`, audit head `ae066394f9eff99dfcfd8e038fc4adda46290a6f`; implementation changes are local commits. No push, merge to a remote branch, deployment or publication occurred. Diff from implementation baseline `54bf0f1`: **117 files, 6,008 insertions, 1,156 deletions** before this report. Reports themselves add documentation afterward. Device-test APK source is `0f84dfa`; later audit-head changes are documentation only.
@@ -13,7 +23,7 @@ Branch `main`, audit head `ae066394f9eff99dfcfd8e038fc4adda46290a6f`; implementa
 | 3 — Usage correctness | Implemented, meaningful regressions pass | Final native timezone/recovery matrix |
 | 4 — Shared sync | Implemented, scoped cancellation/errors/retention | 20 cold + 20 warm samples/provider, call counts/RAM and live error matrix |
 | 5 — Notifications | Scoped persisted settings, journal and reconciler implemented | Remaining native quiet/timezone/provider-window/disconnect/power cases |
-| 6 — Earned resets | Official contracts, typed model and labeled browser handoff | Account-bound direct transport, durable confirmed consumption and refreshed limits |
+| 6 — Earned resets | Owner withdrew controls; detail section removed | No direct redemption requirement in the revised scope |
 | 7 — Provider actions/UI | Functional controls, disabled/error states, reduced motion | Live cookie/account cleanup, latency and full TalkBack/layout matrix |
 | 8 — Verification | Automated gates, artifact/dependency evidence, this audit | Native/live/production gates above; not closed |
 
@@ -23,13 +33,13 @@ Normalization now distinguishes percent/ratio/remaining fields. Absolute reset t
 
 Notifications persist selected provider/account/window/cycle scopes and generic/detail choice, reconcile native intent acknowledgements, and recover failed/pending cancellation. Manual reminders require explicit timezone confirmation. Provider actions wire refresh/retry/reauthorize/disconnect; delete-all drains work, cancels owned reminders and removes the database file before its key. Native integration after committed usage is at `src/features/dashboard/sync-provider.tsx:367`; the root mounts notification handling at `app/_layout.tsx:75`.
 
-Claude/Codex detail sections separate earned resets from ordinary countdowns. Availability remains unknown without verified account transport. The model at `src/features/connections/provider-reset.ts:19` does not establish a live read/consume client. No credit was spent or success fabricated. RESET-CONTRACTS.md explains the missing Android contract; a browser link does not fulfill direct redemption.
+Earned-reset controls and the browser handoff were removed by the owner-requested revision. Earlier contract research and the unmounted typed model remain historical work; no credit was spent.
 
 ## Evidence and open work
 
 QA-REPORT.md records 417 tests and exact verification scope. BASELINE.md records build checksums and same-ABI comparisons. NATIVE-QA-LOG.md includes the observed cold-route failure and successful native retest on the fixed artifact. Owner received the signed internal preview APK and will test with their account; owner account access is not workspace transport proof.
 
-External requirements: supported authenticated Android redemption transport and eligible outcome verification; owner device/account results; production application ID/signing. Locally runnable native checks remain in progress. Public-release dependency review is unresolved, especially the router URI decoder. These are incomplete requirements, not waived acceptance criteria.
+External requirements in the revised scope: owner device/account results and production application ID/signing. Locally runnable native checks remain in progress. Public-release dependency review is unresolved, especially the router URI decoder.
 
 ## Undo procedure and data limits
 

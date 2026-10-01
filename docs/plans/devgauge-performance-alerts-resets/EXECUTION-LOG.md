@@ -1,5 +1,11 @@
 # Execution log
 
+## 2026-10-01 — owner UI and workspace credits revision
+
+The owner withdrew earned-reset controls and requested device-local reset labels without timezone suffixes, inline detail actions, semantic Connection colors, correct “just now” freshness and bottom-right card update labels. Implemented in `3a3fed7`, `183eb79` and `203c2ba`. `1d114fa` fixes Claude section/reset association and partial capture completion. `2d504f9` adds Codex workspace monthly credits, retains exact usage counts, wraps long progress text, and applies page completion policy to both sign-in and refresh. Final automated gates: 83 files / 425 tests, typecheck, lint, config and formatting pass. Live owner-account capture remains to be tested on the delivered APK; no provider timing was fabricated.
+
+Both final native release builds succeeded sequentially. `2d504f9` emulator upgrade retained sample data; native inspection verifies right-aligned freshness, inline actions and Disconnect → Cancel without data removal. Phone APK is 41.78 MiB, signature verified, and copied to the stable `artifacts/devgauge-device-test.apk` handoff. QA-REPORT.md records exact sizes, hashes and evidence limits.
+
 ## 2026-10-01 — Baseline and usage correctness
 
 - Read all ten original plan documents and the previous plan's cross-cutting rules; inspected mounted sync, extraction, storage and provider view paths.
