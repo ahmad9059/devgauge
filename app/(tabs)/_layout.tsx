@@ -1,4 +1,5 @@
 import { TopTabs } from 'expo-router/js-top-tabs';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/ui';
@@ -8,6 +9,7 @@ import { useTheme } from '@/design/theme-provider';
 export default function TabLayout() {
   const { theme, typography } = useTheme();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
 
   return (
     <TopTabs
@@ -27,8 +29,10 @@ export default function TabLayout() {
           borderTopColor: theme.colors.tabBarBorder,
           borderTopWidth: 1,
           height:
-            Math.max(touchTargets.tabBar, typography.caption.lineHeight + 40) +
-            insets.bottom,
+            Math.max(
+              touchTargets.tabBar,
+              (typography.caption.lineHeight ?? 20) * fontScale + 40,
+            ) + insets.bottom,
           paddingTop: 6,
           paddingBottom: insets.bottom + 6,
         },
