@@ -19,3 +19,21 @@ export function isQuotaReady(
     ),
   );
 }
+
+/** Only Claude's main limits need the page fallback for missing reset labels. */
+export function needsResetTiming(
+  providerId: SessionProviderId,
+  windows: readonly UsageWindow[],
+): boolean {
+  return (
+    providerId === 'claude' &&
+    windows.some(
+      (window) =>
+        ['session.five_hour', 'session.seven_day'].includes(
+          window.externalKey,
+        ) &&
+        !window.resetsAt &&
+        !window.resetsSourceText,
+    )
+  );
+}

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractUsageWindows, type WindowKeyMap } from './usage-extract';
+import {
+  extractUsageWindows,
+  mergeRawWindows,
+  type WindowKeyMap,
+} from './usage-extract';
 
 const keys: WindowKeyMap = { primary: { label: 'Session', kind: 'rolling' } };
 function extract(payload: unknown, keyMap = keys) {
@@ -16,6 +20,18 @@ function extract(payload: unknown, keyMap = keys) {
 }
 
 describe('field-specific usage units', () => {
+  it('enriches duplicate quota values with reset timing without mutating capture inputs', () => {
+    const first = { key: 'five_hour', usedPercent: 24, resetsAt: null };
+    const reset = '2026-10-01T09:00:00Z';
+    expect(
+      mergeRawWindows([first, { ...first, resetsAt: reset }])[0].resetsAt,
+    ).toBe(reset);
+    expect(first.resetsAt).toBeNull();
+    expect(
+      mergeRawWindows([first, { ...first, usedPercent: 0, resetsAt: reset }])[0]
+        .resetsAt,
+    ).toBeNull();
+  });
   it.each([0, 0.5, 1, 1.5, 100])('preserves explicit %s percent', (value) => {
     expect(extract({ used_percent: value })[0].utilization).toBe(value / 100);
     expect(extract({ utilization: value })[0].utilization).toBe(value / 100);

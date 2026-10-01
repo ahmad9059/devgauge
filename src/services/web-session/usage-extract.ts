@@ -166,7 +166,12 @@ export function mergeRawWindows(raw: readonly RawWindow[]): RawWindow[] {
   for (const window of raw) {
     const existing = found.get(window.key);
     if (!existing || window.usedPercent > existing.usedPercent) {
-      found.set(window.key, window);
+      found.set(window.key, { ...window });
+    } else if (
+      window.usedPercent === existing.usedPercent &&
+      !existing.resetsAt
+    ) {
+      existing.resetsAt = window.resetsAt;
     }
   }
   return [...found.values()];

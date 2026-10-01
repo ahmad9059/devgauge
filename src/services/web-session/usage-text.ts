@@ -15,6 +15,12 @@ const RESET = /resets?\s+(.+)/i;
 
 function sectionKey(line: string, keyMap: WindowKeyMap): string | null {
   const lower = line.toLowerCase();
+  if (keyMap.five_hour && /^current session$/i.test(line)) return 'five_hour';
+  if (keyMap.seven_day && /^all models$/i.test(line)) return 'seven_day';
+  if (keyMap.seven_day_opus && /^opus(?: only)?$/i.test(line))
+    return 'seven_day_opus';
+  if (keyMap.seven_day_sonnet && /^sonnet(?: only)?$/i.test(line))
+    return 'seven_day_sonnet';
   for (const key of Object.keys(keyMap)) {
     if (lower.includes(key.replace(/_/g, ' ')) || lower.includes(key)) {
       return key;
@@ -71,7 +77,11 @@ export function parseUsageText(
 
   for (const [index, line] of lines.entries()) {
     const key = sectionKey(line, keyMap);
-    if (key) currentKey = key;
+    if (key && key !== currentKey) {
+      currentKey = key;
+      pendingReset = null;
+      last = null;
+    }
 
     // Some responsive layouts put the reset label and its value into separate
     // blocks, producing "Resets" then the date/time on the next text line.

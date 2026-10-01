@@ -51,7 +51,10 @@ import {
   toDomainWindows,
   type CapturedResponse,
 } from '@/services/web-session/usage-extract';
-import { isQuotaReady } from '@/services/web-session/quota-readiness';
+import {
+  isQuotaReady,
+  needsResetTiming,
+} from '@/services/web-session/quota-readiness';
 import { parseUsageText } from '@/services/web-session/usage-text';
 import type {
   ProviderView,
@@ -97,6 +100,7 @@ type WebJob = {
   provider: ProviderView;
   captured: CapturedResponse[];
   text: string;
+  partialWindows?: UsageWindow[];
   done: boolean;
   timeout: ReturnType<typeof setTimeout>;
   resolve: (result: NormalizedUsageResult) => void;
@@ -206,7 +210,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       job.captured = [];
       job.text = '';
       job.timeout = setTimeout(
-        () => void finishWebJob(providerId, runId),
+        () => void finishWebJob(providerId, runId, job.partialWindows),
         PER_PROVIDER_TIMEOUT_MS,
       );
       // A fresh renderer also guarantees the fallback bridge gets the current
@@ -233,7 +237,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           () =>
             webView
               ? loadFullPage(provider.id, runId)
-              : void finishWebJob(provider.id, runId),
+              : void finishWebJob(
+                  provider.id,
+                  runId,
+                  jobsRef.current.get(provider.id)?.partialWindows,
+                ),
           webView ? FAST_REFRESH_TIMEOUT_MS : PER_PROVIDER_TIMEOUT_MS,
         );
         jobsRef.current.set(provider.id, {
@@ -538,6 +546,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           ]),
         );
         for (const window of parseUsageText(job.text, config.keyMap)) {
+          const exact = byKey.get(window.key);
+          if (exact?.usedPercent === window.usedPercent)
+            window.resetsAt ??= exact.resetsAt;
           // Page/API aliases (primary vs primary_window) describe the same
           // Codex quota. Replace that quota, not just an exact matching key.
           if (providerId === 'codex') {
@@ -556,7 +567,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           job.capturedAt,
         );
         const isReady = isQuotaReady(job.provider.id, windows);
-        if (isReady) void finishWebJob(providerId, job.runId, windows);
+        if (isReady) {
+          // Claude's page can publish percentages before its reset labels.
+          // Keep observing this attempt until timing arrives or its deadline;
+          // an API-only partial response gets one fresh page fallback.
+          if (needsResetTiming(job.provider.id, windows)) {
+            job.partialWindows = windows;
+            if (job.mode === 'api') loadFullPage(providerId, job.runId);
+          } else {
+            void finishWebJob(providerId, job.runId, windows);
+          }
+        }
       } catch {
         // Ignore messages that are not bridge payloads.
       }

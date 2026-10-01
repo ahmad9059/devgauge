@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deriveWindow, type UsageWindowKind } from '@/domain/usage';
-import { isQuotaReady } from './quota-readiness';
+import { isQuotaReady, needsResetTiming } from './quota-readiness';
 
 function window(kind: UsageWindowKind) {
   return deriveWindow({
@@ -14,6 +14,23 @@ function window(kind: UsageWindowKind) {
   });
 }
 describe('verified quota capture completion', () => {
+  it('waits for missing Claude main reset labels but accepts raw provider dates and optional omissions', () => {
+    const session = { ...window('rolling'), externalKey: 'session.five_hour' };
+    const weekly = {
+      ...window('weekly'),
+      externalKey: 'session.seven_day',
+      resetsSourceText: 'Fri at 10:00 AM',
+    };
+    expect(needsResetTiming('claude', [session, weekly])).toBe(true);
+    expect(needsResetTiming('codex', [session, weekly])).toBe(false);
+    expect(
+      needsResetTiming('claude', [
+        { ...session, resetsAt: '2026-10-01T09:00:00Z' },
+        weekly,
+        { ...window('weekly'), externalKey: 'session.seven_day_opus' },
+      ]),
+    ).toBe(false);
+  });
   it('accepts both Codex API windows without waiting for DOM reset labels', () => {
     expect(isQuotaReady('codex', [window('rolling'), window('weekly')])).toBe(
       true,

@@ -73,6 +73,46 @@ describe('remaining vs used', () => {
 });
 
 describe('page text parsing', () => {
+  it('reads Claude reset labels before percentages without mixing session and weekly limits', () => {
+    const keyMap = SESSION_PROVIDERS.claude.keyMap;
+    const text = [
+      'Current session',
+      'Resets in 2 hr 30 min',
+      '24% used',
+      'Weekly limits',
+      'All models',
+      'Resets Fri at 10:00 AM',
+      '24% used',
+      'Sonnet only',
+      'Resets Sat at 9:00 AM',
+      '12% used',
+    ].join('\n');
+    const windows = toDomainWindows(
+      parseUsageText(text, keyMap),
+      keyMap,
+      new Date('2026-10-01T05:00:00Z'),
+    );
+    expect(windows.find((w) => w.kind === 'rolling')?.resetsAt).toBe(
+      '2026-10-01T07:30:00.000Z',
+    );
+    expect(windows.find((w) => w.label === 'Weekly')?.resetsSourceText).toBe(
+      'Fri at 10:00 AM',
+    );
+    expect(
+      windows.find((w) => w.label === 'Weekly (Sonnet)')?.resetsSourceText,
+    ).toBe('Sat at 9:00 AM');
+    expect(
+      windows.find((w) => w.label === 'Weekly (Sonnet)')?.resetsAt,
+    ).toBeNull();
+  });
+  it('does not attach a new section reset to the preceding quota without a reset', () => {
+    const keyMap = SESSION_PROVIDERS.claude.keyMap;
+    const raw = parseUsageText(
+      'Current session\n24% used\nWeekly limits\nResets in 2 days\n24% used',
+      keyMap,
+    );
+    expect(raw.map((w) => w.resetsAt)).toEqual([null, 'in 2 days']);
+  });
   it('treats bare Codex page values as remaining without double-inverting explicit qualifiers', () => {
     for (const suffix of ['', ' remaining', '\nremaining']) {
       const text = `5 hour usage limit\n100%${suffix}\nWeekly usage limit\n86%${suffix}`;
