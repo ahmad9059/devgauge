@@ -1,3 +1,4 @@
+import { withWriteTransaction } from '@/storage/write-transaction';
 import type { Database } from '@/storage/database';
 import type { SqlDriver } from '@/storage/sqlite-driver';
 import type {
@@ -80,6 +81,10 @@ const WINDOW_COLUMNS = `id, snapshot_id, external_key, kind, label,
   currency_code, period_starts_at, period_ends_at, resets_at, derivation, resets_source_text`;
 
 export type SaveRefreshInput = {
+  expectedConnection?: {
+    canonicalAccountKey: string;
+    connectedAt: string | null;
+  };
   connection: {
     id: string;
     status: ConnectionStatus;
@@ -104,7 +109,7 @@ export async function saveRefresh(
   db: Database,
   input: SaveRefreshInput,
 ): Promise<void> {
-  await db.transaction((tx) => saveRefreshInTransaction(tx, input));
+  await withWriteTransaction(db, (tx) => saveRefreshInTransaction(tx, input));
 }
 
 /** Writes inside the caller transaction so connection creation is atomic too. */
@@ -112,6 +117,25 @@ export async function saveRefreshInTransaction(
   tx: SqlDriver,
   input: SaveRefreshInput,
 ): Promise<void> {
+  if (input.expectedConnection) {
+    const current = await tx.first<{
+      status: string;
+      canonical_account_key: string;
+      connected_at: string | null;
+    }>(
+      'SELECT status, canonical_account_key, connected_at FROM provider_connections WHERE id = ?',
+      [input.connection.id],
+    );
+    if (
+      !current ||
+      current.status === 'disconnected' ||
+      current.canonical_account_key !==
+        input.expectedConnection.canonicalAccountKey ||
+      current.connected_at !== input.expectedConnection.connectedAt
+    ) {
+      throw new ConnectionChangedError();
+    }
+  }
   await tx.run(
     `UPDATE provider_connections
        SET status = ?, last_success_at = ?, last_attempt_at = ?,
@@ -193,6 +217,12 @@ export async function saveRefreshInTransaction(
   }
 }
 
+export class ConnectionChangedError extends Error {
+  constructor() {
+    super('Connection changed during refresh');
+  }
+}
+
 export type ManualImportInput = {
   /** Snapshot with `source: 'manual'` (user-shared CLI stats or manual entry). */
   snapshot: UsageSnapshotRecord;
@@ -213,7 +243,7 @@ export async function saveManualImport(
   if (snapshot.source !== 'manual') {
     throw new Error('saveManualImport requires a manual-source snapshot');
   }
-  await db.transaction(async (tx) => {
+  await withWriteTransaction(db, async (tx) => {
     await tx.run(
       `INSERT INTO usage_snapshots (${SNAPSHOT_COLUMNS}) VALUES (?,?,?,?,?,?,?,?)`,
       [
@@ -410,7 +440,7 @@ export async function prune(
 ): Promise<PruneReport> {
   const historyCutoff = cutoffIso(now, policy.historyDays);
   const attemptCutoff = cutoffIso(now, policy.failedAttemptDays ?? 30);
-  return db.transaction(async (tx) => {
+  return withWriteTransaction(db, async (tx) => {
     const latest = await tx.all<{ id: string }>(LATEST_SNAPSHOT_IDS);
     let snapshotsDeleted = 0;
     if (latest.length > 0) {

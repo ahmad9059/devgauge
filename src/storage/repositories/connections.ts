@@ -1,3 +1,4 @@
+import { withWriteTransaction } from '@/storage/write-transaction';
 import type { Database } from '@/storage/database';
 import type { SqlDriver } from '@/storage/sqlite-driver';
 import type { ProviderId } from '@/domain/providers';
@@ -79,7 +80,9 @@ export async function upsertConnection(
   db: Database,
   connection: ProviderConnection,
 ): Promise<void> {
-  await db.transaction((tx) => upsertConnectionInTransaction(tx, connection));
+  await withWriteTransaction(db, (tx) =>
+    upsertConnectionInTransaction(tx, connection),
+  );
 }
 
 /** Participates in the caller transaction; never opens a nested transaction. */

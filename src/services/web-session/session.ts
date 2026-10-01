@@ -1,3 +1,4 @@
+import { withWriteTransaction } from '@/storage/write-transaction';
 import { normalizeResetTime } from '@/domain/reset-time';
 import type { ProviderId } from '@/domain/providers';
 import type { UsageWindow } from '@/domain/usage';
@@ -58,7 +59,7 @@ async function persistSessionSnapshot(
   const connectionId = `session-${input.providerId}`;
   const nowIso = input.now.toISOString();
 
-  await input.db.transaction(async (tx) => {
+  await withWriteTransaction(input.db, async (tx) => {
     await upsertConnectionInTransaction(tx, {
       id: connectionId,
       providerId: input.providerId,
