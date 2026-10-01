@@ -22,7 +22,7 @@ export type DiagnosticsExport = {
     scheduled: number;
     manualResets: number;
   };
-  connections: Array<{
+  connections: {
     id: string;
     providerId: string;
     accountScope: string;
@@ -31,28 +31,28 @@ export type DiagnosticsExport = {
     accountHint: string | null;
     hasCredential: boolean;
     lastSuccessAt: string | null;
-  }>;
-  recentAttempts: Array<{
+  }[];
+  recentAttempts: {
     connectionId: string;
     outcome: string;
     errorCode: string | null;
     httpStatus: number | null;
     durationMs: number | null;
     safeDetail: string | null;
-  }>;
-  settings: Array<{ key: string; value: unknown }>;
-  notificationRules: Array<{
+  }[];
+  settings: { key: string; value: unknown }[];
+  notificationRules: {
     id: string;
     providerId: string | null;
     ruleType: string;
     enabled: boolean;
-  }>;
-  manualResets: Array<{
+  }[];
+  manualResets: {
     id: string;
     providerId: string;
     label: string;
     resetsAt: string;
-  }>;
+  }[];
 };
 
 const COUNT_TABLES = [

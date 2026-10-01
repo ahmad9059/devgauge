@@ -12,7 +12,7 @@ import {
 import { isAllowlistedLink } from '@/services/links/provider-links';
 import type { ProviderAdapter, ProviderDescriptor } from '@/providers/types';
 
-const adapters: Array<[ProviderDescriptor, ProviderAdapter]> = [
+const adapters: [ProviderDescriptor, ProviderAdapter][] = [
   [claudeDescriptor(), createClaudeAdapter()],
   [codexDescriptor(), createCodexAdapter()],
   [geminiCliDescriptor(), createGeminiCliAdapter()],

@@ -212,7 +212,7 @@ export async function deleteSetting(
  */
 export async function listSettings(
   db: Database,
-): Promise<Array<{ key: string; value: unknown }>> {
+): Promise<{ key: string; value: unknown }[]> {
   const rows = await db.all<{ key: string; value_json: string }>(
     'SELECT key, value_json FROM app_settings ORDER BY key ASC',
   );

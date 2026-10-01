@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Text } from 'react-native';
 
 import { ConnectorCard } from '@/components/connectors/connector-card';
 import {
@@ -10,18 +9,15 @@ import {
   ListRow,
   Screen,
   ScreenScroll,
-  SectionTitle,
   Sheet,
   Stack,
 } from '@/components/ui';
-import { useTheme } from '@/design/theme-provider';
 import { connectorMetadata } from '@/features/connections/connector-metadata';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { isSessionProvider } from '@/services/web-session/session-config';
 
 export default function ConnectScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
-  const { theme, typography } = useTheme();
   const [sheetOpen, setSheetOpen] = useState(false);
   const providers = useProviderViews();
   const provider = providers.find((item) => item.id === providerId);

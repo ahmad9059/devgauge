@@ -90,7 +90,7 @@ function createSemaphore(limit: number) {
     throw new Error('concurrency must be an integer >= 1');
   }
   let active = 0;
-  const waiters: Array<() => void> = [];
+  const waiters: (() => void)[] = [];
   return {
     async run<T>(task: () => Promise<T>): Promise<T> {
       if (active >= limit) {

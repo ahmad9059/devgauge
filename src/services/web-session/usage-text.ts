@@ -1,5 +1,4 @@
-import type { RawWindow } from './usage-extract';
-import type { WindowKeyMap } from './usage-extract';
+import type { RawWindow, WindowKeyMap } from './usage-extract';
 
 /**
  * Parses visible page text into usage windows. It complements JSON capture for
