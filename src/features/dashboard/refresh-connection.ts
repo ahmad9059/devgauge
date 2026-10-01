@@ -82,6 +82,7 @@ export type RefreshEngine = {
   ): Promise<RefreshOutcome[]>;
   cancel(connectionId: string): void;
   cancelAll(): void;
+  cancelAllAndWait(): Promise<void>;
   activeCount(): number;
 };
 
@@ -545,6 +546,10 @@ export function createRefreshEngine(
     },
     cancelAll() {
       for (const controller of controllers.values()) controller.abort();
+    },
+    async cancelAllAndWait() {
+      for (const controller of controllers.values()) controller.abort();
+      await Promise.allSettled([...inFlight.values()]);
     },
     activeCount() {
       return inFlight.size;

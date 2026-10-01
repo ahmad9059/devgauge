@@ -1,4 +1,11 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useSyncStatus } from '@/features/dashboard/sync-provider';
+import { getAppDatabase } from '@/services/app-database-store';
+import { disconnectConnection } from '@/services/local-data';
+import { createNotificationCanceller } from '@/services/notifications/canceller';
+import { createExpoNotificationScheduler } from '@/services/notifications/expo-scheduler';
+import { createSecureStoreBackend } from '@/storage/secure-store-backend';
+import { createSecureVault } from '@/storage/secure-vault';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -9,6 +16,7 @@ import {
   ErrorState,
   Header,
   ListRow,
+  Notice,
   ProgressBar,
   Screen,
   ScreenScroll,
@@ -20,7 +28,10 @@ import {
 import { Monogram } from '@/components/ui/monogram';
 import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { useProviderViews } from '@/features/dashboard/app-providers';
+import {
+  useProviderViews,
+  useReloadProviders,
+} from '@/features/dashboard/app-providers';
 import { describeSource, describeState } from '@/domain/provider-status';
 import type { UsageWindow as ProviderWindow } from '@/features/dashboard/provider-view-types';
 import { formatRelativeMinutes } from '@/utils/format';
@@ -45,6 +56,16 @@ function groupWindows(
 export default function ProviderDetailScreen() {
   const { providerId } = useLocalSearchParams<{ providerId: string }>();
   const { theme, typography } = useTheme();
+  const router = useRouter();
+  const reload = useReloadProviders();
+  const { startSync, cancelProvider, syncingProviderIds, outcomes } =
+    useSyncStatus();
+  const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [pendingDisconnectId, setPendingDisconnectId] = useState<string | null>(
+    null,
+  );
+  const [working, setWorking] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
   const providers = useProviderViews();
   const provider = providers.find((item) => item.id === providerId);
@@ -64,6 +85,32 @@ export default function ProviderDetailScreen() {
   const source = describeSource(provider.source);
   const relative = formatRelativeMinutes(provider.updatedMinutesAgo);
   const hasWindows = provider.windows.length > 0;
+  const syncing = syncingProviderIds.includes(provider.id);
+  const refresh = () => {
+    setActionsOpen(false);
+    setActionError(null);
+    void startSync(provider.id, 'retry').catch(() =>
+      setActionError('Could not refresh. Retry or reconnect this provider.'),
+    );
+  };
+  const outcome = outcomes[provider.id];
+  const outcomeMessage = syncing
+    ? 'Refreshing usage…'
+    : outcome?.status === 'rate-limited'
+      ? `Refresh paused until ${new Date(outcome.retryAt).toLocaleString()}. Cached usage is shown.`
+      : outcome?.status === 'transient-failure'
+        ? 'Refresh failed. Cached usage is shown; retry when the cooldown ends.'
+        : outcome?.status === 'auth-expired'
+          ? 'Sign in again to refresh usage.'
+          : outcome?.status === 'schema-changed'
+            ? 'The provider response changed. Cached usage is shown.'
+            : outcome?.status === 'cancelled'
+              ? 'Refresh cancelled.'
+              : outcome?.status === 'skipped'
+                ? 'Refresh skipped because this connection is not currently eligible.'
+                : outcome?.status === 'success'
+                  ? 'Usage refreshed.'
+                  : null;
 
   return (
     <Screen edges={['left', 'right', 'bottom']}>
@@ -97,10 +144,20 @@ export default function ProviderDetailScreen() {
         {provider.state === 'error' ? (
           <ErrorState
             description={provider.note ?? 'The last refresh failed.'}
-            onRetry={() => undefined}
+            onRetry={refresh}
           />
         ) : null}
 
+        {actionError ? (
+          <Notice tone="danger" icon="alert-outline">
+            {actionError}
+          </Notice>
+        ) : null}
+        {outcomeMessage ? (
+          <Notice tone="info" icon="information-outline">
+            {outcomeMessage}
+          </Notice>
+        ) : null}
         {hasWindows ? (
           groupWindows(provider.windows).map((section) => (
             <Card key={section.group ?? 'usage'}>
@@ -206,21 +263,101 @@ export default function ProviderDetailScreen() {
         <Text style={[typography.body, { color: theme.colors.textSecondary }]}>
           {status.hint}
         </Text>
-        <ListRow
-          title="Refresh now"
-          subtitle="Available once this connector is enabled"
-          onPress={() => setActionsOpen(false)}
+        <Button
+          label={syncing ? 'Refreshing…' : 'Refresh now'}
+          loading={syncing}
+          disabled={working || !provider.connectionId}
+          onPress={refresh}
         />
-        <ListRow
-          title="Reauthorize"
-          subtitle="Starts the provider sign-in flow"
-          onPress={() => setActionsOpen(false)}
+        {syncing ? (
+          <Button
+            label="Cancel refresh"
+            variant="ghost"
+            onPress={() => cancelProvider(provider.id)}
+          />
+        ) : null}
+        <Button
+          label="Reauthorize"
+          variant="secondary"
+          disabled={working}
+          onPress={() => {
+            setActionsOpen(false);
+            cancelProvider(provider.id);
+            router.push({
+              pathname: '/connect/[providerId]',
+              params: { providerId: provider.id },
+            });
+          }}
         />
-        <ListRow
-          title="Disconnect"
-          destructive
-          subtitle="Removes the stored session and local history"
-          onPress={() => setActionsOpen(false)}
+        <Button
+          label="Disconnect"
+          variant="danger"
+          disabled={working || (!provider.connectionId && !pendingDisconnectId)}
+          onPress={() => {
+            setActionsOpen(false);
+            setDisconnectOpen(true);
+          }}
+        />
+      </Sheet>
+      <Sheet
+        visible={disconnectOpen}
+        title="Disconnect provider"
+        onClose={() => {
+          if (!working) setDisconnectOpen(false);
+        }}
+      >
+        <Notice tone="warning" icon="alert-outline">
+          This removes this connection’s credential, cached history and local
+          usage reminders. Your provider subscription stays active. Website
+          sign-in may remain in the device’s browser; sign out on the provider’s
+          site to remove it.
+        </Notice>
+        <Button
+          label="Disconnect and delete local history"
+          variant="danger"
+          loading={working}
+          onPress={async () => {
+            const disconnectId = provider.connectionId ?? pendingDisconnectId;
+            if (!disconnectId) return;
+            setPendingDisconnectId(disconnectId);
+            setWorking(true);
+            setActionError(null);
+            cancelProvider(provider.id);
+            try {
+              const db = await getAppDatabase();
+              const store = createSecureStoreBackend();
+              await disconnectConnection(
+                db,
+                {
+                  vault: createSecureVault(store),
+                  secretStore: store,
+                  canceller: createNotificationCanceller(
+                    db,
+                    createExpoNotificationScheduler(),
+                  ),
+                },
+                disconnectId,
+                { deleteHistory: true, now: new Date().toISOString() },
+              );
+              setDisconnectOpen(false);
+              setPendingDisconnectId(null);
+              await reload();
+            } catch {
+              setDisconnectOpen(false);
+              setActionError(
+                'Disconnect cleanup is incomplete. Retry to remove remaining local credentials or reminders.',
+              );
+              await reload().catch(() => undefined);
+            } finally {
+              setWorking(false);
+            }
+          }}
+        />
+        <Button
+          label="Cancel"
+          variant="ghost"
+          disabled={working}
+          onPress={() => setDisconnectOpen(false)}
         />
       </Sheet>
     </Screen>

@@ -1,3 +1,11 @@
+import {
+  useReloadProviders,
+  useProviderViews,
+} from '@/features/dashboard/app-providers';
+import { useSyncStatus } from '@/features/dashboard/sync-provider';
+import { createNotificationCanceller } from '@/services/notifications/canceller';
+import { createExpoNotificationScheduler } from '@/services/notifications/expo-scheduler';
+import { refreshUsageNotifications } from '@/services/notifications/usage-notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -60,6 +68,9 @@ const TEXT_SCALE_LABELS: Record<TextScale, string> = {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const reload = useReloadProviders();
+  const providers = useProviderViews();
+  const { cancelProvider, resetSync } = useSyncStatus();
   const {
     theme,
     typography,
@@ -93,7 +104,10 @@ export default function SettingsScreen() {
   const runClearCache = async () => {
     try {
       const db = await getAppDatabase();
+      for (const provider of providers) cancelProvider(provider.id);
       const report = await clearCachedUsage(db);
+      await refreshUsageNotifications(db, createExpoNotificationScheduler());
+      await reload();
       setDataMessage(`Cleared ${report.snapshotsDeleted} cached snapshot(s).`);
     } catch {
       setDataMessage('Could not clear cached usage.');
@@ -105,11 +119,18 @@ export default function SettingsScreen() {
     try {
       const db = await getAppDatabase();
       const secretStore = createSecureStoreBackend();
+      await resetSync();
       await deleteAllLocalData(db, {
         vault: createSecureVault(secretStore),
         secretStore,
+        canceller: createNotificationCanceller(
+          db,
+          createExpoNotificationScheduler(),
+        ),
       });
+      await db.close();
       resetAppDatabaseHandle();
+      await reload();
       setDataMessage('All local data deleted.');
     } catch {
       setDataMessage('Could not delete local data.');

@@ -1,4 +1,5 @@
 import type { Database } from '@/storage/database';
+import { withWriteTransaction } from '@/storage/write-transaction';
 import { SQLCIPHER_KEY_SECRET } from '@/storage/database-key';
 import {
   deleteConnection,
@@ -54,6 +55,13 @@ export async function disconnectConnection(
     };
   }
 
+  // Invalidate refresh writes before asynchronous native/credential cleanup.
+  await withWriteTransaction(db, (tx) =>
+    tx.run(
+      "UPDATE provider_connections SET status='disconnected',disconnected_at=?,updated_at=? WHERE id=?",
+      [options.now, options.now, connectionId],
+    ),
+  );
   let credentialRemoved = false;
   if (connection.credentialRef) {
     await deps.vault.remove(connection.credentialRef);
@@ -113,6 +121,11 @@ export async function deleteAllLocalData(
   deps: LocalDataDependencies,
 ): Promise<DeleteAllReport> {
   const connections = await listConnections(db);
+  let notificationsCancelled = false;
+  if (deps.canceller) {
+    await deps.canceller.cancelAll();
+    notificationsCancelled = true;
+  }
   let credentialRefsRemoved = 0;
   for (const connection of connections) {
     if (connection.credentialRef) {
@@ -121,7 +134,7 @@ export async function deleteAllLocalData(
     }
   }
 
-  await db.transaction(async (tx) => {
+  await withWriteTransaction(db, async (tx) => {
     for (const table of DELETE_ORDER) {
       await tx.run(`DELETE FROM ${table}`);
     }
@@ -131,12 +144,6 @@ export async function deleteAllLocalData(
   const databaseKeyDeleted = storedKey !== null;
   if (databaseKeyDeleted) {
     await deps.secretStore.delete(SQLCIPHER_KEY_SECRET);
-  }
-
-  let notificationsCancelled = false;
-  if (deps.canceller) {
-    await deps.canceller.cancelAll();
-    notificationsCancelled = true;
   }
 
   let databaseFileReset = false;

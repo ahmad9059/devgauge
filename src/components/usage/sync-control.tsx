@@ -15,24 +15,29 @@ import { useSyncStatus } from '@/features/dashboard/sync-provider';
 
 /** Idle: Sync All. While working: one completed provider + rotating refresh. */
 export function SyncControl() {
-  const { theme } = useTheme();
+  const { theme, reduceMotion } = useTheme();
   const { isSyncing, displayedProviderId, syncingProviderIds, startSync } =
     useSyncStatus();
   const [expansion] = useState(() => new Animated.Value(0));
   const [rotation] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
+    if (reduceMotion) {
+      expansion.stopAnimation();
+      expansion.setValue(isSyncing ? 1 : 0);
+      return;
+    }
     Animated.timing(expansion, {
       toValue: isSyncing ? 1 : 0,
       duration: isSyncing ? 180 : 140,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [expansion, isSyncing]);
+  }, [expansion, isSyncing, reduceMotion]);
 
   useEffect(() => {
     rotation.setValue(0);
-    if (!isSyncing) return;
+    if (!isSyncing || reduceMotion) return;
     const animation = Animated.loop(
       Animated.timing(rotation, {
         toValue: 1,
@@ -43,7 +48,7 @@ export function SyncControl() {
     );
     animation.start();
     return () => animation.stop();
-  }, [isSyncing, rotation]);
+  }, [isSyncing, rotation, reduceMotion]);
 
   const width = expansion.interpolate({
     inputRange: [0, 1],
@@ -73,7 +78,7 @@ export function SyncControl() {
         }
         accessibilityState={{ disabled: isSyncing, busy: isSyncing }}
         disabled={isSyncing}
-        onPress={() => void startSync()}
+        onPress={() => void startSync().catch(() => undefined)}
         style={({ pressed }) => [
           styles.pressable,
           { opacity: pressed && !isSyncing ? opacities.pressed : 1 },

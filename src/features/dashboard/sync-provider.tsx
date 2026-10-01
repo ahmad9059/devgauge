@@ -82,6 +82,7 @@ type SyncContextValue = SyncStatus & {
     trigger?: RefreshTrigger,
   ) => Promise<void>;
   cancelProvider: (providerId: ProviderId) => void;
+  resetSync: () => Promise<void>;
 };
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -427,6 +428,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [finishWebJob],
   );
 
+  const resetSync = useCallback(async () => {
+    const engine = await engineRef.current;
+    engineRef.current = null;
+    await engine?.cancelAllAndWait();
+    webRefs.current.clear();
+    setWebHosts([]);
+  }, []);
+
   useEffect(() => {
     if (
       autoStartedRef.current ||
@@ -560,7 +569,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SyncContext.Provider value={{ ...status, startSync, cancelProvider }}>
+    <SyncContext.Provider
+      value={{ ...status, startSync, cancelProvider, resetSync }}
+    >
       {children}
       {webHosts.map(({ provider, runId, epoch }) =>
         isSessionProvider(provider.id) ? (
