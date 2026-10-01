@@ -10,6 +10,10 @@ import {
 
 export const NOTIFICATION_CHANNEL = 'devgauge.usage';
 
+export async function getNotificationPermission() {
+  return Notifications.getPermissionsAsync();
+}
+
 export async function ensureNotificationChannel() {
   if (Platform.OS === 'android')
     await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL, {

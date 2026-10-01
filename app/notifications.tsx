@@ -25,6 +25,7 @@ import { spacing } from '@/design/tokens';
 import { getAppDatabase } from '@/services/app-database-store';
 import {
   createExpoNotificationScheduler,
+  getNotificationPermission,
   requestNotificationPermission,
 } from '@/services/notifications/expo-scheduler';
 import {
@@ -107,6 +108,7 @@ export default function NotificationsScreen() {
   const [operations, setOperations] = useState<NotificationOperation[]>([]);
   const [manual, setManual] = useState<ManualResetEntry[]>([]);
   const [permission, setPermission] = useState('Checking');
+  const [canAskPermission, setCanAskPermission] = useState(false);
   const [draft, setDraft] = useState<NotificationRuleRecord | null>(null);
   const [value, setValue] = useState('80');
   const [quietStart, setQuietStart] = useState('');
@@ -124,7 +126,7 @@ export default function NotificationsScreen() {
         latestByConnection(db),
         listNotificationOperations(db),
         listManualResetEntries(db),
-        createExpoNotificationScheduler().permission!(),
+        getNotificationPermission(),
       ]);
     setRules(storedRules.filter((rule) => !rule.id.startsWith('reset-rule-')));
     setConnections(
@@ -135,7 +137,8 @@ export default function NotificationsScreen() {
     setLatest(snapshots);
     setOperations(journal);
     setManual(entries);
-    setPermission(status);
+    setPermission(status.status);
+    setCanAskPermission(status.canAskAgain && status.status !== 'granted');
   }, []);
   useFocusEffect(
     useCallback(() => {
@@ -232,17 +235,16 @@ export default function NotificationsScreen() {
           />
           <Button
             label={
-              permission === 'granted' || permission === 'denied'
-                ? 'Open Android notification settings'
-                : 'Allow notifications'
+              canAskPermission
+                ? 'Allow notifications'
+                : 'Open Android notification settings'
             }
             variant="secondary"
-            disabled={busy}
+            disabled={busy || permission === 'Checking'}
             onPress={() =>
               void run(async () => {
-                if (permission === 'granted' || permission === 'denied')
-                  await Linking.openSettings();
-                else await requestNotificationPermission();
+                if (canAskPermission) await requestNotificationPermission();
+                else await Linking.openSettings();
                 const db = await getAppDatabase();
                 await refreshUsageNotifications(
                   db,

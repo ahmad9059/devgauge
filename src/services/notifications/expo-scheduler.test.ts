@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createExpoNotificationScheduler,
+  getNotificationPermission,
   requestNotificationPermission,
   NOTIFICATION_CHANNEL,
 } from './expo-scheduler';
@@ -33,6 +34,18 @@ beforeEach(() => {
 });
 
 describe('Android notification scheduler', () => {
+  it('preserves retryable denial so explicit opt-in can still request the OS prompt', async () => {
+    native.getPermissionsAsync.mockResolvedValue({
+      status: 'denied',
+      canAskAgain: true,
+    });
+    expect(await getNotificationPermission()).toEqual({
+      status: 'denied',
+      canAskAgain: true,
+    });
+    expect(await requestNotificationPermission()).toBe('granted');
+    expect(native.requestPermissionsAsync).toHaveBeenCalledOnce();
+  });
   it('creates a channel before a contextual permission request', async () => {
     native.getPermissionsAsync.mockResolvedValue({
       status: 'undetermined',
