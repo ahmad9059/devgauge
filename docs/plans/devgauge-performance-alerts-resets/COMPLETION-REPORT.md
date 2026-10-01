@@ -1,5 +1,9 @@
 # Completion audit — incomplete
 
+## Reset display regression follow-up
+
+The owner's test of `2d504f9` exposed missing website reset labels. `8633b6a` fixes the omitted reset-text parameter in live database writes, guards parser section association, and collects late reset labels for every website provider. Four SQLite round-trip regressions fail on the old writer and pass on the corrected writer, including dashboard mapping for Claude, Codex, Command Code and GitHub Copilot. Full checks now pass **433 tests**. Existing snapshots that lost their text need a fresh provider sync; unknown reset dates remain unknown. QA-REPORT.md records the exact evidence and replacement artifact.
+
 ## Owner-requested UI revision (2026-10-01)
 
 The owner withdrew earned-reset controls from the app. Provider detail now omits that section and the Card actions menu, and places Refresh, Reauthorize and Disconnect in one horizontal row below Connection. Connection status uses semantic colors. Absolute reset timestamps use the device's local time without a GMT/timezone suffix. Fresh snapshots show “just now” even when the coarse display clock slightly precedes their capture timestamp. Usage cards place their update label at the bottom right.

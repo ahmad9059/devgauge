@@ -1,5 +1,15 @@
 # QA report — verification in progress
 
+## 2026-10-01 — website reset labels lost after live save
+
+Owner device evidence on `2d504f9` showed missing Claude, Codex, Command Code and GitHub Copilot reset labels while Antigravity still displayed countdowns. The shared live snapshot INSERT had sixteen columns/placeholders but omitted the final `resetsSourceText` parameter, silently storing null. Earlier parser-only tests did not exercise that missing live-write value.
+
+`8633b6a` writes the reset source field, keeps reset durations and numeric credit rows from changing the active section, and waits for missing reset labels on all website providers before committing early quota data. Both sign-in and shared refresh use this completion policy; the existing deadline preserves verified partial usage when a provider supplies no reset timing. No reset date is invented.
+
+Four real SQLite regression cases cover provider text → domain windows → live snapshot save → database reload → dashboard view, matching reset text to its window key. All four fail against the previous writer and pass after the fix. Negative-control log: `/tmp/devgauge-reset-persistence-negative-control.log`. Full gates pass: **83 files / 433 tests**, typecheck, zero-warning lint, configuration and formatting; logs `/tmp/devgauge-reset-persistence-{check,format}.log`. The earlier artifact evidence below remains historical.
+
+Sequential release builds succeeded: emulator 46 seconds, phone 52 seconds (`/tmp/devgauge-reset-persistence-{emulator,phone}-build.log`). Emulator release upgrade/launch retained existing sample data and its due-reset label; this is reopen evidence, not live account capture. Final arm64 phone artifact `artifacts/devgauge-preview-phone-8633b6a.apk` is **43,811,030 bytes / 41.78 MiB**, SHA-256 `f3cc51ea1aa968aab17e5bb5741af35eb816a24567fc558026cb1e17f7bd6cb2`; APK signature verification and 60 MiB budget pass. The stable `artifacts/devgauge-device-test.apk` matches it. x86_64 APK is **44,616,547 bytes / 42.55 MiB**, SHA-256 `94ce738425cdde61d6ea0f56ae78076cb0737a2a81a1a2da71e4f4e800f4fb38`. Fresh provider sync is required to replace snapshots that previously lost reset text. Owner live account recheck remains pending.
+
 2026-10-01. Candidate source `0f84dfab81eddd4514738c6265401358d28e6403`; audit baseline `54bf0f1`. **Original goal incomplete; production NO-GO.** These are scoped observations, not a blanket pass.
 
 ## Automated evidence
