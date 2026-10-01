@@ -32,7 +32,7 @@ export default function UsageScreen() {
 
   return (
     <Screen>
-      <ScreenScroll>
+      <ScreenScroll showsVerticalScrollIndicator={false}>
         <View style={styles.brandHeader}>
           <DevGaugeLockup />
           <View style={styles.actions}>
