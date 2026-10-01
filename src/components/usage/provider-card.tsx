@@ -119,9 +119,6 @@ export function ProviderCard({
 
   const footer = (
     <View style={styles.footerRow}>
-      <Text style={[typography.monoCaption, { color: theme.colors.textMuted }]}>
-        {relative ? `Updated ${relative}` : 'No stored snapshot'}
-      </Text>
       {onOpenActions ? (
         <IconButton
           icon="dots-horizontal"
@@ -129,6 +126,15 @@ export function ProviderCard({
           onPress={onOpenActions}
         />
       ) : null}
+      <Text
+        style={[
+          typography.monoCaption,
+          styles.updatedLabel,
+          { color: theme.colors.textMuted },
+        ]}
+      >
+        {relative ? `Updated ${relative}` : 'No stored snapshot'}
+      </Text>
     </View>
   );
 
@@ -165,4 +171,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  updatedLabel: { marginLeft: 'auto', textAlign: 'right', flexShrink: 1 },
 });
