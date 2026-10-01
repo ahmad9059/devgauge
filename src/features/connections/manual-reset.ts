@@ -1,3 +1,4 @@
+import { normalizeResetTime } from '@/domain/reset-time';
 import {
   reminderCopy,
   reminderNativeId,
@@ -24,15 +25,21 @@ export function validateManualReset(input: {
   timezoneOffsetMinutes: number | null;
   now: Date;
 }): ManualResetValidation {
-  const at = Date.parse(input.resetsAt);
+  const instant = normalizeResetTime(input.resetsAt);
+  const at = instant ? Date.parse(instant) : NaN;
   if (!Number.isFinite(at))
-    return { ok: false, reason: 'Enter a valid date and time.' };
+    return {
+      ok: false,
+      reason:
+        'Enter an ISO date and time with Z or an explicit offset, such as +05:00.',
+    };
   if (at <= input.now.getTime()) {
     return { ok: false, reason: 'Choose a time in the future.' };
   }
   if (
     input.timezoneOffsetMinutes === null ||
-    !Number.isFinite(input.timezoneOffsetMinutes)
+    !Number.isInteger(input.timezoneOffsetMinutes) ||
+    Math.abs(input.timezoneOffsetMinutes) > 840
   ) {
     return { ok: false, reason: 'Confirm your timezone.' };
   }

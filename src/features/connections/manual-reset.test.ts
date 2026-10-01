@@ -22,6 +22,30 @@ const entry = makeManualReset({
 });
 
 describe('manual reset validation', () => {
+  it.each(['2026-10-01T12:00', '2026-02-30T12:00Z', 'Oct 1, 2026 12:00 PM'])(
+    'rejects ambiguous or rolled-over %s',
+    (resetsAt) => {
+      expect(
+        validateManualReset({ resetsAt, timezoneOffsetMinutes: 0, now: NOW }),
+      ).toMatchObject({ ok: false });
+    },
+  );
+  it('accepts an explicit timezone offset and rejects invalid timezone confirmation', () => {
+    expect(
+      validateManualReset({
+        resetsAt: '2026-10-01T12:00+05:00',
+        timezoneOffsetMinutes: -300,
+        now: NOW,
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      validateManualReset({
+        resetsAt: entry.resetsAt,
+        timezoneOffsetMinutes: 1000,
+        now: NOW,
+      }),
+    ).toMatchObject({ ok: false });
+  });
   it('requires a valid future time and a confirmed timezone', () => {
     expect(
       validateManualReset({
