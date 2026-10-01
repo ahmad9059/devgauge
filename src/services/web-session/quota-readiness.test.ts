@@ -54,7 +54,7 @@ describe('verified quota capture completion', () => {
       resetsSourceText: 'Fri at 10:00 AM',
     };
     expect(needsResetTiming('claude', [session, weekly])).toBe(true);
-    expect(needsResetTiming('codex', [session, weekly])).toBe(false);
+    expect(needsResetTiming('codex', [session, weekly])).toBe(true);
     expect(
       needsResetTiming('claude', [
         { ...session, resetsAt: '2026-10-01T09:00:00Z' },
@@ -63,6 +63,23 @@ describe('verified quota capture completion', () => {
       ]),
     ).toBe(false);
   });
+  it.each(['codex', 'command-code', 'github-copilot'] as const)(
+    'waits for %s reset text instead of completing a quota-only capture',
+    (providerId) => {
+      const monthly = window('monthly');
+      expect(needsResetTiming(providerId, [monthly])).toBe(true);
+      expect(
+        needsResetTiming(providerId, [
+          { ...monthly, resetsSourceText: 'Nov 1, 2026 5:00 AM' },
+        ]),
+      ).toBe(false);
+      expect(
+        needsResetTiming(providerId, [
+          { ...monthly, resetsAt: '2026-11-01T00:00:00Z' },
+        ]),
+      ).toBe(false);
+    },
+  );
   it('accepts both Codex API windows without waiting for DOM reset labels', () => {
     expect(isQuotaReady('codex', [window('rolling'), window('weekly')])).toBe(
       true,

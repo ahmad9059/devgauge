@@ -20,21 +20,19 @@ export function isQuotaReady(
   );
 }
 
-/** Only Claude's main limits need the page fallback for missing reset labels. */
+/** Collect reset labels before committing quota-only website responses. */
 export function needsResetTiming(
   providerId: SessionProviderId,
   windows: readonly UsageWindow[],
 ): boolean {
-  return (
-    providerId === 'claude' &&
-    windows.some(
-      (window) =>
+  return windows.some(
+    (window) =>
+      (providerId !== 'claude' ||
         ['session.five_hour', 'session.seven_day'].includes(
           window.externalKey,
-        ) &&
-        !window.resetsAt &&
-        !window.resetsSourceText,
-    )
+        )) &&
+      !window.resetsAt &&
+      !window.resetsSourceText,
   );
 }
 

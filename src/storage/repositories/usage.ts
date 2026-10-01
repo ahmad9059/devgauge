@@ -212,6 +212,7 @@ export async function saveRefreshInTransaction(
         window.periodEndsAt,
         window.resetsAt,
         window.derivation,
+        window.resetsSourceText ?? null,
       ],
     );
   }

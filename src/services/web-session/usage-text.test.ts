@@ -73,6 +73,27 @@ describe('remaining vs used', () => {
 });
 
 describe('page text parsing', () => {
+  it('keeps reset durations and credit values inside their existing section', () => {
+    const claude = SESSION_PROVIDERS.claude.keyMap;
+    const raw = parseUsageText(
+      'Weekly limits\n24% used\nResets in 5 hours',
+      claude,
+    );
+    expect(raw).toEqual([
+      { key: 'seven_day', usedPercent: 24, resetsAt: 'in 5 hours' },
+    ]);
+    const credits = parseUsageText(
+      'Included credits\n0% used\nResets on Nov 1\n0 of 200 AI credits used',
+      github,
+    );
+    expect(credits).toHaveLength(1);
+    expect(credits[0]).toMatchObject({
+      key: 'credits',
+      resetsAt: 'on Nov 1',
+      used: 0,
+      limit: 200,
+    });
+  });
   it('captures Codex workspace monthly credits and reset text alongside its main windows', () => {
     const text = [
       '5 hour usage limit',

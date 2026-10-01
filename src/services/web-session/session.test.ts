@@ -6,6 +6,10 @@ import {
 } from '@/services/web-session/session-config';
 import { saveSessionSnapshot } from '@/services/web-session/session';
 import { extractUsageWindows } from '@/services/web-session/usage-extract';
+import { toDomainWindows } from '@/services/web-session/usage-extract';
+import { parseUsageText } from '@/services/web-session/usage-text';
+import { buildProviderViews } from '@/features/dashboard/provider-views';
+import { listProviderDescriptors } from '@/providers/registry';
 import { latestByConnection } from '@/storage/repositories/usage';
 import { getConnection } from '@/storage/repositories/connections';
 import { createMigratedTestDatabase } from '@/testing/storage/database';
@@ -74,6 +78,71 @@ describe('session host allowlist', () => {
 });
 
 describe('session persistence', () => {
+  it.each([
+    [
+      'claude',
+      'Current session\n24% used\nResets Fri at 10:00 AM\nWeekly limits\nAll models\n24% used\nResets Sat at 10:00 AM',
+    ],
+    [
+      'codex',
+      '5 hour usage limit\n0% remaining\nResets Oct 1, 2026 10:00 AM\nWeekly usage limit\n67% remaining\nResets Oct 5, 2026 5:00 AM\nWorkspace monthly credit limit\n62% remaining\nResets Nov 1, 2026 5:00 AM378 of 1,000 credits used',
+    ],
+    [
+      'command-code',
+      '5-HOUR LIMIT\n0%\nResets on Oct 1\nWEEKLY LIMIT\n0%\nResets on Oct 5\nMONTHLY LIMIT\n79%\nResets on Nov 1',
+    ],
+    ['github-copilot', 'Included credits\n0 / 200 AI credits\nResets on Nov 1'],
+  ] as const)(
+    'retains %s provider reset labels through live save, database reload and dashboard mapping',
+    async (providerId, text) => {
+      const db = await createMigratedTestDatabase();
+      const keyMap = SESSION_PROVIDERS[providerId].keyMap;
+      const windows = toDomainWindows(
+        parseUsageText(text, keyMap),
+        keyMap,
+        NOW,
+      );
+      expect(windows.length).toBeGreaterThan(0);
+      expect(windows.every((window) => !!window.resetsSourceText)).toBe(true);
+      let id = 0;
+      const saved = await saveSessionSnapshot({
+        db,
+        providerId,
+        displayName: providerId,
+        windows,
+        fetchedAt: NOW.toISOString(),
+        now: NOW,
+        nextId: () => `reset-${++id}`,
+      });
+      const latest = await latestByConnection(db);
+      const reloaded = latest.get(saved.connectionId);
+      const expected = Object.fromEntries(
+        windows.map((window) => [window.externalKey, window.resetsSourceText]),
+      );
+      expect(
+        Object.fromEntries(
+          reloaded!.windows.map((window) => [
+            window.externalKey,
+            window.resetsSourceText,
+          ]),
+        ),
+      ).toEqual(expected);
+      const connection = await getConnection(db, saved.connectionId);
+      const views = buildProviderViews({
+        descriptors: listProviderDescriptors(),
+        connections: [connection!],
+        latest,
+        now: NOW,
+      });
+      expect(
+        Object.fromEntries(
+          views
+            .find((view) => view.id === providerId)!
+            .windows.map((window) => [window.externalKey, window.resetsText]),
+        ),
+      ).toEqual(expected);
+    },
+  );
   it('records the measured trigger and elapsed capture time, leaving unmeasured durations unknown', async () => {
     const db = await createMigratedTestDatabase();
     let id = 0;

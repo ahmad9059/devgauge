@@ -14,6 +14,13 @@ const FRACTION =
 const RESET = /resets?\s+(.+)/i;
 
 function sectionKey(line: string, keyMap: WindowKeyMap): string | null {
+  // Reset durations and credit counts are values inside the current section,
+  // even when they contain words that also occur in quota headings.
+  if (
+    /^resets?\b/i.test(line) ||
+    /^\d[\d,]*(?:\.\d+)?\s*(?:%|\/|of\b)/i.test(line)
+  )
+    return null;
   const lower = line.toLowerCase();
   if (keyMap.five_hour && /^current session$/i.test(line)) return 'five_hour';
   if (keyMap.seven_day && /^all models$/i.test(line)) return 'seven_day';
