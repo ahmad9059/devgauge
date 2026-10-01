@@ -1,10 +1,11 @@
 import type { SqlDriver, SqlValue } from '../sqlite-driver';
 import { migration0001 } from './0001-initial-schema';
+import { migration0002 } from './0002-reset-source-text';
 import type { Migration } from './types';
 
 export type { Migration };
 
-export const migrations: readonly Migration[] = [migration0001];
+export const migrations: readonly Migration[] = [migration0001, migration0002];
 
 export interface MigrationRunner {
   exec(source: string): Promise<void>;

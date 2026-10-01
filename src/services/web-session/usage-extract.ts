@@ -1,3 +1,4 @@
+import { normalizeResetTime } from '@/domain/reset-time';
 import {
   deriveWindow,
   type UsageWindow,
@@ -174,6 +175,7 @@ export function mergeRawWindows(raw: readonly RawWindow[]): RawWindow[] {
 export function toDomainWindows(
   raw: readonly RawWindow[],
   keyMap: WindowKeyMap,
+  capturedAt?: Date,
 ): UsageWindow[] {
   return raw
     .filter((window) => keyMap[window.key])
@@ -185,7 +187,8 @@ export function toDomainWindows(
         used: String(window.usedPercent),
         limit: '100',
         unit: 'percent',
-        resetsAt: window.resetsAt,
+        resetsAt: normalizeResetTime(window.resetsAt, capturedAt),
+        resetsSourceText: window.resetsAt,
         derivation: 'provider',
       }),
     );

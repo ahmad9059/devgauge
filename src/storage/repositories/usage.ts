@@ -35,6 +35,7 @@ type WindowRow = {
   period_starts_at: string | null;
   period_ends_at: string | null;
   resets_at: string | null;
+  resets_source_text: string | null;
   derivation: string;
 };
 
@@ -67,6 +68,7 @@ function toWindow(row: WindowRow): UsageWindowRecord {
     periodStartsAt: row.period_starts_at,
     periodEndsAt: row.period_ends_at,
     resetsAt: row.resets_at,
+    resetsSourceText: row.resets_source_text,
     derivation: row.derivation as UsageWindowRecord['derivation'],
   };
 }
@@ -75,7 +77,7 @@ const SNAPSHOT_COLUMNS = `id, connection_id, fetched_at, source,
   provider_schema_version, is_partial, response_fingerprint, created_at`;
 const WINDOW_COLUMNS = `id, snapshot_id, external_key, kind, label,
   used_decimal, limit_decimal, remaining_decimal, utilization, unit,
-  currency_code, period_starts_at, period_ends_at, resets_at, derivation`;
+  currency_code, period_starts_at, period_ends_at, resets_at, derivation, resets_source_text`;
 
 export type SaveRefreshInput = {
   connection: {
@@ -169,7 +171,7 @@ export async function saveRefreshInTransaction(
   );
   for (const window of windows) {
     await tx.run(
-      `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         window.id,
         window.snapshotId,
@@ -227,7 +229,7 @@ export async function saveManualImport(
     );
     for (const window of windows) {
       await tx.run(
-        `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
           window.id,
           window.snapshotId,
@@ -244,6 +246,7 @@ export async function saveManualImport(
           window.periodEndsAt,
           window.resetsAt,
           window.derivation,
+          window.resetsSourceText ?? null,
         ],
       );
     }

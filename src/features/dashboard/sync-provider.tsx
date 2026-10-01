@@ -69,6 +69,7 @@ const SyncContext = createContext<SyncContextValue | null>(null);
 type WebJob = {
   runId: number;
   mode: 'api' | 'page';
+  capturedAt: Date;
   provider: ProviderFixture;
   captured: CapturedResponse[];
   text: string;
@@ -90,7 +91,10 @@ function hasCodexPageUsage(windows: UsageWindow[]): boolean {
   const weekly = windows.find((window) => window.kind === 'weekly');
   // For Codex, page text is the authoritative remaining-percent source. Wait
   // for its reset labels as well, rather than persisting an early API payload.
-  return Boolean(fiveHour?.resetsAt && weekly?.resetsAt);
+  return Boolean(
+    (fiveHour?.resetsAt || fiveHour?.resetsSourceText) &&
+    (weekly?.resetsAt || weekly?.resetsSourceText),
+  );
 }
 
 async function fetchWithTimeout(
@@ -213,6 +217,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         );
         jobsRef.current.set(provider.id, {
           runId,
+          capturedAt: new Date(),
           mode: webView ? 'api' : 'page',
           provider,
           captured: [],
@@ -400,7 +405,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           }
           byKey.set(window.key, window);
         }
-        const windows = toDomainWindows([...byKey.values()], config.keyMap);
+        const windows = toDomainWindows(
+          [...byKey.values()],
+          config.keyMap,
+          job.capturedAt,
+        );
         const isReady =
           windows.length > 0 &&
           (job.provider.id !== 'claude' ||

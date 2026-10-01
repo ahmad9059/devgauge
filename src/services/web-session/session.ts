@@ -1,3 +1,4 @@
+import { normalizeResetTime } from '@/domain/reset-time';
 import type { ProviderId } from '@/domain/providers';
 import type { UsageWindow } from '@/domain/usage';
 import type { Database } from '@/storage/database';
@@ -103,7 +104,8 @@ async function persistSessionSnapshot(
       currencyCode: window.currencyCode,
       periodStartsAt: window.periodStartsAt,
       periodEndsAt: window.periodEndsAt,
-      resetsAt: window.resetsAt,
+      resetsAt: normalizeResetTime(window.resetsAt, new Date(input.fetchedAt)),
+      resetsSourceText: window.resetsSourceText ?? window.resetsAt,
       derivation: window.derivation,
     }));
 

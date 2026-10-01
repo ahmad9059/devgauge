@@ -36,6 +36,7 @@ export default function SessionScreen() {
   const reload = useReloadProviders();
   const webView = useRef<WebView>(null);
   const capturedRef = useRef<CapturedResponse[]>([]);
+  const capturedAtRef = useRef(new Date());
   const pageTextRef = useRef('');
   const syncedRef = useRef(false);
   const [windows, setWindows] = useState<UsageWindow[]>([]);
@@ -129,7 +130,11 @@ export default function SessionScreen() {
         }
         byKey.set(window.key, window);
       }
-      const windows = toDomainWindows([...byKey.values()], config.keyMap);
+      const windows = toDomainWindows(
+        [...byKey.values()],
+        config.keyMap,
+        capturedAtRef.current,
+      );
       if (windows.length > 0) {
         setWindows(windows);
         setStatus('Usage found. Finishing…');

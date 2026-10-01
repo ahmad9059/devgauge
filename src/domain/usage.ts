@@ -45,6 +45,7 @@ export type UsageWindow = {
   periodStartsAt: string | null;
   periodEndsAt: string | null;
   resetsAt: string | null;
+  resetsSourceText?: string | null;
   derivation: Derivation;
 };
 
@@ -78,6 +79,7 @@ export type WindowInput = {
   periodStartsAt?: string | null;
   periodEndsAt?: string | null;
   resetsAt?: string | null;
+  resetsSourceText?: string | null;
   derivation: Derivation;
 };
 
@@ -116,6 +118,7 @@ export function deriveWindow(input: WindowInput): UsageWindow {
     periodStartsAt: input.periodStartsAt ?? null,
     periodEndsAt: input.periodEndsAt ?? null,
     resetsAt: input.resetsAt ?? null,
+    resetsSourceText: input.resetsSourceText ?? null,
     derivation: input.derivation,
   };
 }

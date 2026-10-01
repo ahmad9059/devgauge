@@ -92,6 +92,7 @@ export type UsageWindowRecord = {
   periodStartsAt: string | null;
   periodEndsAt: string | null;
   resetsAt: string | null;
+  resetsSourceText?: string | null;
   derivation: Derivation;
 };
 

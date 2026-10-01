@@ -115,10 +115,10 @@ describe('page text parsing', () => {
       'Resets Oct 5, 2026 9:02 PM',
     ].join('\n');
     const windows = toDomainWindows(parseUsageText(text, codex), codex);
-    expect(windows.find((w) => w.label === '5-hour window')?.resetsAt).toBe(
-      'Oct 1, 2026 12:29 AM',
-    );
-    expect(windows.find((w) => w.label === 'Weekly')?.resetsAt).toBe(
+    expect(
+      windows.find((w) => w.label === '5-hour window')?.resetsSourceText,
+    ).toBe('Oct 1, 2026 12:29 AM');
+    expect(windows.find((w) => w.label === 'Weekly')?.resetsSourceText).toBe(
       'Oct 5, 2026 9:02 PM',
     );
   });
@@ -137,11 +137,11 @@ describe('page text parsing', () => {
     ].join('\n');
     const windows = toDomainWindows(parseUsageText(text, codex), codex);
     expect(windows.find((w) => w.label === '5-hour window')?.used).toBe('58');
-    expect(windows.find((w) => w.label === '5-hour window')?.resetsAt).toBe(
-      'Oct 1, 2026 12:29 AM',
-    );
+    expect(
+      windows.find((w) => w.label === '5-hour window')?.resetsSourceText,
+    ).toBe('Oct 1, 2026 12:29 AM');
     expect(windows.find((w) => w.label === 'Weekly')?.used).toBe('12');
-    expect(windows.find((w) => w.label === 'Weekly')?.resetsAt).toBe(
+    expect(windows.find((w) => w.label === 'Weekly')?.resetsSourceText).toBe(
       'Oct 5, 2026 9:02 PM',
     );
   });
@@ -155,7 +155,8 @@ describe('page text parsing', () => {
     const raw = parseUsageText(text, github);
     const windows = toDomainWindows(raw, github);
     expect(windows[0]?.used).toBe('11.5');
-    expect(windows[0]?.resetsAt).toBe('in 2 days');
+    expect(windows[0]?.resetsAt).toBeNull();
+    expect(windows[0]?.resetsSourceText).toBe('in 2 days');
   });
 
   it('reads bare percentages under headings (Command Code)', () => {

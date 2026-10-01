@@ -5,6 +5,13 @@ import { migrations, runMigrations } from '@/storage/migrations';
 import { migration0001 } from '@/storage/migrations/0001-initial-schema';
 import type { Migration } from '@/storage/migrations/types';
 import { createTestDatabase } from '@/testing/storage/database';
+import { upsertConnection } from '@/storage/repositories/connections';
+import { latestByConnection, saveRefresh } from '@/storage/repositories/usage';
+import {
+  makeConnection,
+  makeAttempt,
+  makeSnapshot,
+} from '@/testing/storage/factory';
 
 async function tableNames(db: {
   all<T>(source: string): Promise<T[]>;
@@ -28,14 +35,49 @@ const EXPECTED_TABLES = [
 ];
 
 describe('migrations', () => {
+  it('preserves original reset text and quantities in installed version-one data', async () => {
+    const db = createTestDatabase();
+    await configureDatabase(db, { journalModeWAL: false });
+    await runMigrations(db, [migration0001]);
+    await upsertConnection(db, makeConnection({ id: 'legacy' }));
+    await db.run(
+      `INSERT INTO usage_snapshots
+      (id,connection_id,fetched_at,source,provider_schema_version,is_partial,created_at)
+      VALUES (?,?,?,'live',1,0,?)`,
+      ['s', 'legacy', '2026-09-30T00:00:00Z', '2026-09-30T00:00:00Z'],
+    );
+    await db.run(
+      `INSERT INTO usage_windows
+      (id,snapshot_id,external_key,kind,label,used_decimal,unit,resets_at,derivation)
+      VALUES ('w','s','session.primary','rolling','Session','1','percent',?,'provider')`,
+      ['in 4h 41m'],
+    );
+    await migrate(db);
+    const window = (await latestByConnection(db)).get('legacy')?.windows[0];
+    expect(window?.usedDecimal).toBe('1');
+    expect(window?.resetsSourceText).toBe('in 4h 41m');
+    expect(window?.resetsAt).toBe('in 4h 41m');
+    await saveRefresh(db, {
+      connection: {
+        id: 'legacy',
+        status: 'connected',
+        lastSuccessAt: '2026-10-01T00:00:00Z',
+        lastAttemptAt: '2026-10-01T00:00:00Z',
+        nextAllowedRefreshAt: null,
+        updatedAt: '2026-10-01T00:00:00Z',
+      },
+      attempt: makeAttempt('legacy'),
+      snapshot: { snapshot: makeSnapshot('legacy'), windows: [] },
+    });
+  });
   it('migrates an empty database to the latest schema exactly once', async () => {
     const db = createTestDatabase();
     await configureDatabase(db, { journalModeWAL: false });
 
     const version = await migrate(db);
 
-    expect(version).toBe(1);
-    expect(await db.userVersion()).toBe(1);
+    expect(version).toBe(2);
+    expect(await db.userVersion()).toBe(2);
     expect(await tableNames(db)).toEqual(EXPECTED_TABLES);
   });
 
@@ -44,7 +86,7 @@ describe('migrations', () => {
     await migrate(db);
     const before = await tableNames(db);
     await migrate(db);
-    expect(await db.userVersion()).toBe(1);
+    expect(await db.userVersion()).toBe(2);
     expect(await tableNames(db)).toEqual(before);
   });
 
@@ -110,6 +152,6 @@ describe('migrations', () => {
   });
 
   it('ships exactly the declared migrations', () => {
-    expect(migrations.map((migration) => migration.version)).toEqual([1]);
+    expect(migrations.map((migration) => migration.version)).toEqual([1, 2]);
   });
 });

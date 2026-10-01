@@ -72,6 +72,7 @@ export default function SyncScreen() {
 
   const [index, setIndex] = useState(0);
   const capturedRef = useRef<CapturedResponse[]>([]);
+  const capturedAtRef = useRef(new Date());
   const textRef = useRef('');
   const handledRef = useRef(false);
   const finishedRef = useRef(false);
@@ -114,6 +115,7 @@ export default function SyncScreen() {
     } else {
       capturedRef.current = [];
       textRef.current = '';
+      capturedAtRef.current = new Date();
       handledRef.current = false;
       setIndex(index + 1);
     }
@@ -189,7 +191,11 @@ export default function SyncScreen() {
         }
         byKey.set(window.key, window);
       }
-      const windows = toDomainWindows([...byKey.values()], config.keyMap);
+      const windows = toDomainWindows(
+        [...byKey.values()],
+        config.keyMap,
+        capturedAtRef.current,
+      );
       if (windows.length > 0) void advance(windows);
     } catch {
       // Ignore non-JSON messages.
