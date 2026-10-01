@@ -1,3 +1,4 @@
+import { normalizeResetTime } from '@/domain/reset-time';
 import type { ProviderDescriptor } from '@/providers/types';
 import type {
   ProviderConnection,
@@ -66,13 +67,21 @@ function groupFromExternalKey(externalKey: string): string | undefined {
   return GROUP_LABELS[pool] ?? pool;
 }
 
-function toFixtureWindow(window: UsageWindowRecord, now: Date): FixtureWindow {
-  const parsedReset = window.resetsAt ? Date.parse(window.resetsAt) : NaN;
+function toFixtureWindow(
+  window: UsageWindowRecord,
+  now: Date,
+  fetchedAt: string,
+): FixtureWindow {
+  const resetsAt = normalizeResetTime(window.resetsAt, new Date(fetchedAt));
+  const parsedReset = resetsAt ? Date.parse(resetsAt) : NaN;
   const resetsInMinutes = Number.isFinite(parsedReset)
     ? Math.max(0, Math.round((parsedReset - now.getTime()) / 60_000))
     : undefined;
   const group = groupFromExternalKey(window.externalKey);
   return {
+    externalKey: window.externalKey,
+    resetsAt: resetsAt ?? undefined,
+    resetDue: Number.isFinite(parsedReset) && parsedReset <= now.getTime(),
     kind: fixtureKind(window.kind),
     label: window.label,
     ...(group !== undefined ? { group } : {}),
@@ -86,8 +95,8 @@ function toFixtureWindow(window: UsageWindowRecord, now: Date): FixtureWindow {
         : Math.round(window.utilization * 1000) / 10,
     resetsInMinutes,
     resetsText:
-      window.resetsAt !== null && resetsInMinutes === undefined
-        ? window.resetsAt
+      resetsAt === null
+        ? (window.resetsSourceText ?? window.resetsAt ?? undefined)
         : undefined,
   };
 }
@@ -157,12 +166,16 @@ export function buildProviderViews(input: ProviderViewsInput): ProviderView[] {
       tier: fixtureTier(descriptor.supportTier),
       state,
       source,
+      connectionId: active?.id,
+      fetchedAt: snapshot?.fetchedAt,
       updatedMinutesAgo: minutesAgo(
         snapshot?.fetchedAt ?? active?.lastSuccessAt ?? null,
         input.now,
       ),
       windows: (snapshot?.windows ?? [])
-        .map((window) => toFixtureWindow(window, input.now))
+        .map((window) =>
+          toFixtureWindow(window, input.now, snapshot!.fetchedAt),
+        )
         .sort((a, b) => {
           const order = [
             'rolling',

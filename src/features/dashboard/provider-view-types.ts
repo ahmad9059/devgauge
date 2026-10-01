@@ -32,6 +32,9 @@ export type UsageWindow = {
   limit?: number;
   remaining?: number;
   percent?: number;
+  externalKey?: string;
+  resetsAt?: string;
+  resetDue?: boolean;
   resetsInMinutes?: number;
   /** Raw reset text when the source does not give a parseable timestamp. */
   resetsText?: string;
@@ -46,6 +49,8 @@ export type ProviderView = {
   tier: SupportTier;
   state: ProviderState;
   source: 'live' | 'manual' | 'none';
+  connectionId?: string;
+  fetchedAt?: string;
   updatedMinutesAgo?: number;
   windows: UsageWindow[];
   note?: string;

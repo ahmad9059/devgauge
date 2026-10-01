@@ -13,6 +13,51 @@ const NOW = new Date('2026-09-28T00:00:00.000Z');
 const descriptors = listProviderDescriptors();
 
 describe('provider views (real data source)', () => {
+  it('advances freshness/countdowns while preserving the original reset instant', () => {
+    const connection = makeConnection({ id: 'c1', providerId: 'claude' });
+    const record: SnapshotWithWindows = {
+      ...makeSnapshot('c1', { id: 's1', fetchedAt: NOW.toISOString() }),
+      windows: [
+        makeWindow('s1', {
+          resetsAt: '2026-09-28T00:02:20Z',
+          utilization: 0.8,
+        }),
+      ],
+    };
+    const viewAt = (minutes: number) =>
+      buildProviderViews({
+        descriptors,
+        connections: [connection],
+        latest: new Map([['c1', record]]),
+        now: new Date(NOW.getTime() + minutes * 60_000),
+      }).find((item) => item.id === 'claude')!;
+    expect(viewAt(0).windows[0].resetsInMinutes).toBe(2);
+    expect(viewAt(1).windows[0].resetsInMinutes).toBe(1);
+    expect(viewAt(3).windows[0].resetDue).toBe(true);
+    expect(viewAt(3).windows[0].resetsAt).toBe('2026-09-28T00:02:20.000Z');
+    expect(viewAt(3).windows[0].percent).toBe(80);
+    expect(viewAt(3).updatedMinutesAgo).toBe(3);
+  });
+  it('anchors legacy relative text to its snapshot and never guesses local date labels', () => {
+    const connection = makeConnection({ id: 'c1', providerId: 'claude' });
+    const record: SnapshotWithWindows = {
+      ...makeSnapshot('c1', { id: 's1', fetchedAt: NOW.toISOString() }),
+      windows: [
+        makeWindow('s1', { resetsAt: 'in 2 hours' }),
+        makeWindow('s1', { resetsAt: 'Oct 1, 2026 12:29 AM' }),
+      ],
+    };
+    const view = buildProviderViews({
+      descriptors,
+      connections: [connection],
+      latest: new Map([['c1', record]]),
+      now: new Date(NOW.getTime() + 60_000),
+    }).find((item) => item.id === 'claude')!;
+    expect(view.windows[0].resetsInMinutes).toBe(119);
+    expect(view.windows[0].resetsAt).toBe('2026-09-28T02:00:00.000Z');
+    expect(view.windows[1].resetsAt).toBeUndefined();
+    expect(view.windows[1].resetsText).toBe('Oct 1, 2026 12:29 AM');
+  });
   it('derives every provider from the registry, not static fixtures', () => {
     const views = buildProviderViews({
       descriptors,

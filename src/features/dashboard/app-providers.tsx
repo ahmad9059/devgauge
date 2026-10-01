@@ -7,6 +7,9 @@ import {
   type ReactNode,
 } from 'react';
 
+import { AppState } from 'react-native';
+import { startForegroundClock } from './foreground-clock';
+
 import { listProviderDescriptors } from '@/providers/registry';
 import { getAppDatabase } from '@/services/app-database-store';
 import { listConnections } from '@/storage/repositories/connections';
@@ -44,6 +47,20 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
   const [latest, setLatest] = useState<Map<string, SnapshotWithWindows>>(
     () => new Map(),
   );
+  const [now, setNow] = useState(() => new Date());
+  useEffect(
+    () =>
+      startForegroundClock(setNow, {
+        isActive: () => AppState.currentState === 'active',
+        subscribe: (listener) => {
+          const subscription = AppState.addEventListener('change', (state) =>
+            listener(state === 'active'),
+          );
+          return () => subscription.remove();
+        },
+      }),
+    [],
+  );
   const [ready, setReady] = useState(false);
 
   const [reload] = useState(() =>
@@ -76,12 +93,12 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
         descriptors: listProviderDescriptors(),
         connections,
         latest,
-        now: new Date(),
+        now,
       }),
       ready,
       reload,
     }),
-    [connections, latest, ready, reload],
+    [connections, latest, ready, reload, now],
   );
 
   return (

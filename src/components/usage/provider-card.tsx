@@ -51,6 +51,7 @@ function windowLabel(window: UsageWindow): string {
 
 /** Reset as a countdown, or the provider's own reset text when unparseable. */
 function resetLabel(window: UsageWindow): string | undefined {
+  if (window.resetDue) return 'Reset due · awaiting fresh usage';
   if (window.resetsText) return `Resets ${window.resetsText}`;
   if (window.resetsInMinutes !== undefined) {
     const countdown = formatCountdown(window.resetsInMinutes);

@@ -23,7 +23,7 @@ import { useTheme } from '@/design/theme-provider';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { describeSource, describeState } from '@/domain/provider-status';
 import type { UsageWindow as ProviderWindow } from '@/features/dashboard/provider-view-types';
-import { formatClockTime, formatRelativeMinutes } from '@/utils/format';
+import { formatRelativeMinutes } from '@/utils/format';
 
 /** Splits windows into their shared-pool sections (Antigravity), else one list. */
 function groupWindows(
@@ -113,10 +113,21 @@ export default function ProviderDetailScreen() {
                   used={window.used}
                   limit={window.limit}
                   unit={window.unit}
-                  resetsLabel={formatClockTime(
-                    new Date(),
-                    window.resetsInMinutes,
-                  )}
+                  resetsLabel={
+                    window.resetDue
+                      ? 'Reset due · awaiting fresh usage'
+                      : window.resetsAt
+                        ? new Date(window.resetsAt).toLocaleString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZoneName: 'short',
+                          })
+                        : window.resetsText
+                          ? `Resets ${window.resetsText} (time unverified)`
+                          : null
+                  }
                 />
               ))}
             </Card>
