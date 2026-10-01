@@ -52,3 +52,25 @@ Source `42535d2a0a22bb2748c6670077a6192239ef7427`, clean `APP_VARIANT=preview AN
 - Reports are the matching `.size.json` files. Native/API evidence and limits are in NATIVE-QA-LOG.md. No physical arm64 install, installed-size improvement, Play download measurement or signed-in latency/RAM improvement is claimed.
 
 Build logs: `/tmp/devgauge-current-phone-prebuild.log`, `/tmp/devgauge-current-phone-build.log`. A Gradle warning reports daemon metaspace pressure at build end; the build exited successfully. Do not suppress it or claim it caused an application crash.
+
+## Privacy disclosure candidate
+
+Source `c8c20cd80f430074f3707fe243afc693f1a70fd1`, incremental release builds in the same isolated phone/emulator trees. Both builds succeeded; no dependency or native configuration changed. Phone build log: `/tmp/devgauge-phone-disclosure-build.log`; emulator log: `/tmp/devgauge-emulator-disclosure-build.log`.
+
+| Artifact | Bytes | MiB | SHA-256 |
+|---|---:|---:|---|
+| `artifacts/devgauge-preview-phone-c8c20cd.apk` | 43,809,982 | 41.78 | `5ec80a2d8c2622a5e818fed52ab5deff49e38617878ee2764fd868b409111fa7` |
+| `artifacts/devgauge-preview-emulator-c8c20cd.apk` | 44,615,499 | 42.55 | `642bceb8b6475ee96ca176b069085c7dea1d22fc4a21bdafa08958c70874bf2f` |
+
+Matching `.size.json` reports are preserved. Phone same-ABI reduction remains 17.51%; universal-to-compact reduction is 66.28%. Native compressed bytes and DEX are unchanged from the prior candidate; the 60 MiB phone APK budget passes. Tablet installation and dark notifications layout were inspected on this source. Physical phone, signed-in performance and production AAB remain unverified.
+
+## Device-test handoff
+
+Owner confirmed eligible account access and requested the final device-test build. Source `0f84dfab81eddd4514738c6265401358d28e6403`; sequential phone rebuild succeeded in 1m 8s after the shared-output concurrency failure described in EXECUTION-LOG.md. Emulator rebuild succeeded in 26 seconds.
+
+| Artifact | Bytes | MiB | SHA-256 |
+|---|---:|---:|---|
+| `artifacts/devgauge-preview-phone-0f84dfa.apk` | 43,811,350 | 41.78 | `f51a57b7296b57cf2de85a792126b5815b643f42ebb02124e1a41d568273b01e` |
+| `artifacts/devgauge-preview-emulator-0f84dfa.apk` | 44,616,867 | 42.55 | `3564568b761255a68181efb6fca2b08dc91385652e2fa0975d17e983dc45c5ef` |
+
+`artifacts/devgauge-device-test.apk` is an identical copy of the phone artifact. APK signature verification passed. Package `app.devgauge.preview`, version 0.1.0/code 1, min SDK 24, target SDK 36, arm64-v8a. This is the debug-key-signed internal preview release build, not a signed production AAB. Owner has not supplied the production application ID. Device/account QA and the direct-redemption transport remain open; handing over this APK does not complete the original goal.

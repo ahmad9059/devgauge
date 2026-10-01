@@ -77,3 +77,22 @@ See NATIVE-QA-LOG.md for exact emulator APK checksums and limits. The fresh comp
 Schema is now **4**. Migration 3 preserves recoverable native intents independently of deleted parents; migration 4 adds rule scopes/detail opt-in. Reverting code does not remove these installed schema changes. Native reminder cancellation must complete before deleting the journal or database key. Undo new code slices in reverse chronological order; restore a prior APK/database backup only when appropriate, never claim that Git revert refunds a consumed provider credit.
 
 The goal remains active. Owner production application ID and eligible reset-account/transport access were requested and have not yet been supplied. Independent artifact and device verification continues.
+
+## Disclosure and dependency verification
+
+- `c8c20cd`: privacy/provider disclosures describe mounted HTTPS transports, optional provider/window notification detail and browser sign-in that can survive local deletion. Full check passed: 82 files / 412 tests, typecheck, zero-warning lint and config; format passed.
+- `09086c0`: reviewed both underlying production dependency advisories and documented incompatible direct override/SDK downgrade risks in DEPENDENCY-REVIEW.md. Production audit remains 14 moderate dependency findings, zero high/critical; no incompatible override was introduced. This is not a full security audit.
+- Both `c8c20cd` release builds succeeded. Exact artifact hashes and file-size comparisons are in BASELINE.md. Tablet notification light (`42535d2`) and dark (`c8c20cd`) screenshots were inspected; no overlap or clipped text was observed on those screens. Android Accessibility Suite's permission dialog initially obstructed the dark check; stopping that system test app cleared it before the valid capture. This does not prove TalkBack accessibility.
+
+## Native QA corrections
+
+- `2a298d8`: explicitly remove the closed database file before deleting its key, preserving a retryable readable empty database on file-removal failure. 414 tests/full gates passed.
+- `4e43eff`: respect retryable Android notification denial via `canAskAgain`; 415 tests/full gates passed. Emulator release build succeeded in 3m 8s.
+- `0f84dfa`: cold notification tap landed on the default startup route in the tablet trial; retain responses across the index redirect. 83 files / 417 tests, typecheck, zero-warning lint, config and format passed. Native retest pending.
+- The first follow-up build attempts omitted the documented JBR native-access environment and failed in Worklets. Retrying with the existing script's `JAVA_TOOL_OPTIONS=--enable-native-access=ALL-UNNAMED` passed for emulator. Concurrent phone/emulator builds shared node_modules native outputs and caused a phone missing-library strip failure. Build those architectures sequentially while sharing node_modules; the failed phone build is not an artifact candidate.
+
+## Owner device-test handoff
+
+Owner confirmed they have an account and requested the final build to test on their device. Built and signature-verified the `0f84dfa` arm64 internal preview APK; stable handoff copy is `artifacts/devgauge-device-test.apk` (41.78 MiB). Exact hashes and architecture/package details are in BASELINE.md. Full source gates pass: **83 files / 417 tests**, typecheck, zero-warning lint, config and format. Current emulator APK installed after boot. No production AAB or direct redemption pass is claimed.
+
+Cold-route fix has unit regression coverage; repeat native cold tap, permission prompt and app delete-all trials remains required. Account access is now owner-held for their device trials, not available within this workspace. Ask for observed sign-in/sync/reminder/cold-tap outcomes after that testing; production application ID and supported account-bound redemption transport remain unresolved.

@@ -29,3 +29,19 @@ APKs and JSON size reports are preserved in gitignored `artifacts/devgauge-previ
 ## Remaining native matrix
 
 Physical arm64 install; live sign-in and cold/warm sync timings/call counts; WebView/OAuth account changes and cookie-scoped logout; foreground, cold tap, process-killed and power-restricted reminder delivery; native edited reset/quiet-hour/timezone trials; disconnect and delete-all recovery; full light/dark/tablet and TalkBack matrix. RAM samples are scenario-specific observations, not a measured performance improvement.
+
+## Tablet verification and defects found
+
+DevGauge_Tablet_API_35, Android 15/API 35, x86_64, 2560×1600 at density 320 (1280×800 dp). Fresh application data; no real account or the Pixel diagnostic sample is involved. Installed `42535d2`, then `c8c20cd` with `adb install -r`.
+
+- Notifications screen: light screenshot `artifacts/devgauge-42535d2-tablet-notifications-light.png` and dark `artifacts/devgauge-c8c20cd-tablet-notifications-dark.png` inspected without clipped text or overlap. The initial dark attempt was obstructed by Android Accessibility Suite's notification permission dialog; its obscured capture is not valid UI evidence. Stopping that system app cleared the dialog before the valid dark capture. No TalkBack trial is claimed.
+- `c8c20cd`: granted app notification permission using adb for an isolated delivery trial. Created a manual Claude reminder through the form with explicit timezone confirmation and UTC instant `2026-10-01T15:37:06Z`. UI showed scheduled; Android assigned a roughly 109.56-second inexact window.
+- Backgrounded the application, then terminated its PID 4795 with `kill -9` from the rooted emulator. `pidof` confirmed no app process. This is process death, not Android force-stop (which has different alarm semantics). By 20:39:02 PKT, the OS had restarted receiver PID 5261 and posted generic **DevGauge reminder / Check your provider’s scheduled usage reset.** The trial demonstrates delivery after process death on this emulator, not a physical phone or power-restricted OS.
+- Notification tap launched MainActivity but landed on default Usage rather than Claude detail. **Cold route failed.** `0f84dfa` retains the notification response until the initial index redirect settles; native retest remains pending. Unit regressions simulate the redirect race, duplicate handling, navigation readiness and unsafe payloads.
+- Cleanup review found delete-all relied on key-loss recovery instead of explicitly removing the file. `2a298d8` removes the file before the encryption key and retains the key on file-removal failure; failure/retry and native-cancellation regressions pass. `4e43eff` uses Android `canAskAgain` to offer contextual opt-in after retryable denial; permanent denial opens settings. Native prompt and cleanup retests remain pending.
+
+The tablet was shut down to free build memory, with its QA manual entry still retained for cleanup testing. Night mode and notification permission must be restored after the trial. Root adb was used only in this emulator; restore unroot after process-death checks.
+
+## Device-test handoff and emulator cleanup
+
+Owner requested the final device-test APK and confirmed account access on their device. `0f84dfa` emulator APK installed successfully after boot; cold tap/OS prompt/app delete-all retests are still not claimed. The tablet's isolated QA data was cleared with Android `pm clear`, rather than claiming that app delete-all was tested. Original light system mode and denied notification permission were restored, adb unrooted and the emulator stopped. Pixel diagnostic sample data was unaffected. Exact final handoff hashes are in BASELINE.md.
