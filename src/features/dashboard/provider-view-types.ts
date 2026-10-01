@@ -1,4 +1,5 @@
 // Production view models; fixtures import these types, never the reverse.
+import type { AuthMode } from '@/storage/types';
 import type { ProviderId } from '@/domain/providers';
 
 export type { ProviderId };
@@ -50,6 +51,7 @@ export type ProviderView = {
   state: ProviderState;
   source: 'live' | 'manual' | 'none';
   connectionId?: string;
+  authMode?: AuthMode;
   fetchedAt?: string;
   updatedMinutesAgo?: number;
   windows: UsageWindow[];

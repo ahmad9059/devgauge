@@ -1,3 +1,4 @@
+import { supportsMountedUsage } from '@/providers/registry';
 import { EarnedResetSection } from '@/features/connections/earned-reset-section';
 import { useSyncStatus } from '@/features/dashboard/sync-provider';
 import { getAppDatabase } from '@/services/app-database-store';
@@ -87,6 +88,13 @@ export default function ProviderDetailScreen() {
   const relative = formatRelativeMinutes(provider.updatedMinutesAgo);
   const hasWindows = provider.windows.length > 0;
   const syncing = syncingProviderIds.includes(provider.id);
+  const canRefresh =
+    !!provider.connectionId &&
+    !!provider.authMode &&
+    supportsMountedUsage({
+      providerId: provider.id,
+      authMode: provider.authMode,
+    });
   const refresh = () => {
     setActionsOpen(false);
     setActionError(null);
@@ -145,7 +153,7 @@ export default function ProviderDetailScreen() {
         {provider.state === 'error' ? (
           <ErrorState
             description={provider.note ?? 'The last refresh failed.'}
-            onRetry={refresh}
+            onRetry={canRefresh ? refresh : undefined}
           />
         ) : null}
 
@@ -270,9 +278,17 @@ export default function ProviderDetailScreen() {
         <Button
           label={syncing ? 'Refreshing…' : 'Refresh now'}
           loading={syncing}
-          disabled={working || !provider.connectionId}
+          disabled={working || !canRefresh}
           onPress={refresh}
         />
+        {!canRefresh ? (
+          <Text
+            style={[typography.body, { color: theme.colors.textSecondary }]}
+          >
+            Connect a supported live session to refresh. Manual imports must be
+            updated from their source.
+          </Text>
+        ) : null}
         {syncing ? (
           <Button
             label="Cancel refresh"
@@ -287,10 +303,12 @@ export default function ProviderDetailScreen() {
           onPress={() => {
             setActionsOpen(false);
             cancelProvider(provider.id);
-            router.push({
-              pathname: '/connect/[providerId]',
-              params: { providerId: provider.id },
-            });
+            if (provider.id === 'gemini-cli') router.push('/antigravity');
+            else
+              router.push({
+                pathname: '/session/[providerId]',
+                params: { providerId: provider.id },
+              });
           }}
         />
         <Button

@@ -1,3 +1,7 @@
+import {
+  supportsMountedUsage,
+  createProviderRegistry,
+} from '@/providers/registry';
 import { refreshUsageNotifications } from '@/services/notifications/usage-notifications';
 import { createExpoNotificationScheduler } from '@/services/notifications/expo-scheduler';
 import {
@@ -31,7 +35,6 @@ import {
   SESSION_USER_AGENT,
   type SessionProviderId,
 } from '@/services/web-session/session-config';
-import { createProviderRegistry } from '@/providers/registry';
 import { createHttpClient } from '@/services/network/client';
 import { ProviderError } from '@/domain/errors';
 import { parseRetryAfter } from '@/services/network/backoff';
@@ -288,11 +291,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             concurrency: 2,
             deadlineMs: 15_000,
             transport: {
-              supports: (connection) =>
-                (isSessionProvider(connection.providerId) &&
-                  connection.authMode === 'web-session') ||
-                (connection.providerId === 'gemini-cli' &&
-                  connection.authMode === 'oauth-pkce'),
+              supports: (connection) => supportsMountedUsage(connection),
               async fetchUsage({ connection, signal }) {
                 if (connection.providerId === 'gemini-cli')
                   return fetchAntigravityUsage({
@@ -329,10 +328,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         (connection) =>
           connection.status !== 'disconnected' &&
           (!providerId || connection.providerId === providerId) &&
-          ((isSessionProvider(connection.providerId) &&
-            connection.authMode === 'web-session') ||
-            (connection.providerId === 'gemini-cli' &&
-              connection.authMode === 'oauth-pkce')),
+          supportsMountedUsage(connection),
       );
       if (!activeRef.current || !connections.length) return;
       const engine = await getEngine();

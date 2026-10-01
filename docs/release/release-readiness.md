@@ -1,58 +1,33 @@
-# Release Readiness and Final Status
+# Release readiness
 
-> Final per-provider status and the mapping of every `SECURITY.md` §14 release
-> blocker. Reviewed 2026-09-28. This is a preview build; no connector is enabled.
+Reviewed 2026-10-01. The performance/alerts/reset goal is in progress. Earlier claims that the app makes no provider requests are obsolete.
 
-## 1. Release blockers (SECURITY.md §14)
+## Runtime behavior
 
-| Blocker | Status | Basis |
+| Provider | Mounted transport | Remaining release evidence |
 |---|---|---|
-| Embedded website-session integration without feasibility/policy/cookie/deletion review | **Cleared** — none enabled | Web-session gates all false; `src/services/web-session/policy.ts` |
-| Provider secret in SQLite/logs/analytics | **Cleared** | `src/security/release-security.test.ts` |
-| Gemini CLI live sync via borrowed credentials / unknown routes / Gemini Apps limits | **Cleared** — no live sync | Manual user-shared import only |
-| Claude/Codex auto sync without a documented review | **Cleared** — manual only | `src/providers/{claude,codex}/adapter.ts` |
-| Command Code/OpenCode Go enabled without vendor permission | **Cleared** — disabled | Vendor contract gate; `liveUsage: false` |
-| Missing remote/local credential deletion path | **Cleared** (local deletion verified; remote revocation provider-dependent) | `src/services/local-data.ts` |
-| OAuth state/PKCE/redirect validation failure | **Cleared** | `src/services/auth/oauth-transaction.test.ts`, `pkce.test.ts` |
-| Privacy disclosures not matching data flow | **Cleared** | `docs/release/privacy-data-inventory.md` |
+| Claude / Codex | First-party WebView session usage capture | Signed-in Android/account matrix, provider policy/cookie review, earned-reset transport |
+| GitHub Copilot | First-party WebView session usage capture | Signed-in matrix and minimum permission review; separate OAuth adapter gates remain |
+| Command Code / OpenCode Go | First-party WebView session capture | Vendor contract/policy review; experimental partner API remains gated |
+| Antigravity (`gemini-cli` storage ID) | Account-bound Google OAuth quota transport | Signed-in warm/cold quota and account-level contract validation |
 
-## 2. Per-provider final status
+`src/providers/registry.ts` exposes the mounted transport modes separately from legacy adapter capabilities. Adapter `liveUsage: false` does not disable the already mounted WebView/OAuth paths. No direct earned-reset transport is enabled. [Verified reset contracts](../plans/devgauge-performance-alerts-resets/RESET-CONTRACTS.md) explain the gap.
 
-| Provider | Status | Reason |
-|---|---|---|
-| GitHub Copilot | **Externally blocked** | Phase 1 Android website-session matrix + GitHub App permission spike pending; release-disabled |
-| Claude | **Externally blocked** | No supported consumer quota API; manual-only pending Phase 1 gate |
-| Codex | **Externally blocked** | No supported consumer quota/reset API; manual-only |
-| Command Code | **Externally blocked** | No verified read-only vendor contract |
-| OpenCode Go | **Externally blocked** | No verified read-only vendor contract |
-| Gemini CLI | **Externally blocked** | No approved DevGauge-owned account quota source; user-shared import only |
+## Implemented safeguards
 
-No connector is **enabled**. No connector is **deferred-not-verified** except the
-partner-API capability, which is dormant by design.
+- Encrypted SQLCipher storage and SecureStore vault; forward migrations and atomic snapshot/connection writes.
+- Shared bounded refresh coordination with deadlines, persisted cooldowns and changed-connection guards.
+- Explicit unit normalization and reset instants; unknown amounts/reset times stay unknown.
+- Persisted notification rules, native operation journal, contextual permission requests, owned schedule reconciliation and allowlisted taps.
+- Provider disconnect invalidates late writes before cleanup. Delete-all cancels owned reminders before deleting data/key; failure can be retried.
+- Global WebView cookies are preserved to avoid signing out unrelated accounts. Provider-specific cookie deletion is unproved; the UI discloses remaining browser sign-in. Remote revocation is not universally supported.
 
-## 3. Verified in this repository
+## Verification and open work
 
-- `npm run check`: typecheck, ESLint, unit tests, and build-config checks.
-- Security: seeded-secret containment, redaction, OAuth/PKCE/replay, capability
-  tamper/replay, malicious route allowlist.
-- Storage: migrations (fresh/prior/rollback), key-loss recovery, retention,
-  delete-all, and a performance smoke test.
-- Emulator: icon, splash config, encrypted storage, and the Phase 3 accessibility
-  matrix (`docs/release/mobile-qa-matrix.md`).
+Current aggregate checks and artifact evidence live in [EXECUTION-LOG.md](../plans/devgauge-performance-alerts-resets/EXECUTION-LOG.md) and [BASELINE.md](../plans/devgauge-performance-alerts-resets/BASELINE.md). Unit tests do not prove real account reset consumption, OS notification delivery or physical-device accessibility.
 
-## 4. Externally blocked / owner actions
+Required before production: owner-approved package/callback/legal/store configuration; provider feasibility and policy evidence; live account transport/reset trials; final release artifacts and native startup/storage/notification tests; physical phone/TalkBack QA; complete privacy/Data Safety and beta review. A production AAB cannot be labeled final before the application ID is supplied.
 
-- Final Android package ID, callback domain, legal entity, and store listing owner.
-- Complete the Phase 1 signed-in Android checks (Claude/Codex/Copilot).
-- GitHub App minimum-permission spike (test app).
-- Vendor usage-only contracts (Command Code, OpenCode Go).
-- Google account-level Gemini CLI quota contract.
-- Brand/trademark review and finalized store privacy policy + Data Safety form.
-- Beta cohort, crash-free target, and physical-device accessibility re-check.
+Dependency review currently reports 14 moderate, zero high/critical production findings in transitive Expo tooling/router dependencies. Expo dependency compatibility and Doctor passed. Audit-proposed SDK downgrades have not been applied; advisory dispositions and final recheck remain open.
 
-## 5. Go/No-Go
-
-- **Preview/internal testing:** GO. The app is local-first, makes no provider
-  request, and every connector is honestly labeled disabled or manual.
-- **Production with live connectors:** NO-GO until the externally blocked items
-  above are resolved and provider contracts are revalidated on the release date.
+**Production: NO-GO.** Internal APKs are verification artifacts, not a completed release or proof that every provider contract is approved.

@@ -1,5 +1,24 @@
+import type { ProviderConnection } from '@/storage/types';
 import { PROVIDER_IDS, type ProviderId } from '@/domain/providers';
 import type { ProviderAdapter, ProviderDescriptor } from './types';
+
+/** Actual mounted app transports; adapter release capabilities remain separate. */
+export const mountedUsageTransports: Record<
+  ProviderId,
+  'web-session' | 'oauth-pkce'
+> = {
+  claude: 'web-session',
+  codex: 'web-session',
+  'github-copilot': 'web-session',
+  'command-code': 'web-session',
+  'opencode-go': 'web-session',
+  'gemini-cli': 'oauth-pkce',
+};
+export function supportsMountedUsage(
+  connection: Pick<ProviderConnection, 'providerId' | 'authMode'>,
+): boolean {
+  return mountedUsageTransports[connection.providerId] === connection.authMode;
+}
 
 export const providerDescriptors: Record<ProviderId, ProviderDescriptor> = {
   claude: {

@@ -167,6 +167,7 @@ export function buildProviderViews(input: ProviderViewsInput): ProviderView[] {
       state,
       source,
       connectionId: active?.id,
+      authMode: active?.authMode,
       fetchedAt: snapshot?.fetchedAt,
       updatedMinutesAgo: minutesAgo(
         snapshot?.fetchedAt ?? active?.lastSuccessAt ?? null,
