@@ -87,6 +87,7 @@ const DELETE_ORDER = [
   'usage_windows',
   'usage_snapshots',
   'refresh_attempts',
+  'notification_operations',
   'scheduled_notifications',
   'notification_rules',
   'manual_reset_entries',

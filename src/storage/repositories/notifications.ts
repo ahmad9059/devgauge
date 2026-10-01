@@ -1,5 +1,5 @@
 import type { ProviderId } from '@/domain/providers';
-import type { Database } from '@/storage/database';
+import type { SqlDriver } from '@/storage/sqlite-driver';
 import type {
   NotificationRuleRecord,
   ScheduledNotificationRecord,
@@ -65,7 +65,7 @@ function toScheduled(row: ScheduledRow): ScheduledNotificationRecord {
 }
 
 export async function listNotificationRules(
-  db: Database,
+  db: SqlDriver,
 ): Promise<NotificationRuleRecord[]> {
   const rows = await db.all<RuleRow>(
     `SELECT ${RULE_COLUMNS} FROM notification_rules ORDER BY created_at ASC, id ASC`,
@@ -74,7 +74,7 @@ export async function listNotificationRules(
 }
 
 export async function upsertNotificationRule(
-  db: Database,
+  db: SqlDriver,
   rule: NotificationRuleRecord,
 ): Promise<void> {
   await db.run(
@@ -102,14 +102,14 @@ export async function upsertNotificationRule(
 }
 
 export async function deleteNotificationRule(
-  db: Database,
+  db: SqlDriver,
   id: string,
 ): Promise<void> {
   await db.run('DELETE FROM notification_rules WHERE id = ?', [id]);
 }
 
 export async function listScheduledNotifications(
-  db: Database,
+  db: SqlDriver,
 ): Promise<ScheduledNotificationRecord[]> {
   const rows = await db.all<ScheduledRow>(
     `SELECT ${SCHEDULED_COLUMNS} FROM scheduled_notifications
@@ -119,7 +119,7 @@ export async function listScheduledNotifications(
 }
 
 export async function upsertScheduledNotification(
-  db: Database,
+  db: SqlDriver,
   record: ScheduledNotificationRecord,
 ): Promise<void> {
   await db.run(
@@ -146,7 +146,7 @@ export async function upsertScheduledNotification(
 
 /** Marks a connection's pending schedules cancelled; returns rows affected. */
 export async function cancelScheduledForConnection(
-  db: Database,
+  db: SqlDriver,
   connectionId: string,
   nowIso: string,
 ): Promise<number> {

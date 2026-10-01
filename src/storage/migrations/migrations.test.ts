@@ -26,6 +26,7 @@ const EXPECTED_TABLES = [
   'app_settings',
   'cli_stats_imports',
   'manual_reset_entries',
+  'notification_operations',
   'notification_rules',
   'provider_connections',
   'refresh_attempts',
@@ -70,14 +71,39 @@ describe('migrations', () => {
       snapshot: { snapshot: makeSnapshot('legacy'), windows: [] },
     });
   });
+  it('preserves pending schedules as recoverable intents when upgrading v2', async () => {
+    const db = createTestDatabase();
+    await runMigrations(db, migrations.slice(0, 2));
+    await db.run(`INSERT INTO notification_rules
+      (id,provider_id,rule_type,enabled,created_at,updated_at)
+      VALUES ('legacy-rule','claude','reset-reminder',1,'2026-10-01','2026-10-01')`);
+    await db.run(`INSERT INTO scheduled_notifications
+      (id,rule_id,native_identifier,scheduled_for,status,created_at,updated_at)
+      VALUES ('legacy-schedule','legacy-rule','devgauge.reminder.legacy',
+      '2026-10-02T00:00:00.000Z','scheduled','2026-10-01','2026-10-01')`);
+    await migrate(db);
+    const operation = await db.first<{ request_json: string; state: string }>(
+      'SELECT request_json,state FROM notification_operations',
+    );
+    expect(operation?.state).toBe('pending');
+    expect(JSON.parse(operation!.request_json)).toMatchObject({
+      id: 'legacy',
+      providerId: 'claude',
+      at: '2026-10-02T00:00:00.000Z',
+    });
+    expect(await db.first('SELECT id FROM scheduled_notifications')).toEqual({
+      id: 'legacy-schedule',
+    });
+  });
+
   it('migrates an empty database to the latest schema exactly once', async () => {
     const db = createTestDatabase();
     await configureDatabase(db, { journalModeWAL: false });
 
     const version = await migrate(db);
 
-    expect(version).toBe(2);
-    expect(await db.userVersion()).toBe(2);
+    expect(version).toBe(3);
+    expect(await db.userVersion()).toBe(3);
     expect(await tableNames(db)).toEqual(EXPECTED_TABLES);
   });
 
@@ -86,7 +112,7 @@ describe('migrations', () => {
     await migrate(db);
     const before = await tableNames(db);
     await migrate(db);
-    expect(await db.userVersion()).toBe(2);
+    expect(await db.userVersion()).toBe(3);
     expect(await tableNames(db)).toEqual(before);
   });
 
@@ -152,6 +178,6 @@ describe('migrations', () => {
   });
 
   it('ships exactly the declared migrations', () => {
-    expect(migrations.map((migration) => migration.version)).toEqual([1, 2]);
+    expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3]);
   });
 });

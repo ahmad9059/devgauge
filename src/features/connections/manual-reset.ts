@@ -1,10 +1,14 @@
 import { normalizeResetTime } from '@/domain/reset-time';
 import {
   reminderCopy,
-  reminderNativeId,
   type NotificationScheduler,
 } from '@/services/notifications/scheduler';
 import type { Database } from '@/storage/database';
+import { withWriteTransaction } from '@/storage/write-transaction';
+import {
+  reconcileNotifications,
+  setNotificationIntent,
+} from '@/services/notifications/reconciler';
 import {
   deleteManualResetEntry,
   upsertManualResetEntry,
@@ -77,34 +81,50 @@ export async function saveManualResetReminder(
   });
   if (!validation.ok) throw new Error(validation.reason);
 
-  await upsertManualResetEntry(db, input.entry);
-  await upsertNotificationRule(db, {
-    id: resetRuleId(input.entry.id),
-    providerId: input.entry.providerId,
-    ruleType: 'reset-reminder',
-    enabled: true,
-    threshold: null,
-    leadMinutes: null,
-    quietHoursStart: null,
-    quietHoursEnd: null,
-    createdAt: input.now.toISOString(),
-    updatedAt: input.now.toISOString(),
-  });
-
+  const at = normalizeResetTime(input.entry.resetsAt)!;
   const copy = reminderCopy();
-  const nativeIdentifier = await scheduler.schedule({
-    id: input.entry.id,
-    title: copy.title,
-    body: copy.body,
-    at: input.entry.resetsAt,
+  await withWriteTransaction(db, async (tx) => {
+    await upsertManualResetEntry(tx, { ...input.entry, resetsAt: at });
+    await upsertNotificationRule(tx, {
+      id: resetRuleId(input.entry.id),
+      providerId: input.entry.providerId,
+      ruleType: 'reset-reminder',
+      enabled: true,
+      threshold: null,
+      leadMinutes: null,
+      quietHoursStart: null,
+      quietHoursEnd: null,
+      createdAt: input.now.toISOString(),
+      updatedAt: input.now.toISOString(),
+    });
+    await setNotificationIntent(tx, {
+      ruleId: resetRuleId(input.entry.id),
+      request: {
+        id: input.entry.id,
+        ...copy,
+        at,
+        providerId: input.entry.providerId,
+      },
+      now: input.now.toISOString(),
+    });
   });
+  const operations = await reconcileNotifications(db, scheduler, input.now);
+  const operation = operations.find(
+    (item) => item.rule_id === resetRuleId(input.entry.id),
+  );
+  if (operation?.state !== 'scheduled') {
+    throw new Error(
+      operation?.safe_error ?? 'Reminder is pending. Retry scheduling.',
+    );
+  }
+  const nativeIdentifier = operation.id;
   await upsertScheduledNotification(db, {
     id: scheduledId(input.entry.id),
     ruleId: resetRuleId(input.entry.id),
     connectionId: null,
     windowExternalKey: null,
     nativeIdentifier,
-    scheduledFor: input.entry.resetsAt,
+    scheduledFor: at,
     status: 'scheduled',
     createdAt: input.now.toISOString(),
     updatedAt: input.now.toISOString(),
@@ -119,7 +139,23 @@ export async function deleteManualResetReminder(
   scheduler: NotificationScheduler,
   entryId: string,
 ): Promise<void> {
-  await scheduler.cancel(reminderNativeId(entryId));
-  await deleteNotificationRule(db, resetRuleId(entryId));
-  await deleteManualResetEntry(db, entryId);
+  await withWriteTransaction(db, async (tx) => {
+    await tx.run(
+      "UPDATE notification_operations SET desired=0,state='pending' WHERE rule_id=?",
+      [resetRuleId(entryId)],
+    );
+    await deleteNotificationRule(tx, resetRuleId(entryId));
+    await deleteManualResetEntry(tx, entryId);
+  });
+  const operations = await reconcileNotifications(db, scheduler);
+  if (
+    operations.some(
+      (item) =>
+        item.rule_id === resetRuleId(entryId) && item.state === 'failed',
+    )
+  ) {
+    throw new Error(
+      'Reminder deleted locally; native cancellation is pending. Retry reconciliation.',
+    );
+  }
 }

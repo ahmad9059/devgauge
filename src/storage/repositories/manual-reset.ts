@@ -1,4 +1,4 @@
-import type { Database } from '@/storage/database';
+import type { SqlDriver } from '@/storage/sqlite-driver';
 import type { ManualResetEntry } from '@/storage/types';
 
 type Row = {
@@ -26,7 +26,7 @@ function toEntry(row: Row): ManualResetEntry {
 const COLUMNS = `id, provider_id, label, resets_at, source_note, created_at, updated_at`;
 
 export async function listManualResetEntries(
-  db: Database,
+  db: SqlDriver,
 ): Promise<ManualResetEntry[]> {
   const rows = await db.all<Row>(
     `SELECT ${COLUMNS} FROM manual_reset_entries ORDER BY resets_at ASC, id ASC`,
@@ -35,7 +35,7 @@ export async function listManualResetEntries(
 }
 
 export async function listManualResetEntriesForProvider(
-  db: Database,
+  db: SqlDriver,
   providerId: 'claude' | 'codex',
 ): Promise<ManualResetEntry[]> {
   const rows = await db.all<Row>(
@@ -47,7 +47,7 @@ export async function listManualResetEntriesForProvider(
 }
 
 export async function upsertManualResetEntry(
-  db: Database,
+  db: SqlDriver,
   entry: ManualResetEntry,
 ): Promise<void> {
   await db.run(
@@ -69,7 +69,7 @@ export async function upsertManualResetEntry(
 }
 
 export async function deleteManualResetEntry(
-  db: Database,
+  db: SqlDriver,
   id: string,
 ): Promise<void> {
   await db.run('DELETE FROM manual_reset_entries WHERE id = ?', [id]);

@@ -76,7 +76,7 @@ describe('diagnostics export', () => {
       generatedAt: '2026-09-27T00:00:00.000Z',
     });
 
-    expect(diagnostics.database.userVersion).toBe(2);
+    expect(diagnostics.database.userVersion).toBe(3);
     expect(diagnostics.counts.connections).toBe(1);
     expect(diagnostics.connections[0]?.hasCredential).toBe(true);
     expect(diagnostics).not.toHaveProperty('connections.0.credentialRef');
