@@ -1,7 +1,7 @@
 # Privacy and Data Inventory
 
 > Reconciles the actual Phase 4–9 data flows against `SECURITY.md` and the Google
-> Play Data Safety form. Reviewed 2026-09-28. Update this file whenever a
+> Play Data Safety form. Reviewed 2026-10-01. Update this file whenever a
 > dependency or network behavior changes.
 
 ## 1. Data stored on device
@@ -14,15 +14,15 @@
 | Settings + manual reset entries | Encrypted SQLite | Preferences/reminders | No secrets |
 | Credential records (tokens/API keys) | Android Keystore via SecureStore | Provider auth | Never in SQLite/logs |
 | SQLCipher key | Android Keystore via SecureStore | DB encryption | Never leaves device |
-| Local notifications | OS scheduler | Reminders | Generic copy only |
+| Provider website cookies | App-private Android WebView storage | Keep website sign-in | Not exported to diagnostics; provider-specific deletion is unproved |
+| Notification rules/operation journal | Encrypted SQLite | Recover scheduling/cancellation | Includes routing/scope; generic copy default, optional provider/window name |
+| Local notifications | OS scheduler | Reminders | Generic copy default; optional provider/window name, no account identifiers or amounts |
 
 ## 2. Data transmitted
 
-- **This build transmits nothing.** Every connector is disabled; no provider
-  network request is made.
-- When a connector is enabled: HTTPS only, fixed allowlisted hosts, fixed
-  endpoints, bounded size/time, no third-party analytics. An optional broker
-  would carry only confidential OAuth exchange material (no usage history).
+- Connecting and syncing uses first-party website HTTPS requests for Claude, Codex, Copilot, Command Code and OpenCode Go, plus Google OAuth/provider quota HTTPS requests for Antigravity. Provider website sign-in may involve identity providers; do not claim that every browser navigation is a quota API request.
+- The native bridge restricts origins/routes and capture size/time. OAuth quota reads use the stored account’s credential. Legacy partner/API adapter gates remain independent from the mounted application transports.
+- Usage/history is not uploaded to a DevGauge server. No reset broker/desktop companion is configured. Final account/policy review is still required.
 - No advertising identifiers; no telemetry/analytics SDK.
 
 ## 3. SDKs and dependencies
@@ -43,19 +43,19 @@
 - Default detailed history retention: 90 days; the latest successful snapshot per
   connection is kept while connected.
 - Settings → Data clears cached usage; delete-all removes connections, history,
-  settings, credentials, and the database key.
+  settings, credentials, owned reminders and the database key. Native cancellation must succeed before journal/key deletion. Browser/WebView cookies can remain; global cookie clearing is avoided because it would affect unrelated sessions.
 - Keys are unrecoverable if SecuredStorage is cleared; recovery is a documented
   destructive local reset.
 
 ## 6. Play Data Safety mapping
 
-- **Collected:** none by DevGauge (no account, no analytics).
+- **DevGauge server collection:** no DevGauge account/server or analytics. Provider authentication/usage requests transmit data to providers; this is not a completed Google Play classification.
 - **Stored on device only:** connection metadata, usage history, settings.
 - **Optional credential storage:** provider tokens/keys in secure storage, used
   only to authenticate the user's own provider account.
-- **Shared:** not applicable in this build.
+- **Provider transmission:** authentication and usage requests reach the user-selected provider/identity provider. Final Play Data Safety classification requires owner review.
 - **Encrypted in transit / at rest:** at rest via SQLCipher + Keystore; in transit
-  HTTPS only (when connectors are enabled).
+  HTTPS for the mounted provider transports.
 - **Deletion:** in-app Settings → Data.
 
 ## 7. Outstanding (owner/release actions)

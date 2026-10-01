@@ -131,7 +131,9 @@ export default function SettingsScreen() {
       await db.close();
       resetAppDatabaseHandle();
       await reload();
-      setDataMessage('All local data deleted.');
+      setDataMessage(
+        'App records, credentials and reminders deleted. Browser sign-in can remain.',
+      );
     } catch {
       setDataMessage('Could not delete local data.');
     }
@@ -347,7 +349,8 @@ export default function SettingsScreen() {
         {dataAction === 'delete' ? (
           <Notice tone="warning" icon="alert-outline">
             This removes every connection, stored snapshot, credential, and
-            preference on this device. It cannot be undone.
+            preference on this device. It cannot be undone. Browser sign-in may
+            remain; sign out on provider websites to remove it.
           </Notice>
         ) : (
           <Notice tone="warning" icon="alert-outline">

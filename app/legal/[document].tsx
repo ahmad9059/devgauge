@@ -15,9 +15,9 @@ const DOCUMENTS: Record<
       'DevGauge has no DevGauge account, no analytics SDK, and no cloud sync. Nothing is sent to a DevGauge server.',
       'Connecting a provider loads that provider page inside the app so you sign in with the provider directly. DevGauge reads only the usage that page loads and never reads your password.',
       'Usage snapshots, connections, and preferences are stored in an encrypted local SQLite database (SQLCipher). The database key is generated on this device and kept in Android Keystore-backed secure storage; it is never uploaded.',
-      'Provider tokens and API keys are stored only in secure storage, never in the database, logs, diagnostics, or notification content. DevGauge never records provider passwords, browser cookies, or MFA codes.',
-      'Notifications are local and generic; they never include account identifiers or usage amounts.',
-      'Settings > Data deletes cached usage, connections, and stored credentials. Deleting all local data also removes the database key.',
+      'Provider tokens and API keys are stored only in secure storage, never in the database, logs, diagnostics, or notification content. Passwords and MFA codes are not captured. Provider website cookies remain in the device’s WebView storage and are not exported to diagnostics.',
+      'Notifications are local and use generic copy by default. You can include the provider and usage-window name; account identifiers and usage amounts are omitted.',
+      'Settings > Data deletes cached usage, connections, and stored credentials. Deleting app records also cancels owned reminders and removes the database key. Browser sign-in can remain; sign out on provider websites to remove it.',
     ],
   },
   terms: {
@@ -33,7 +33,7 @@ const DOCUMENTS: Record<
     title: 'Provider disclosures',
     summary: 'Access method for each provider.',
     body: [
-      'Claude, Codex, GitHub Copilot, Command Code, OpenCode Go, and Antigravity connect through an in-app session. DevGauge reads only the usage the provider page loads.',
+      'Claude, Codex, GitHub Copilot, Command Code and OpenCode Go use in-app website sessions for usage capture. Antigravity uses Google OAuth and provider quota requests. These experimental transports still need final signed-in account and provider policy verification.',
       'Personal and organization billing are separate and are never merged.',
       'Usage data stays on this device; credentials are stored in secure storage.',
     ],
