@@ -1,8 +1,8 @@
 import type {
-  ProviderFixture,
+  ProviderView,
   ProviderState,
   SupportTier,
-} from '@/testing/fixtures/providers';
+} from '@/features/dashboard/provider-view-types';
 import type { StatusTone } from '@/design/themes';
 import type { IconName } from '@/components/ui/icon';
 
@@ -84,7 +84,7 @@ export const TIER_LABELS: Record<SupportTier, string> = {
 
 export type SourceLabel = 'Live' | 'Manual' | 'None';
 
-export function describeSource(source: ProviderFixture['source']): SourceLabel {
+export function describeSource(source: ProviderView['source']): SourceLabel {
   if (source === 'live') return 'Live';
   if (source === 'manual') return 'Manual';
   return 'None';

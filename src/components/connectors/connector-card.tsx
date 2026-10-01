@@ -8,7 +8,7 @@ import {
 import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { formatRelativeMinutes } from '@/utils/format';
-import type { ProviderFixture } from '@/testing/fixtures/providers';
+import type { ProviderView } from '@/features/dashboard/provider-view-types';
 import { Button, Card, StatusChip } from '@/components/ui';
 import { ProviderLogo } from '@/components/usage/provider-logo';
 
@@ -21,7 +21,7 @@ export function ConnectorCard({
   onDisconnect,
   testID,
 }: {
-  provider: ProviderFixture;
+  provider: ProviderView;
   /** Plain-language auth method, e.g. "Website session in app". */
   authMethod: string;
   /** What usage becomes available after connecting. */

@@ -35,9 +35,9 @@ import {
 } from '@/services/web-session/usage-extract';
 import { parseUsageText } from '@/services/web-session/usage-text';
 import type {
-  ProviderFixture,
+  ProviderView,
   ProviderState,
-} from '@/testing/fixtures/providers';
+} from '@/features/dashboard/provider-view-types';
 
 import { useProviderViews, useReloadProviders } from './app-providers';
 import { retrySync } from './sync-retry';
@@ -70,7 +70,7 @@ type WebJob = {
   runId: number;
   mode: 'api' | 'page';
   capturedAt: Date;
-  provider: ProviderFixture;
+  provider: ProviderView;
   captured: CapturedResponse[];
   text: string;
   done: boolean;
@@ -78,7 +78,7 @@ type WebJob = {
   resolve: (result: 'success' | 'retry' | 'stop') => void;
 };
 
-type WebHost = { provider: ProviderFixture; runId: number; epoch: number };
+type WebHost = { provider: ProviderView; runId: number; epoch: number };
 const SESSION_SOURCES = Object.fromEntries(
   Object.entries(SESSION_PROVIDERS).map(([id, config]) => [
     id,
@@ -204,7 +204,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   );
 
   const syncWebProvider = useCallback(
-    (provider: ProviderFixture) =>
+    (provider: ProviderView) =>
       new Promise<'success' | 'retry' | 'stop'>((resolve) => {
         const runId = ++nextRunId.current;
         const webView = webRefs.current.get(provider.id);

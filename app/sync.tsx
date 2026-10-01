@@ -12,7 +12,7 @@ import {
   useProviderViews,
   useReloadProviders,
 } from '@/features/dashboard/app-providers';
-import type { ProviderState } from '@/testing/fixtures/providers';
+import type { ProviderState } from '@/features/dashboard/provider-view-types';
 import { getAppDatabase } from '@/services/app-database-store';
 import { USAGE_BRIDGE_SCRIPT } from '@/services/web-session/bridge-script';
 import {

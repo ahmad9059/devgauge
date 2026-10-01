@@ -5,9 +5,9 @@ import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { formatCountdown, formatRelativeMinutes } from '@/utils/format';
 import type {
-  ProviderFixture,
+  ProviderView,
   UsageWindow,
-} from '@/testing/fixtures/providers';
+} from '@/features/dashboard/provider-view-types';
 import { Card, IconButton, ProgressBar, StatusChip } from '@/components/ui';
 import { ProviderLogo } from '@/components/usage/provider-logo';
 
@@ -65,7 +65,7 @@ export function ProviderCard({
   onOpenActions,
   testID,
 }: {
-  provider: ProviderFixture;
+  provider: ProviderView;
   /** Reference instant for reset clock labels. Defaults to load time only if omitted. */
   now?: Date;
   onPress?: () => void;

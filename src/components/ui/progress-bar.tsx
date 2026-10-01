@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import type { UsageUnit } from '@/testing/fixtures/providers';
+import type { UsageUnit } from '@/features/dashboard/provider-view-types';
 import { clampPercent, formatCount, trim } from '@/utils/format';
 
 /**

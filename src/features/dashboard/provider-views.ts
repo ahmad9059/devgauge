@@ -5,12 +5,12 @@ import type {
   UsageWindowRecord,
 } from '@/storage/types';
 import type {
-  ProviderFixture,
+  ProviderView,
   ProviderState,
   SupportTier as FixtureTier,
   UsageWindow as FixtureWindow,
   UsageWindowKind as FixtureWindowKind,
-} from '@/testing/fixtures/providers';
+} from '@/features/dashboard/provider-view-types';
 
 import { deriveProviderState, DEFAULT_TTL_SECONDS } from './dashboard-view';
 
@@ -128,9 +128,7 @@ function newest(
  * connections, and latest snapshots. There is no static/demo usage data: a
  * provider only shows windows when it has a persisted snapshot.
  */
-export function buildProviderViews(
-  input: ProviderViewsInput,
-): ProviderFixture[] {
+export function buildProviderViews(input: ProviderViewsInput): ProviderView[] {
   return input.descriptors.map((descriptor) => {
     const connections = input.connections.filter(
       (connection) => connection.providerId === descriptor.id,
@@ -144,7 +142,7 @@ export function buildProviderViews(
       input.now,
       input.ttlSeconds ?? DEFAULT_TTL_SECONDS,
     );
-    const source: ProviderFixture['source'] = snapshot
+    const source: ProviderView['source'] = snapshot
       ? snapshot.source
       : active !== undefined &&
           (active.authMode === 'manual' || active.authMode === 'manual-import')

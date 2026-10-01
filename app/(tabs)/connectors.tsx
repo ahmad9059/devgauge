@@ -5,7 +5,7 @@ import { Header, Screen, ScreenScroll, Stack } from '@/components/ui';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { isApiKeyProvider } from '@/providers/api-key/candidates';
 import { isSessionProvider } from '@/services/web-session/session-config';
-import { connectorMetadata } from '@/testing/fixtures/providers';
+import { connectorMetadata } from '@/features/connections/connector-metadata';
 
 export default function ConnectorsScreen() {
   const router = useRouter();

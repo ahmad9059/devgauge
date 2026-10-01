@@ -1,59 +1,16 @@
 // Static provider fixtures for Phase 3 visual work. No network, no auth.
 // Times are relative offsets so cards render deterministically in tests.
 
-import type { ProviderId } from '@/domain/providers';
-
-export type { ProviderId };
-
-export type SupportTier = 'supported' | 'experimental' | 'blocked';
-
-export type ProviderState =
-  | 'connected'
-  | 'disconnected'
-  | 'candidate-disabled'
-  | 'experimental'
-  | 'blocked'
-  | 'stale'
-  | 'rate-limited'
-  | 'auth-expired'
-  | 'error';
-
-export type UsageUnit =
-  'percent' | 'requests' | 'credits' | 'tokens' | 'currency';
-
-export type UsageWindowKind =
-  'rolling' | 'daily' | 'weekly' | 'monthly' | 'billing-period';
-
-export type UsageWindow = {
-  kind: UsageWindowKind;
-  label: string;
-  /** Shared pool shown as a section on the provider detail page. */
-  group?: string;
-  unit: UsageUnit;
-  used?: number;
-  limit?: number;
-  remaining?: number;
-  percent?: number;
-  resetsInMinutes?: number;
-  /** Raw reset text when the source does not give a parseable timestamp. */
-  resetsText?: string;
-};
-
-export type ProviderFixture = {
-  id: ProviderId;
-  displayName: string;
-  /** Neutral monogram until official brand assets are approved. */
-  monogram: string;
-  planName?: string;
-  tier: SupportTier;
-  state: ProviderState;
-  source: 'live' | 'manual' | 'none';
-  updatedMinutesAgo?: number;
-  windows: UsageWindow[];
-  note?: string;
-  /** First-party page the user can open instead of a fake login control. */
-  dashboardUrl?: string;
-};
+import type { ProviderView as ProviderFixture } from '@/features/dashboard/provider-view-types';
+export type {
+  ProviderView as ProviderFixture,
+  ProviderState,
+  SupportTier,
+  UsageUnit,
+  UsageWindowKind,
+  UsageWindow,
+  ProviderId,
+} from '@/features/dashboard/provider-view-types';
 
 export const providerFixtures: ProviderFixture[] = [
   {
@@ -348,48 +305,10 @@ export const providerFixtures: ProviderFixture[] = [
     },
   ];
 
-export type ConnectorMetadata = {
-  authMethod: string;
-  dataSummary: string;
-  retention: string;
-};
-
-/**
- * Plain-language connection facts shown before any CTA. These describe the
- * intended Phase 6/8 flows and make no claim that a connector is enabled.
- */
-export const connectorMetadata: Record<ProviderId, ConnectorMetadata> = {
-  claude: {
-    authMethod: 'In-app session',
-    dataSummary: 'Five-hour and weekly usage',
-    retention: 'On this device',
-  },
-  codex: {
-    authMethod: 'In-app session',
-    dataSummary: 'Five-hour and weekly usage',
-    retention: 'On this device',
-  },
-  'github-copilot': {
-    authMethod: 'In-app session',
-    dataSummary: 'Monthly request allowance',
-    retention: 'On this device',
-  },
-  'command-code': {
-    authMethod: 'In-app session',
-    dataSummary: 'Five-hour and weekly usage',
-    retention: 'On this device',
-  },
-  'opencode-go': {
-    authMethod: 'In-app session',
-    dataSummary: 'Five-hour and weekly usage',
-    retention: 'On this device',
-  },
-  'gemini-cli': {
-    authMethod: 'In-app session',
-    dataSummary: 'Hourly and weekly usage',
-    retention: 'On this device',
-  },
-};
+export {
+  connectorMetadata,
+  type ConnectorMetadata,
+} from '@/features/connections/connector-metadata';
 
 export function findProviderFixture(
   id: string | undefined,

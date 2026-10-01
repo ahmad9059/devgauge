@@ -1,7 +1,7 @@
 import type { ProviderId } from '@/domain/providers';
 import type { ProviderDescriptor, SupportTier } from '@/providers/types';
 import type { ProviderConnection, SnapshotWithWindows } from '@/storage/types';
-import type { ProviderState } from '@/testing/fixtures/providers';
+import type { ProviderState } from '@/features/dashboard/provider-view-types';
 
 import {
   formatDecimalValue,

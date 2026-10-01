@@ -12,20 +12,20 @@ import { getAppDatabase } from '@/services/app-database-store';
 import { listConnections } from '@/storage/repositories/connections';
 import { latestByConnection } from '@/storage/repositories/usage';
 import type { ProviderConnection, SnapshotWithWindows } from '@/storage/types';
-import type { ProviderFixture } from '@/testing/fixtures/providers';
+import type { ProviderView } from '@/features/dashboard/provider-view-types';
 
 import { buildProviderViews } from './provider-views';
 import { createCoalescedReload } from './coalesced-reload';
 
 type AppProvidersValue = {
-  providers: ProviderFixture[];
+  providers: ProviderView[];
   ready: boolean;
   reload: () => Promise<void>;
 };
 
 const AppProvidersContext = createContext<AppProvidersValue | null>(null);
 
-function gatedOnly(): ProviderFixture[] {
+function gatedOnly(): ProviderView[] {
   return buildProviderViews({
     descriptors: listProviderDescriptors(),
     connections: [],
@@ -91,7 +91,7 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useProviderViews(): ProviderFixture[] {
+export function useProviderViews(): ProviderView[] {
   const context = useContext(AppProvidersContext);
   return context ? context.providers : gatedOnly();
 }

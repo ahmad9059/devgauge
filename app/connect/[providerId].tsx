@@ -15,7 +15,7 @@ import {
   Stack,
 } from '@/components/ui';
 import { useTheme } from '@/design/theme-provider';
-import { connectorMetadata } from '@/testing/fixtures/providers';
+import { connectorMetadata } from '@/features/connections/connector-metadata';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { isSessionProvider } from '@/services/web-session/session-config';
 

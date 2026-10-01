@@ -11,7 +11,7 @@ import {
   ScreenScroll,
   Stack,
 } from '@/components/ui';
-import type { ProviderState } from '@/testing/fixtures/providers';
+import type { ProviderState } from '@/features/dashboard/provider-view-types';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 
 // Usage shows only providers that actually have a connection or data.

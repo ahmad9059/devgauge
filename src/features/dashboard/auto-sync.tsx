@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
-import type { ProviderState } from '@/testing/fixtures/providers';
+import type { ProviderState } from '@/features/dashboard/provider-view-types';
 
 import { useProviderViews } from './app-providers';
 

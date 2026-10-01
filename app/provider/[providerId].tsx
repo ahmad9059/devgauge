@@ -22,7 +22,7 @@ import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import { useProviderViews } from '@/features/dashboard/app-providers';
 import { describeSource, describeState } from '@/domain/provider-status';
-import type { UsageWindow as ProviderWindow } from '@/testing/fixtures/providers';
+import type { UsageWindow as ProviderWindow } from '@/features/dashboard/provider-view-types';
 import { formatClockTime, formatRelativeMinutes } from '@/utils/format';
 
 /** Splits windows into their shared-pool sections (Antigravity), else one list. */
