@@ -112,6 +112,7 @@ export default function NotificationsScreen() {
   const [quietStart, setQuietStart] = useState('');
   const [quietEnd, setQuietEnd] = useState('');
   const [manualEdit, setManualEdit] = useState<ManualResetEntry | null>(null);
+  const [timezoneConfirmed, setTimezoneConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const load = useCallback(async () => {
@@ -231,7 +232,7 @@ export default function NotificationsScreen() {
           />
           <Button
             label={
-              permission === 'granted'
+              permission === 'granted' || permission === 'denied'
                 ? 'Open Android notification settings'
                 : 'Allow notifications'
             }
@@ -517,6 +518,28 @@ export default function NotificationsScreen() {
           </Card>
         ) : null}
         <SectionTitle>Manual reset reminders</SectionTitle>
+        {(['claude', 'codex'] as const).map((providerId) => (
+          <Button
+            key={providerId}
+            label={`Add ${providerId} manual reset`}
+            variant="secondary"
+            disabled={busy}
+            onPress={() => {
+              const timestamp = new Date().toISOString();
+              setManualEdit({
+                id: `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                providerId,
+                label: 'Manual reset',
+                resetsAt: '',
+                sourceNote: null,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              });
+              setTimezoneConfirmed(false);
+              setDraft(null);
+            }}
+          />
+        ))}
         {manual.map((entry) => (
           <Card key={entry.id}>
             <ListRow
@@ -529,6 +552,7 @@ export default function NotificationsScreen() {
               disabled={busy}
               onPress={() => {
                 setManualEdit(entry);
+                setTimezoneConfirmed(false);
                 setDraft(null);
               }}
             />
@@ -552,10 +576,27 @@ export default function NotificationsScreen() {
         ))}
         {manualEdit ? (
           <Card>
+            <Field
+              label="Reminder label"
+              value={manualEdit.label}
+              onChange={(label) => setManualEdit({ ...manualEdit, label })}
+            />
+            <ListRow
+              title={`Confirm device timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`}
+              trailing={
+                <Switch
+                  accessibilityLabel="Confirm device timezone"
+                  value={timezoneConfirmed}
+                  onValueChange={setTimezoneConfirmed}
+                />
+              }
+            />
             <ManualResetForm
               key={manualEdit.id}
               initialValue={manualEdit.resetsAt}
-              timezoneOffsetMinutes={new Date().getTimezoneOffset()}
+              timezoneOffsetMinutes={
+                timezoneConfirmed ? new Date().getTimezoneOffset() : null
+              }
               now={new Date()}
               onSubmit={async (resetsAt) => {
                 await requestNotificationPermission();
