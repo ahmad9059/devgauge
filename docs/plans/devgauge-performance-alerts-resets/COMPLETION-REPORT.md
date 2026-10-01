@@ -12,7 +12,7 @@ Branch `main`, audit head `ae066394f9eff99dfcfd8e038fc4adda46290a6f`; implementa
 | 2 — Android size | Shrinking/profiles/reports implemented; 41.78 MiB phone | Physical install, installed/Play size, production AAB |
 | 3 — Usage correctness | Implemented, meaningful regressions pass | Final native timezone/recovery matrix |
 | 4 — Shared sync | Implemented, scoped cancellation/errors/retention | 20 cold + 20 warm samples/provider, call counts/RAM and live error matrix |
-| 5 — Notifications | Scoped persisted settings, journal and reconciler implemented | Remaining native quiet/timezone/edited/deletion/power cases |
+| 5 — Notifications | Scoped persisted settings, journal and reconciler implemented | Remaining native quiet/timezone/provider-window/disconnect/power cases |
 | 6 — Earned resets | Official contracts, typed model and labeled browser handoff | Account-bound direct transport, durable confirmed consumption and refreshed limits |
 | 7 — Provider actions/UI | Functional controls, disabled/error states, reduced motion | Live cookie/account cleanup, latency and full TalkBack/layout matrix |
 | 8 — Verification | Automated gates, artifact/dependency evidence, this audit | Native/live/production gates above; not closed |

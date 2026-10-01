@@ -102,3 +102,7 @@ Cold-route fix has unit regression coverage; repeat native cold tap, permission 
 `0f84dfa` native repeat proved contextual Android permission grant, reminder delivery after confirmed process death and correct cold tap to Claude detail. App delete-all removed the elapsed manual fixture and reopened notification settings without an app error. Active future-alarm cancellation/edited-reset proof remains open; an automation edit did not establish such a schedule. NATIVE-QA-LOG.md records exact scenario and times. No owner physical device was modified.
 
 QA-REPORT.md and COMPLETION-REPORT.md now contain the actual phase audit, 417-test evidence, artifact measurements, remaining requirements and reverse chronological commit/undo map. Both explicitly state the goal is incomplete and production NO-GO. Documentation-only changes do not alter the supplied `0f84dfa` device-test APK.
+
+## Active schedule cleanup verification
+
+`0f84dfa` tablet native UI trial created a future manual Claude reminder, edited its UTC instant, verified exactly one replacement Android alarm, retried reconciliation twice without duplicates, then deleted all local data. The future alarm was cancelled (zero pending app alarms) and notification settings reopened without the entry/load error. Exact instants and redacted alarm/UI evidence paths are in NATIVE-QA-LOG.md; QA-REPORT.md now reflects this scoped pass. Remote provider-window change, disconnect/live credentials, quiet/timezone/power and full device/accessibility checks remain open. Candidate APK unchanged.

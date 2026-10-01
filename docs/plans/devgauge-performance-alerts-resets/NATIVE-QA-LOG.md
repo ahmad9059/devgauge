@@ -57,3 +57,11 @@ Owner requested the final device-test APK and confirmed account access on their 
 - Used Settings → Delete all local data → Delete everything against this isolated manual-reminder fixture. UI reported deletion; notification settings reopened with no manual reminder. No app fatal/native-JS error was observed and no pending app alarm remained. This verifies successful local cleanup/reopen with an elapsed reminder, not cancellation of an active future alarm or browser cookies/live account credentials. UI evidence: `/tmp/devgauge-delete-result.xml` and `/tmp/devgauge-after-delete.xml`.
 
 Current reports preserve remaining active-schedule cancellation, quiet-hours/timezone, foreground/power, live account and accessibility checks. The candidate APK handed to the owner is unchanged.
+
+## Active manual schedule edit, retries and deletion
+
+`0f84dfa`, same API-35 tablet, no connected provider account. Created a manual Claude reminder for `2026-10-03T10:00:00Z` with device timezone confirmation. UI showed scheduled and `dumpsys alarm` showed one app alarm (`origWhen 1791021600000`). Edited through UI to `2026-10-04T10:00:00Z`; the verified form value and saved UI matched. Android replaced the old alarm with exactly one new alarm (`origWhen 1791108000000`), retaining pending-intent record `168167e`.
+
+Pressed **Retry pending reminders** twice. Both reconciliation passes left the same single new alarm and pending-intent identity; the old instant was absent. Used Settings → Delete all local data → Delete everything while that future alarm was still pending. UI reported success, `dumpsys alarm` showed zero app alarms, and notification settings reopened without the manual entry or load error. This verifies manual schedule replacement/retry dedup/cancellation, not remote provider-window changes or account-scoped disconnect.
+
+Evidence: `/tmp/devgauge-alarm-{before-edit,after-edit,after-retries,after-delete}.txt`, `/tmp/devgauge-edit-after-delete-ui.txt`. The earlier unverified edit automation did not imply an application failure; this repeat used verified control values and settled UI actions. Restored denied permission/light system mode and stopped the emulator after cleanup. No source/APK changed.

@@ -29,8 +29,9 @@ Universal-to-compact reduction **66.27%**, same-ABI **17.51%**; 60 MiB APK budge
 | Cold tap | Failed on `c8c20cd`; `0f84dfa` native repeat after PID termination opens Claude detail correctly |
 | Contextual permission prompt | `0f84dfa` tablet denied/retryable → Allow notifications → actual DevGauge OS prompt → granted, via UI |
 | Large text/layout | `42535d2` 375.7 dp/150% portrait and landscape wraps; tablet notifications light/dark inspected; full matrix pending |
-| Quiet hours/timezone/edited native schedule | Automated cases pass; full native trial pending |
-| Native delete-all | Key/file failure regressions pass; `0f84dfa` UI delete-all succeeds and settings reopen with elapsed reminder removed; future-alarm cancellation still pending |
+| Edited manual native schedule/retry dedup | `0f84dfa`: old alarm replaced, two retries retain one new alarm |
+| Quiet hours/timezone/provider reset changes | Automated cases pass; full native trial pending |
+| Native delete-all | Key/file failure regressions pass; `0f84dfa` UI delete-all cancels an active future manual alarm, removes entry and reopens settings |
 | Live account performance/redemption | Not run in workspace; owner has account and device-test APK |
 | Physical phone/TalkBack/production AAB | Not verified; production package/signing inputs missing |
 
