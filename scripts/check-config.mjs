@@ -10,6 +10,7 @@ for (const variant of ['development', 'preview', 'production']) {
         ...process.env,
         APP_VARIANT: variant,
         ANDROID_PACKAGE: variant === 'production' ? 'com.example.devgauge' : '',
+        ANDROID_ARTIFACT: 'universal',
       },
       encoding: 'utf8',
     },
@@ -36,6 +37,32 @@ for (const variant of ['development', 'preview', 'production']) {
     './assets/monochrome-icon.png',
   );
   assert.ok(config.android.adaptiveIcon.backgroundColor);
+  const properties = config.plugins.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-build-properties',
+  )?.[1]?.android;
+  assert.equal(properties.enableMinifyInReleaseBuilds, true);
+  assert.equal(properties.enableShrinkResourcesInReleaseBuilds, true);
+  assert.equal(properties.buildArchs, undefined);
+}
+
+for (const [artifact, abis] of [
+  ['phone', ['arm64-v8a']],
+  ['emulator', ['x86_64']],
+]) {
+  const config = JSON.parse(
+    execFileSync('node', ['node_modules/expo/bin/cli', 'config', '--json'], {
+      env: {
+        ...process.env,
+        APP_VARIANT: 'preview',
+        ANDROID_ARTIFACT: artifact,
+      },
+      encoding: 'utf8',
+    }),
+  );
+  const properties = config.plugins.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === 'expo-build-properties',
+  )[1].android;
+  assert.deepEqual(properties.buildArchs, abis);
 }
 
 assert.throws(() =>

@@ -8,19 +8,49 @@
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "APP_VARIANT": "development" },
-      "android": { "buildType": "apk" }
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "environment": "preview",
       "distribution": "internal",
-      "env": { "APP_VARIANT": "preview", "EXPO_PUBLIC_SPIKE_TEST": "1" },
-      "android": { "buildType": "apk" }
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_SPIKE_TEST": "1",
+        "ANDROID_ARTIFACT": "phone"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "environment": "production",
-      "env": { "APP_VARIANT": "production" },
-      "android": { "buildType": "app-bundle" }
+      "env": {
+        "APP_VARIANT": "production"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "preview-emulator": {
+      "extends": "preview",
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_SPIKE_TEST": "1",
+        "ANDROID_ARTIFACT": "emulator"
+      }
+    },
+    "preview-universal": {
+      "extends": "preview",
+      "env": {
+        "APP_VARIANT": "preview",
+        "EXPO_PUBLIC_SPIKE_TEST": "1",
+        "ANDROID_ARTIFACT": "universal"
+      }
     }
   }
 }

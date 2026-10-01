@@ -1,13 +1,18 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { copyFile, mkdir, rm } from 'node:fs/promises';
+import { copyFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 const started = Date.now();
-const output = 'artifacts/devgauge-phase1-preview.apk';
+const artifact = process.env.ANDROID_ARTIFACT ?? 'phone';
+if (!['phone', 'emulator', 'universal'].includes(artifact)) {
+  throw new Error('ANDROID_ARTIFACT must be phone, emulator, or universal');
+}
+process.env.ANDROID_ARTIFACT = artifact;
+const output = `artifacts/devgauge-preview-${artifact}.apk`;
 await mkdir('artifacts', { recursive: true });
-await rm(output, { force: true });
-const logPath = 'artifacts/android-build.log';
+// Keep the last successful artifact until its replacement has built.
+const logPath = `artifacts/android-build-${artifact}.log`;
 const log = createWriteStream(logPath);
 const completed = new Set();
 let totalTasks = 0;

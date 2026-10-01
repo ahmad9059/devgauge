@@ -26,5 +26,6 @@ fi
 export APP_VARIANT=preview
 export EXPO_PUBLIC_SPIKE_TEST=1
 export NODE_ENV=production
+export ANDROID_ARTIFACT="${ANDROID_ARTIFACT:-phone}"
 
 node scripts/build-progress.mjs
