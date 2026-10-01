@@ -72,7 +72,7 @@ Native build logs are `/tmp/devgauge-size-baseline-build.log`, `/tmp/devgauge-si
 | `b72b004` | Active/queued cancellation drains before database close | 17 engine tests |
 | `42535d2` | Large-text row wrapping and timing-neutral reminder copy | **82 files / 412 tests**, typecheck, zero-warning lint, config and format; rebuilt portrait/landscape 375dp/150% screenshot inspection |
 
-See NATIVE-QA-LOG.md for exact emulator APK checksums and limits. A fresh compact phone build from `42535d2a0a22bb2748c6670077a6192239ef7427` is running in `/tmp/devgauge-phone-release-ica_1nt4`, unified exec session **10698**, logs `/tmp/devgauge-current-phone-{prebuild,build}.log`. Clean phone prebuild succeeded; preserve the resulting APK separately after successful Gradle completion. Do not restart a live build without terminal evidence.
+See NATIVE-QA-LOG.md for exact emulator APK checksums and limits. The fresh compact phone build from `42535d2a0a22bb2748c6670077a6192239ef7427` succeeded in 4m 1s; its process is terminal. APK and size report are preserved separately. It measures 41.78 MiB, 66.27% below the original universal artifact and 17.51% below the same-ABI baseline; see BASELINE.md for exact hashes and limits. No native build remains running.
 
 Schema is now **4**. Migration 3 preserves recoverable native intents independently of deleted parents; migration 4 adds rule scopes/detail opt-in. Reverting code does not remove these installed schema changes. Native reminder cancellation must complete before deleting the journal or database key. Undo new code slices in reverse chronological order; restore a prior APK/database backup only when appropriate, never claim that Git revert refunds a consumed provider credit.
 

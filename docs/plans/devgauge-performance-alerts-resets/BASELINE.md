@@ -41,3 +41,14 @@ Reproduce: `node scripts/report-android-size.mjs artifacts/devgauge-preview-phon
 ## Runtime availability update
 
 Pixel_8_API_35 and DevGauge_Tablet_API_35 AVDs were discovered after baseline inspection. Pixel_8_API_35 booted headlessly as emulator-5554 (x86_64); a shrinking-enabled emulator build from `c056fcb` is in progress. This does not establish physical-phone or signed-in eligible-account verification.
+
+## Current feature-complete local build candidate (not final release)
+
+Source `42535d2a0a22bb2748c6670077a6192239ef7427`, clean `APP_VARIANT=preview ANDROID_ARTIFACT=phone EXPO_PUBLIC_SPIKE_TEST=1` prebuild in `/tmp/devgauge-phone-release-ica_1nt4`; Gradle release succeeded in 4m 1s. This includes persisted notification rules/reconciliation, provider actions and unknown-availability earned-reset handoffs. Direct earned-reset redemption remains incomplete.
+
+- `artifacts/devgauge-preview-phone-42535d2.apk`: **43,811,354 bytes / 41.78 MiB**, arm64-v8a only; SHA-256 `6b6b7b895ce2d7cf4895d61eb1c23cc5f1b45de8b99e8a9b1cece6a2539f40ec`.
+- Same-ABI baseline reduction: **17.51%**, with compressed native bytes unchanged at 27,994,696 and compressed DEX 6,446,089. Original four-ABI universal → compact reduction: **66.27%**. The 60 MiB APK file budget passes.
+- Companion x86_64 candidate `artifacts/devgauge-preview-emulator-42535d2.apk`: **44,616,871 bytes / 42.55 MiB**; SHA-256 `2f4effc5a28920bdf1f02a22bf1634308e7e03e3e9051c4398ce544e654d8b07`.
+- Reports are the matching `.size.json` files. Native/API evidence and limits are in NATIVE-QA-LOG.md. No physical arm64 install, installed-size improvement, Play download measurement or signed-in latency/RAM improvement is claimed.
+
+Build logs: `/tmp/devgauge-current-phone-prebuild.log`, `/tmp/devgauge-current-phone-build.log`. A Gradle warning reports daemon metaspace pressure at build end; the build exited successfully. Do not suppress it or claim it caused an application crash.

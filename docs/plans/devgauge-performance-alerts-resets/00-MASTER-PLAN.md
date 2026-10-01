@@ -48,7 +48,7 @@ Proceed under these defaults during implementation; routine choices need no new 
 | Phase | Title | Dependencies | Status |
 |---|---|---|---|
 | 1 | Validate and measure baseline | None | Source/artifact complete; device pending |
-| 2 | Reduce Android artifact size | 1 | Intermediate phone APK measured; native/final QA pending |
+| 2 | Reduce Android artifact size | 1 | Current phone/emulator candidates built and measured; physical/AAB QA pending |
 | 3 | Fix usage, reset timestamps and persistence | 1 | Implemented; regressions pass; final native QA pending |
 | 4 | Speed up and unify sync | 3 | Shared runtime and policy implemented; signed-in measurements pending |
 | 5 | Deliver thresholds and reset notifications | 3, 4 | Scoped settings/journal/reconciliation implemented; native delivery matrix partial |
