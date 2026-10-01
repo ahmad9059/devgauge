@@ -1,5 +1,17 @@
 # QA report — verification in progress
 
+## 2026-10-02 — Native pager and held page dragging
+
+Owner clarified that the previous discrete/inverted swipe implementation was unsuitable. Source `8d1d065` uses Expo Router TopTabs with a native pager, retaining the bottom navigation and text-only heading. Left swipes advance Usage → Connectors → Settings; right swipes return. Pages follow the finger continuously, including a held partial drag. New dependencies are react-native-pager-view 8.0.2 (the installed Expo SDK's compatible version) and react-native-tab-view 4.3.3. Removed the old PanResponder component, direction helper and its three obsolete tests.
+
+Full gates pass **83 files / 445 tests**, typecheck, lint, config and formatting (`/tmp/devgauge-pager-final-check.log`). Final bar margin changes also pass typecheck and formatting (`/tmp/devgauge-pager-typecheck.log`, `/tmp/devgauge-pager-final-format.log`). An intermediate sizing expression failed typecheck because lineHeight can be undefined; the final source includes a fallback. Bottom label sizing accounts for system font scale and removes inherited label margins.
+
+Pixel API 35 release `8d1d065` passes gestures directly over provider cards in both directions, first/last boundaries, short-drag cancellation, vertical Connector scrolling, bottom tab taps and the Theme sheet (`/tmp/devgauge-pager-final-native.log`). At 150% system font scale, all bottom labels remain visible. Holding a drag before UP exposes both adjacent pages: `artifacts/devgauge-8d1d065-half-drag.png`; settled large-text screenshot: `artifacts/devgauge-8d1d065-large-text.png`. Sample connection data was retained. Display/font settings were reset after inspection; the owner's physical phone was untouched. These are UI observations, not live-provider verification.
+
+Final x86_64 release build succeeds in 25 seconds. Emulator APK: **44,711,903 bytes / 42.64 MiB**, SHA-256 `4c728bb083feb621a78feb329df50facf08fcf2a1066734fb3a8c46896e9d52e`. Earlier artifacts below are historical.
+
+Phone release build succeeds in 2m32s. `artifacts/devgauge-preview-phone-8d1d065.apk`: **43,906,386 bytes / 41.87 MiB**, arm64-v8a, SHA-256 `d9c598421f513230af0f19e8cfc26d8eb0a9925d3bf6dcf477633322a93c298b`. APK signature verification and 60 MiB budget pass; the stable device-test APK matches it. This is an internal preview, not a production AAB.
+
 ## 2026-10-01 — Text-only heading and tab swipes
 
 `805e6b0` removes the header logo and adds right swipes Usage → Connectors → Settings, with left swipes returning. The bottom tab buttons remain available. Horizontal intent and a 64 dp completed drag are required; short, vertical and diagonal drags do not change tabs, and endpoints do not wrap. Source gates pass **84 files / 448 tests**, typecheck, lint, config and formatting (`/tmp/devgauge-swipe-final-check.log`, `/tmp/devgauge-swipe-format.log`).

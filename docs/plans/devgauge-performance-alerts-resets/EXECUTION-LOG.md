@@ -1,5 +1,9 @@
 # Execution log
 
+## 2026-10-02 — Finger-following native pager
+
+Owner clarified WhatsApp-style page dragging: left advances Usage → Connectors → Settings, right returns, and holding partway must show both pages. `78f1d75` replaces the discrete PanResponder tab switch with Expo Router TopTabs backed by react-native-tab-view and SDK-compatible react-native-pager-view. The old reversed-order helper/tests are removed. `8d1d065` includes subsequent bottom-label sizing fixes for system text scaling. Full source gates pass 445 tests, and final style changes pass typecheck/formatting. Android verifies both directions directly over provider cards, first/last boundaries, short-drag cancellation, vertical scrolling, bottom button taps and the Theme sheet. A held native drag screenshot shows both pages before release. Final artifact evidence is recorded in QA-REPORT.md. No owner's physical device was modified.
+
 ## 2026-10-01 — Text-only heading and tab swipes
 
 Owner revised the header to text only and requested right swipes from Usage to Connectors to Settings, with left swipes returning. `805e6b0` removes the chrome mark and adds horizontal gesture handling around each tab scene while preserving the bottom tab buttons. Short/vertical/diagonal drags do not navigate; endpoints do not wrap. Source gates pass **84 files / 448 tests**, typecheck, lint, config and formatting. Android release checks confirm both directions, boundaries, vertical Connector scrolling, bottom tab taps and the Settings Theme sheet. Existing sample data remains intact. The owner's physical phone was untouched. Artifact evidence is recorded in QA-REPORT.md.
