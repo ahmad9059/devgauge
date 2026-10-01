@@ -1,5 +1,13 @@
 # QA report — verification in progress
 
+## 2026-10-01 — Text-only heading and tab swipes
+
+`805e6b0` removes the header logo and adds right swipes Usage → Connectors → Settings, with left swipes returning. The bottom tab buttons remain available. Horizontal intent and a 64 dp completed drag are required; short, vertical and diagonal drags do not change tabs, and endpoints do not wrap. Source gates pass **84 files / 448 tests**, typecheck, lint, config and formatting (`/tmp/devgauge-swipe-final-check.log`, `/tmp/devgauge-swipe-format.log`).
+
+Pixel API 35 release inspection confirms text-only chrome, both directions, endpoint behavior, vertical Connector scrolling, tab taps and the Settings Theme sheet. Native assertion log: `/tmp/devgauge-swipe-native.log`; header screenshot: `artifacts/devgauge-805e6b0-header.png`. Initial QA assertions incorrectly expected a scrolled-off heading to remain visible; correcting that assertion produced a passing run without source changes. A 375.6 dp / 150% font UI dump confirms the heading and refresh control fit. Display/font settings were restored. Sample data was retained; no live account or physical phone claim is made.
+
+Sequential release builds succeeded: emulator 2m54s, phone 2m20s. Phone `artifacts/devgauge-preview-phone-805e6b0.apk`: **43,814,834 bytes / 41.79 MiB**, arm64-v8a, SHA-256 `84ad492841f80f92e3d6d1b27755f523b3a2507a9374b81255e8d9a0ea1ee421`. Signature verification and 60 MiB budget pass; the stable device-test APK matches it. Emulator APK: **44,620,351 bytes / 42.55 MiB**, SHA-256 `78cd1d5720b3a8f94b3fcd61063b74c4ee2cefe7c393b26f40c2a7da9244265b`. These are internal preview APKs; earlier artifacts below remain historical.
+
 ## 2026-10-01 — Usage header polish
 
 `e23c1c0` hides the Usage scroll indicator while retaining scrolling, expands the visible DevGauge mark to 36 dp (matching provider icon width), reduces the name gap to 4 dp, and uses Android image downsampling with theme tint. Launcher safe-zone padding is cropped in the header view; the original artwork is preserved. Source gates pass **83 files / 445 tests**, typecheck, zero-warning lint, config and formatting (`/tmp/devgauge-header-{check,format}.log`).

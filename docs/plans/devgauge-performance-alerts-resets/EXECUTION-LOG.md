@@ -1,5 +1,9 @@
 # Execution log
 
+## 2026-10-01 — Text-only heading and tab swipes
+
+Owner revised the header to text only and requested right swipes from Usage to Connectors to Settings, with left swipes returning. `805e6b0` removes the chrome mark and adds horizontal gesture handling around each tab scene while preserving the bottom tab buttons. Short/vertical/diagonal drags do not navigate; endpoints do not wrap. Source gates pass **84 files / 448 tests**, typecheck, lint, config and formatting. Android release checks confirm both directions, boundaries, vertical Connector scrolling, bottom tab taps and the Settings Theme sheet. Existing sample data remains intact. The owner's physical phone was untouched. Artifact evidence is recorded in QA-REPORT.md.
+
 ## 2026-10-01 — Usage header polish
 
 Owner requested a hidden dashboard scrollbar, a sharper and larger header logo, and less space before the name. `e23c1c0` implements these using the existing artwork: remove launcher padding in the view, render a 36 dp visible mark with higher-quality Android decoding, use theme tint, and reduce the gap to 4 dp. Source gates pass 445 tests and all other checks. Emulator dark/light inspection and a short viewport confirm logo contrast, spacing and retained scrolling without an indicator. Sequential preview APK builds and the phone signature/size budget pass; QA-REPORT.md records exact artifact evidence. Physical phone testing remains with the owner.
