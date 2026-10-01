@@ -38,8 +38,20 @@ describe('threshold evaluation', () => {
     const intents = evaluateThresholds(
       rules,
       [
-        { connectionId: 'c1', windowKey: 'w1', utilization: 0.85 },
-        { connectionId: 'c1', windowKey: 'w2', utilization: 0.5 },
+        {
+          providerId: 'claude',
+          connectionId: 'c1',
+          windowKey: 'w1',
+          cycleId: null,
+          utilization: 0.85,
+        },
+        {
+          providerId: 'claude',
+          connectionId: 'c1',
+          windowKey: 'w2',
+          cycleId: null,
+          utilization: 0.5,
+        },
       ],
       new Set(),
     );
@@ -52,8 +64,20 @@ describe('threshold evaluation', () => {
     const intents = evaluateThresholds(
       rules,
       [
-        { connectionId: 'c1', windowKey: 'w1', utilization: 0.9 },
-        { connectionId: 'c1', windowKey: 'w3', utilization: null },
+        {
+          providerId: 'claude',
+          connectionId: 'c1',
+          windowKey: 'w1',
+          cycleId: null,
+          utilization: 0.9,
+        },
+        {
+          providerId: 'claude',
+          connectionId: 'c1',
+          windowKey: 'w3',
+          cycleId: null,
+          utilization: null,
+        },
       ],
       notified,
     );
@@ -63,5 +87,56 @@ describe('threshold evaluation', () => {
   it('uses generic lock-screen copy', () => {
     const copy = thresholdNotificationCopy();
     expect(copy.body).not.toMatch(/claude|codex|%|token/i);
+  });
+  it('never cross-matches providers, accounts or selected windows', () => {
+    const scoped = [
+      {
+        id: 'r',
+        providerId: 'claude',
+        connectionId: 'selected',
+        windowKey: 'weekly',
+        enabled: true,
+        threshold: 0.8,
+      },
+    ];
+    const candidate = {
+      providerId: 'claude',
+      connectionId: 'selected',
+      windowKey: 'weekly',
+      cycleId: '2026-10-08T00:00Z',
+      utilization: 0.9,
+    };
+    expect(
+      evaluateThresholds(
+        scoped,
+        [
+          { ...candidate, providerId: 'codex' },
+          { ...candidate, connectionId: 'other' },
+          { ...candidate, windowKey: 'hourly' },
+          candidate,
+        ],
+        new Set(),
+      ),
+    ).toHaveLength(1);
+  });
+  it('deduplicates the same cycle but allows a newly reported reset cycle', () => {
+    const candidate = {
+      providerId: 'claude',
+      connectionId: 'c1',
+      windowKey: 'weekly',
+      cycleId: '2026-10-08T00:00Z',
+      utilization: 0.9,
+    };
+    const first = evaluateThresholds(rules, [candidate, candidate], new Set());
+    expect(first).toHaveLength(1);
+    const notified = new Set(first.map((intent) => intent.key));
+    expect(evaluateThresholds(rules, [candidate], notified)).toEqual([]);
+    expect(
+      evaluateThresholds(
+        rules,
+        [{ ...candidate, cycleId: '2026-10-15T00:00Z' }],
+        notified,
+      ),
+    ).toHaveLength(1);
   });
 });
