@@ -1,4 +1,5 @@
 import type { Database } from '@/storage/database';
+import type { SqlDriver } from '@/storage/sqlite-driver';
 import type { ProviderId } from '@/domain/providers';
 import type { ProviderConnection } from '@/storage/types';
 
@@ -78,20 +79,27 @@ export async function upsertConnection(
   db: Database,
   connection: ProviderConnection,
 ): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx.run(
-      `DELETE FROM provider_connections
+  await db.transaction((tx) => upsertConnectionInTransaction(tx, connection));
+}
+
+/** Participates in the caller transaction; never opens a nested transaction. */
+export async function upsertConnectionInTransaction(
+  tx: SqlDriver,
+  connection: ProviderConnection,
+): Promise<void> {
+  await tx.run(
+    `DELETE FROM provider_connections
        WHERE provider_id = ? AND account_scope = ? AND canonical_account_key = ?
          AND id <> ?`,
-      [
-        connection.providerId,
-        connection.accountScope,
-        connection.canonicalAccountKey,
-        connection.id,
-      ],
-    );
-    await tx.run(
-      `INSERT INTO provider_connections (${COLUMNS})
+    [
+      connection.providerId,
+      connection.accountScope,
+      connection.canonicalAccountKey,
+      connection.id,
+    ],
+  );
+  await tx.run(
+    `INSERT INTO provider_connections (${COLUMNS})
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
        ON CONFLICT(id) DO UPDATE SET
          provider_id = excluded.provider_id,
@@ -110,27 +118,26 @@ export async function upsertConnection(
          next_allowed_refresh_at = excluded.next_allowed_refresh_at,
          created_at = excluded.created_at,
          updated_at = excluded.updated_at`,
-      [
-        connection.id,
-        connection.providerId,
-        connection.accountScope,
-        connection.externalAccountId,
-        connection.canonicalAccountKey,
-        connection.displayName,
-        connection.accountHint,
-        connection.authMode,
-        connection.credentialRef,
-        connection.status,
-        connection.connectedAt,
-        connection.disconnectedAt,
-        connection.lastSuccessAt,
-        connection.lastAttemptAt,
-        connection.nextAllowedRefreshAt,
-        connection.createdAt,
-        connection.updatedAt,
-      ],
-    );
-  });
+    [
+      connection.id,
+      connection.providerId,
+      connection.accountScope,
+      connection.externalAccountId,
+      connection.canonicalAccountKey,
+      connection.displayName,
+      connection.accountHint,
+      connection.authMode,
+      connection.credentialRef,
+      connection.status,
+      connection.connectedAt,
+      connection.disconnectedAt,
+      connection.lastSuccessAt,
+      connection.lastAttemptAt,
+      connection.nextAllowedRefreshAt,
+      connection.createdAt,
+      connection.updatedAt,
+    ],
+  );
 }
 
 export async function markConnectionDisconnected(

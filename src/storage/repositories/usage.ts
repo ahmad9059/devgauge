@@ -1,4 +1,5 @@
 import type { Database } from '@/storage/database';
+import type { SqlDriver } from '@/storage/sqlite-driver';
 import type {
   CliStatsImport,
   ConnectionStatus,
@@ -101,25 +102,32 @@ export async function saveRefresh(
   db: Database,
   input: SaveRefreshInput,
 ): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx.run(
-      `UPDATE provider_connections
+  await db.transaction((tx) => saveRefreshInTransaction(tx, input));
+}
+
+/** Writes inside the caller transaction so connection creation is atomic too. */
+export async function saveRefreshInTransaction(
+  tx: SqlDriver,
+  input: SaveRefreshInput,
+): Promise<void> {
+  await tx.run(
+    `UPDATE provider_connections
        SET status = ?, last_success_at = ?, last_attempt_at = ?,
            next_allowed_refresh_at = ?, updated_at = ?
        WHERE id = ?`,
-      [
-        input.connection.status,
-        input.connection.lastSuccessAt,
-        input.connection.lastAttemptAt,
-        input.connection.nextAllowedRefreshAt,
-        input.connection.updatedAt,
-        input.connection.id,
-      ],
-    );
+    [
+      input.connection.status,
+      input.connection.lastSuccessAt,
+      input.connection.lastAttemptAt,
+      input.connection.nextAllowedRefreshAt,
+      input.connection.updatedAt,
+      input.connection.id,
+    ],
+  );
 
-    const attempt = input.attempt;
-    await tx.run(
-      `INSERT INTO refresh_attempts (id, connection_id, started_at, completed_at,
+  const attempt = input.attempt;
+  await tx.run(
+    `INSERT INTO refresh_attempts (id, connection_id, started_at, completed_at,
          trigger, outcome, http_status, error_code, retry_after_at, request_id,
          duration_ms, safe_detail)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
@@ -128,60 +136,59 @@ export async function saveRefresh(
          http_status = excluded.http_status, error_code = excluded.error_code,
          retry_after_at = excluded.retry_after_at, request_id = excluded.request_id,
          duration_ms = excluded.duration_ms, safe_detail = excluded.safe_detail`,
-      [
-        attempt.id,
-        attempt.connectionId,
-        attempt.startedAt,
-        attempt.completedAt,
-        attempt.trigger,
-        attempt.outcome,
-        attempt.httpStatus,
-        attempt.errorCode,
-        attempt.retryAfterAt,
-        attempt.requestId,
-        attempt.durationMs,
-        attempt.safeDetail,
-      ],
-    );
+    [
+      attempt.id,
+      attempt.connectionId,
+      attempt.startedAt,
+      attempt.completedAt,
+      attempt.trigger,
+      attempt.outcome,
+      attempt.httpStatus,
+      attempt.errorCode,
+      attempt.retryAfterAt,
+      attempt.requestId,
+      attempt.durationMs,
+      attempt.safeDetail,
+    ],
+  );
 
-    if (!input.snapshot) return;
-    const { snapshot, windows } = input.snapshot;
+  if (!input.snapshot) return;
+  const { snapshot, windows } = input.snapshot;
+  await tx.run(
+    `INSERT INTO usage_snapshots (${SNAPSHOT_COLUMNS}) VALUES (?,?,?,?,?,?,?,?)`,
+    [
+      snapshot.id,
+      snapshot.connectionId,
+      snapshot.fetchedAt,
+      snapshot.source,
+      snapshot.providerSchemaVersion,
+      snapshot.isPartial ? 1 : 0,
+      snapshot.responseFingerprint,
+      snapshot.createdAt,
+    ],
+  );
+  for (const window of windows) {
     await tx.run(
-      `INSERT INTO usage_snapshots (${SNAPSHOT_COLUMNS}) VALUES (?,?,?,?,?,?,?,?)`,
+      `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
-        snapshot.id,
-        snapshot.connectionId,
-        snapshot.fetchedAt,
-        snapshot.source,
-        snapshot.providerSchemaVersion,
-        snapshot.isPartial ? 1 : 0,
-        snapshot.responseFingerprint,
-        snapshot.createdAt,
+        window.id,
+        window.snapshotId,
+        window.externalKey,
+        window.kind,
+        window.label,
+        window.usedDecimal,
+        window.limitDecimal,
+        window.remainingDecimal,
+        window.utilization,
+        window.unit,
+        window.currencyCode,
+        window.periodStartsAt,
+        window.periodEndsAt,
+        window.resetsAt,
+        window.derivation,
       ],
     );
-    for (const window of windows) {
-      await tx.run(
-        `INSERT INTO usage_windows (${WINDOW_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [
-          window.id,
-          window.snapshotId,
-          window.externalKey,
-          window.kind,
-          window.label,
-          window.usedDecimal,
-          window.limitDecimal,
-          window.remainingDecimal,
-          window.utilization,
-          window.unit,
-          window.currencyCode,
-          window.periodStartsAt,
-          window.periodEndsAt,
-          window.resetsAt,
-          window.derivation,
-        ],
-      );
-    }
-  });
+  }
 }
 
 export type ManualImportInput = {

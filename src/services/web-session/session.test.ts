@@ -74,6 +74,43 @@ describe('session host allowlist', () => {
 });
 
 describe('session persistence', () => {
+  it('rolls back connection freshness and attempts when snapshot persistence fails', async () => {
+    const db = await createMigratedTestDatabase();
+    let counter = 0;
+    const input = {
+      db,
+      providerId: 'claude' as const,
+      displayName: 'Claude',
+      windows: [],
+      fetchedAt: NOW.toISOString(),
+      now: NOW,
+      nextId: () => `rollback-${++counter}`,
+    };
+    await saveSessionSnapshot(input);
+    const before = await getConnection(db, 'session-claude');
+    // Reject the snapshot after connection and attempt writes have executed.
+    await db.exec(`CREATE TRIGGER reject_snapshot BEFORE INSERT ON usage_snapshots
+      BEGIN SELECT RAISE(ABORT, 'injected persistence failure'); END`);
+    await expect(
+      saveSessionSnapshot({
+        ...input,
+        fetchedAt: '2026-09-29T00:00:00Z',
+        now: new Date('2026-09-29T00:00:00Z'),
+      }),
+    ).rejects.toThrow('injected persistence failure');
+    expect(await getConnection(db, 'session-claude')).toEqual(before);
+    expect(
+      await db.first<{ count: number }>(
+        'SELECT count(*) AS count FROM refresh_attempts',
+      ),
+    ).toEqual({ count: 1 });
+    expect(
+      (await latestByConnection(db)).get('session-claude')?.fetchedAt,
+    ).toBe(NOW.toISOString());
+    await db.exec('DROP TRIGGER reject_snapshot');
+    await saveSessionSnapshot({ ...input, providerId: 'codex' });
+    expect((await latestByConnection(db)).size).toBe(2);
+  });
   it('persists parallel provider completions without overlapping shared SQLite transactions', async () => {
     const db = await createMigratedTestDatabase();
     let counter = 0;
