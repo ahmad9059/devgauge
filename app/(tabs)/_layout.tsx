@@ -36,7 +36,7 @@ export default function TabLayout() {
           paddingTop: 6,
           paddingBottom: insets.bottom + 6,
         },
-        tabBarLabelStyle: typography.caption,
+        tabBarLabelStyle: { ...typography.caption, margin: 0 },
         tabBarItemStyle: { minHeight: touchTargets.minimum, padding: 0 },
         sceneStyle: { backgroundColor: theme.colors.background },
       }}
