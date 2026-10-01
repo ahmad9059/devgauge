@@ -1,6 +1,6 @@
 # DevGauge Performance, Alerts and Provider Resets
 
-> Status: Implementation in progress. Usage correctness, shared sync, compact packaging and notification foundations committed; live account and final device verification pending.
+> Status: Implementation in progress. Usage correctness, shared sync, compact packaging and persisted notifications, provider actions and honest earned-reset handoffs committed; live account and final device verification pending.
 > Source request: fast whole-project review followed by an executable Codex goal prompt; verbatim brief in phase-01-validate-baseline.md.
 
 ## 0. How to Read This Plan
@@ -51,9 +51,9 @@ Proceed under these defaults during implementation; routine choices need no new 
 | 2 | Reduce Android artifact size | 1 | Intermediate phone APK measured; native/final QA pending |
 | 3 | Fix usage, reset timestamps and persistence | 1 | Implemented; regressions pass; final native QA pending |
 | 4 | Speed up and unify sync | 3 | Shared runtime and policy implemented; signed-in measurements pending |
-| 5 | Deliver thresholds and reset notifications | 3, 4 | Matching/native foundations done; settings/reconciliation pending |
-| 6 | Claude/Codex earned reset offers and redemption | 3, 4; feasibility independent | Planned |
-| 7 | Working provider actions and microinteractions | 4, 5, 6 integration | Planned |
+| 5 | Deliver thresholds and reset notifications | 3, 4 | Scoped settings/journal/reconciliation implemented; native delivery matrix partial |
+| 6 | Claude/Codex earned reset offers and redemption | 3, 4; feasibility independent | Contract/model/handoff implemented; direct transport unproved |
+| 7 | Working provider actions and microinteractions | 4, 5, 6 integration | Implemented; full device/accessibility QA pending |
 | 8 | Release verification and completion report | 2–7 | Planned |
 
 Execute 1, 2, 3, 4, 5, 6, 7, 8; Phase 6 discovery may start earlier. External blockers must not stop independent work.
@@ -69,4 +69,4 @@ Execute 1, 2, 3, 4, 5, 6, 7, 8; Phase 6 discovery may start earlier. External bl
 
 ## 7. Next Step
 
-Continue authorized implementation with persisted notification settings and recoverable reconciliation, earned-reset contract discovery, provider actions, and final QA. EXECUTION-LOG.md and BASELINE.md record committed work and measured evidence. Irreversible account reset consumption still requires the user's explicit in-app confirmation.
+Continue authorized verification of final artifacts, account-bound earned-reset transport, notification/device/accessibility behavior and signed-in sync performance. EXECUTION-LOG.md and BASELINE.md record committed work and measured evidence. Irreversible account reset consumption still requires the user's explicit in-app confirmation.

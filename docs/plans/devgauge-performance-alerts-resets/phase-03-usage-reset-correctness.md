@@ -27,10 +27,10 @@ src/services/web-session/usage-extract.ts; usage-text.ts; session.ts; src/featur
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Regression cases 0/0.5/1/1.5/100 percent, ratio fields, used/remaining conversion, null/malformed payloads.
-- [ ] UTC/offset/epoch/relative text/DST/month rollover covered; unknown resets never scheduled.
-- [ ] Clock updates without network calls; original instant does not drift across renders.
-- [ ] Injected persistence failure leaves no fresh connection without committed snapshot.
+- [x] Regression cases 0/0.5/1/1.5/100 percent, ratio fields, used/remaining conversion, null/malformed payloads.
+- [x] UTC/offset/epoch/relative text/DST/month rollover covered; unknown resets never scheduled.
+- [x] Clock updates without network calls; original instant does not drift across renders.
+- [x] Injected persistence failure leaves no fresh connection without committed snapshot.
 
 ## 6. Open Questions
 

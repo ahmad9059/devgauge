@@ -28,7 +28,7 @@ app/(tabs)/settings.tsx; app/provider/[providerId].tsx; app/_layout.tsx; src/ser
 
 ## 5. Acceptance Criteria / QA Checklist
 
-- [ ] Provider A rule never alerts on provider B; one alert per configured cycle, new cycle can alert again.
+- [x] Provider A rule never alerts on provider B; one alert per configured cycle, new cycle can alert again.
 - [ ] Permission grant/deny/revoke and Android foreground/background/killed-app delivery tested.
 - [ ] Duplicate sync/startup never duplicates schedules; changed reset cancels old notification.
 - [ ] Quiet hours/timezone/DST/past/unknown reset cases handled; tap opens correct provider.
