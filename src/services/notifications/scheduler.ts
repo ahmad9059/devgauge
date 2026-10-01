@@ -28,7 +28,7 @@ export function reminderNativeId(entryId: string): string {
 export function reminderCopy(): { title: string; body: string } {
   return {
     title: 'DevGauge reminder',
-    body: 'A usage window is resetting soon.',
+    body: 'Check your provider’s scheduled usage reset.',
   };
 }
 

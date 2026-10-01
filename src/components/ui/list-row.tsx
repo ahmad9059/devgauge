@@ -39,17 +39,9 @@ export function ListRow({
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <View style={styles.text}>
-        <Text
-          style={[typography.body, { color: titleColor }]}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
+        <Text style={[typography.body, { color: titleColor }]}>{title}</Text>
         {subtitle ? (
-          <Text
-            style={[typography.caption, { color: theme.colors.textMuted }]}
-            numberOfLines={2}
-          >
+          <Text style={[typography.caption, { color: theme.colors.textMuted }]}>
             {subtitle}
           </Text>
         ) : null}
