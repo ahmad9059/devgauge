@@ -13,6 +13,28 @@ const NOW = new Date('2026-09-28T00:00:00.000Z');
 const descriptors = listProviderDescriptors();
 
 describe('provider views (real data source)', () => {
+  it('recovers a saved Claude microsecond reset into a countdown instead of displaying ISO text', () => {
+    const now = new Date('2026-10-01T18:00:00Z');
+    const connection = makeConnection({ id: 'c1', providerId: 'claude' });
+    const record: SnapshotWithWindows = {
+      ...makeSnapshot('c1', { id: 's1', fetchedAt: now.toISOString() }),
+      windows: [
+        makeWindow('s1', {
+          resetsAt: null,
+          resetsSourceText: '2026-10-01T19:20:00.300723+00:00',
+        }),
+      ],
+    };
+    const view = buildProviderViews({
+      descriptors,
+      connections: [connection],
+      latest: new Map([['c1', record]]),
+      now,
+    }).find((item) => item.id === 'claude')!;
+    expect(view.windows[0].resetsAt).toBe('2026-10-01T19:20:00.300Z');
+    expect(view.windows[0].resetsInMinutes).toBe(80);
+    expect(view.windows[0].resetsText).toBeUndefined();
+  });
   it('keeps a newly captured snapshot just now until a full minute has elapsed', () => {
     const connection = makeConnection({ id: 'c1', providerId: 'claude' });
     const record = {

@@ -17,7 +17,7 @@ export function normalizeResetTime(
   if (typeof value !== 'string') return null;
   const text = value.trim();
   const iso =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/i.exec(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/i.exec(
       text,
     );
   if (iso) {
@@ -39,7 +39,10 @@ export function normalizeResetTime(
       if (hours > 14 || minutes > 59 || (hours === 14 && minutes !== 0))
         return null;
     }
-    const date = new Date(text);
+    // Providers can return micro/nanoseconds; JavaScript stores milliseconds.
+    const date = new Date(
+      text.replace(/(\.\d{3})\d+(?=Z|[+-]\d{2}:\d{2}$)/i, '$1'),
+    );
     return Number.isFinite(date.getTime()) ? date.toISOString() : null;
   }
   if (

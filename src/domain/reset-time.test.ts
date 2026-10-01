@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { normalizeResetTime } from './reset-time';
 
 describe('reset instants', () => {
+  it.each([
+    ['2026-10-01T19:20:00.300723+00:00', '2026-10-01T19:20:00.300Z'],
+    ['2026-10-05T20:00:00.300749+00:00', '2026-10-05T20:00:00.300Z'],
+    ['2026-10-01T19:20:00.300723999+05:00', '2026-10-01T14:20:00.300Z'],
+  ])(
+    'normalizes provider fractional-second precision in %s',
+    (input, expected) => {
+      expect(normalizeResetTime(input)).toBe(expected);
+    },
+  );
   it('normalizes UTC, offset, and epoch values without a device timezone', () => {
     expect(normalizeResetTime('2026-10-01T05:30:00+05:30')).toBe(
       '2026-10-01T00:00:00.000Z',
@@ -30,6 +40,7 @@ describe('reset instants', () => {
     '2026-02-30T00:00Z',
     '2026-10-01T24:00Z',
     '2026-10-01T00:00+15:00',
+    '2026-10-01T19:20:00.3007239999+00:00',
     'in 2 hours tomorrow',
     '',
     'in forever',

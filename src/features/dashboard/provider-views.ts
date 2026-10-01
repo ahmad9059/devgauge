@@ -71,7 +71,10 @@ function toFixtureWindow(
   now: Date,
   fetchedAt: string,
 ): FixtureWindow {
-  const resetsAt = normalizeResetTime(window.resetsAt, new Date(fetchedAt));
+  const resetsAt = normalizeResetTime(
+    window.resetsAt ?? window.resetsSourceText,
+    new Date(fetchedAt),
+  );
   const parsedReset = resetsAt ? Date.parse(resetsAt) : NaN;
   const resetsInMinutes = Number.isFinite(parsedReset)
     ? Math.max(0, Math.round((parsedReset - now.getTime()) / 60_000))
