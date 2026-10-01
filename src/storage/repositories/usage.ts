@@ -413,6 +413,8 @@ export async function history(
 export type RetentionPolicy = {
   historyDays: number;
   failedAttemptDays?: number;
+  successfulAttemptDays?: number;
+  maxRows?: number;
 };
 
 export type PruneReport = {
@@ -440,28 +442,38 @@ export async function prune(
 ): Promise<PruneReport> {
   const historyCutoff = cutoffIso(now, policy.historyDays);
   const attemptCutoff = cutoffIso(now, policy.failedAttemptDays ?? 30);
+  const successCutoff =
+    policy.successfulAttemptDays === undefined
+      ? null
+      : cutoffIso(now, policy.successfulAttemptDays);
+  const maxRows = policy.maxRows ?? 500;
+  if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > 5000)
+    throw new Error('maxRows must be between 1 and 5000');
   return withWriteTransaction(db, async (tx) => {
     const latest = await tx.all<{ id: string }>(LATEST_SNAPSHOT_IDS);
     let snapshotsDeleted = 0;
     if (latest.length > 0) {
       const placeholders = latest.map(() => '?').join(', ');
       const result = await tx.run(
-        `DELETE FROM usage_snapshots
-         WHERE fetched_at < ? AND id NOT IN (${placeholders})`,
-        [historyCutoff, ...latest.map((row) => row.id)],
+        `DELETE FROM usage_snapshots WHERE id IN (
+         SELECT id FROM usage_snapshots WHERE fetched_at < ? AND id NOT IN (${placeholders})
+         ORDER BY fetched_at ASC LIMIT ?)`,
+        [historyCutoff, ...latest.map((row) => row.id), maxRows],
       );
       snapshotsDeleted = result.changes;
     } else {
       const result = await tx.run(
-        'DELETE FROM usage_snapshots WHERE fetched_at < ?',
-        [historyCutoff],
+        'DELETE FROM usage_snapshots WHERE id IN (SELECT id FROM usage_snapshots WHERE fetched_at < ? ORDER BY fetched_at ASC LIMIT ?)',
+        [historyCutoff, maxRows],
       );
       snapshotsDeleted = result.changes;
     }
     const attempts = await tx.run(
-      `DELETE FROM refresh_attempts
-       WHERE outcome <> 'success' AND started_at < ?`,
-      [attemptCutoff],
+      `DELETE FROM refresh_attempts WHERE id IN (
+       SELECT id FROM refresh_attempts WHERE (outcome NOT IN ('success','running') AND started_at < ?)
+         OR (outcome = 'success' AND ? IS NOT NULL AND started_at < ?)
+       ORDER BY started_at ASC LIMIT ?)`,
+      [attemptCutoff, successCutoff, successCutoff, maxRows],
     );
     return { snapshotsDeleted, attemptsDeleted: attempts.changes };
   });

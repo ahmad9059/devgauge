@@ -201,6 +201,38 @@ describe('usage repository', () => {
     const db = await createMigratedTestDatabase();
     await expect(prune(db, { historyDays: -1 })).rejects.toThrow(/retention/i);
   });
+  it('bounds each maintenance batch and keeps the newest snapshot even when all history is old', async () => {
+    const db = await createMigratedTestDatabase();
+    await seedConnection(db);
+    for (let index = 1; index <= 4; index++) {
+      await saveRefresh(
+        db,
+        refreshInput(`old-${index}`, 'c1', {
+          fetchedAt: `2026-01-0${index}T00:00:00.000Z`,
+        }),
+      );
+    }
+    const report = await prune(
+      db,
+      { historyDays: 1, successfulAttemptDays: 1, maxRows: 1 },
+      new Date('2026-10-01T00:00Z'),
+    );
+    expect(report).toEqual({ snapshotsDeleted: 1, attemptsDeleted: 1 });
+    expect((await history(db, 'c1')).map((snapshot) => snapshot.id)).toEqual([
+      'old-4',
+      'old-3',
+      'old-2',
+    ]);
+    for (let index = 0; index < 4; index++)
+      await prune(
+        db,
+        { historyDays: 1, successfulAttemptDays: 1, maxRows: 1 },
+        new Date('2026-10-01T00:00Z'),
+      );
+    expect((await history(db, 'c1')).map((snapshot) => snapshot.id)).toEqual([
+      'old-4',
+    ]);
+  });
 
   it('persists and reads Gemini CLI import metadata', async () => {
     const db = await createMigratedTestDatabase();

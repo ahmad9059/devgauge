@@ -14,6 +14,7 @@ import * as Crypto from 'expo-crypto';
 import type { UsageWindow } from '@/domain/usage';
 import type { ProviderId } from '@/domain/providers';
 import { fetchAntigravityUsage } from '@/providers/antigravity/sync';
+import { scheduleHistoryMaintenance } from '@/services/history-maintenance';
 import { getAppDatabase } from '@/services/app-database-store';
 import { createSecureStoreBackend } from '@/storage/secure-store-backend';
 import { createSecureVault } from '@/storage/secure-vault';
@@ -362,6 +363,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             };
           }
           await reload().catch(() => undefined);
+          if (outcome.status === 'success') scheduleHistoryMaintenance(db);
           if (!activeRef.current) return;
           setStatus((current) => {
             const remaining = current.syncingProviderIds.filter(
