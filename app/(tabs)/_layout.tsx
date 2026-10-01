@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/ui';
+import { SwipeTabs } from '@/components/navigation/swipe-tabs';
 import { touchTargets } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 
@@ -11,6 +12,11 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      screenLayout={({ children, route, navigation }) => (
+        <SwipeTabs tab={route.name} navigate={navigation.navigate}>
+          {children}
+        </SwipeTabs>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.accent,
