@@ -74,3 +74,20 @@ Owner confirmed eligible account access and requested the final device-test buil
 | `artifacts/devgauge-preview-emulator-0f84dfa.apk` | 44,616,867 | 42.55 | `3564568b761255a68181efb6fca2b08dc91385652e2fa0975d17e983dc45c5ef` |
 
 `artifacts/devgauge-device-test.apk` is an identical copy of the phone artifact. APK signature verification passed. Package `app.devgauge.preview`, version 0.1.0/code 1, min SDK 24, target SDK 36, arm64-v8a. This is the debug-key-signed internal preview release build, not a signed production AAB. Owner has not supplied the production application ID. Device/account QA and the direct-redemption transport remain open; handing over this APK does not complete the original goal.
+
+## Current emulator installation and memory observation
+
+2026-10-01 16:05:33 UTC, `0f84dfab81eddd4514738c6265401358d28e6403`, DevGauge_Tablet_API_35/API 35/x86_64. Device APK SHA-256 matched `3564568b761255a68181efb6fca2b08dc91385652e2fa0975d17e983dc45c5ef`. Empty account state after prior app delete-all, Notifications screen focused, 1 activity and 0 WebViews. WebView package available on this emulator: com.google.android.webview 124.0.6367.219.
+
+| Measurement | Value | Meaning |
+|---|---:|---|
+| APK apparent bytes | 44,616,867 / 42.55 MiB | Same preserved emulator APK |
+| Package directory allocated blocks | 59,816 KiB / 58.41 MiB | `du -sk` of installed APK parent directory, including compiled package files |
+| `/data/user/0/app.devgauge.preview` allocated blocks | 3,588 KiB / 3.50 MiB | This empty-account app's local data/cache |
+| App process PSS | 102,514 KiB / 100.11 MiB | One `dumpsys meminfo` observation |
+| App process RSS | 233,156 KiB / 227.69 MiB | One observation; includes shared/resident pages |
+| App process swap | 0 KiB | At observation |
+
+These disk numbers are 1024-byte allocated blocks, not the Android Settings storage total or Play download size. Other OS/shared/Keystore/device-encrypted/external directories are not included. No physical arm64, baseline installation or signed-in sync sample was measured, so no installed-size or RAM improvement is claimed. This observation does not satisfy the 20 cold/20 warm runs/provider performance requirement.
+
+Reproduce on the isolated rooted emulator: `adb -s emulator-5554 shell pm path app.devgauge.preview`, verify `sha256sum` and `stat -c %s` on that APK, run `du -sk` on its parent and `/data/user/0/app.devgauge.preview`, and `dumpsys meminfo app.devgauge.preview` with the same empty-account screen. Capture focus/activity/WebView count and sample time; do not compare a different scenario as a performance delta. Raw evidence: `/tmp/devgauge-device-footprint.json`, `/tmp/devgauge-empty-notifications-meminfo.txt`, `/tmp/devgauge-footprint-ui.txt`. Unrooted and stopped the emulator afterward.

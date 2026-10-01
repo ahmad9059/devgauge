@@ -34,6 +34,7 @@ Universal-to-compact reduction **66.27%**, same-ABI **17.51%**; 60 MiB APK budge
 | Quiet hours/timezone/provider reset changes | Automated cases pass; full native trial pending |
 | Native delete-all | Key/file failure regressions pass; `0f84dfa` UI delete-all cancels an active future manual alarm, removes entry and reopens settings |
 | Live account performance/redemption | Not run in workspace; owner has account and device-test APK |
+| Current x86_64 installed footprint / RAM | One empty-account observation: package allocated 58.41 MiB, local data 3.50 MiB, PSS 100.11 MiB; no baseline/arm64 comparison |
 | Physical phone/TalkBack/production AAB | Not verified; production package/signing inputs missing |
 
 NATIVE-QA-LOG.md retains artifact-specific failures as well as successes. No sampled p50/p95, press latency, RAM or installed-size improvement is asserted. Direct account-bound earned-reset reading/consumption remains unsupported in this app; handoff is explicitly partial. Remaining evidence must be gathered before the goal can close.

@@ -110,3 +110,7 @@ QA-REPORT.md and COMPLETION-REPORT.md now contain the actual phase audit, 417-te
 ## Foreground notification verification
 
 `0f84dfa` tablet trial proved generic notification list delivery while MainActivity stayed focused and correct tap navigation to Codex. NATIVE-QA-LOG.md records the actual requested time, inexact scheduling window and observation limits; transient heads-up animation is unverified. Candidate APK/source unchanged. Await owner device/account results and production ID; direct earned-reset transport, live latency/account/cookie matrix and full accessibility/power verification remain incomplete.
+
+## Emulator footprint observation
+
+Verified the installed `0f84dfa` emulator APK hash and recorded allocated package/local-data blocks and one empty-account Notifications memory observation in BASELINE.md. Package 58.41 MiB, user data 3.50 MiB, process PSS 100.11 MiB, 0 WebViews. This is x86_64/API-35 current-state evidence only, not Android Settings total/Play download/arm64 footprint, a baseline comparison, signed-in RAM or a performance pass. No source/APK changed.
