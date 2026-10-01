@@ -1,5 +1,9 @@
 # Completion audit — incomplete
 
+## GitHub connection and final reset formatting follow-up
+
+GitHub capture now recognizes the owner's Included usage panel, saves its exact included credit counts, ignores Additional usage, and completes after fresh page quota arrives without requiring a reset date that the panel does not display. Claude microsecond timestamps are normalized and recovered from stored reset source text. The final owner-requested reset rule is shared between cards and detail pages: hourly/rolling countdowns, weekly day/hour countdowns, monthly “Resets on Oct 15.” The “time unverified” suffix is removed. Other absolute wall times use a readable device-local clock without GMT labels. The owner confirmed Command Code resets appear after first use; empty windows do not receive invented reset dates. Full checks pass 445 tests, with targeted display checks in Karachi and New York. QA-REPORT.md records replacement artifacts and evidence limits.
+
 ## Reset display regression follow-up
 
 The owner's test of `2d504f9` exposed missing website reset labels. `8633b6a` fixes the omitted reset-text parameter in live database writes, guards parser section association, and collects late reset labels for every website provider. Four SQLite round-trip regressions fail on the old writer and pass on the corrected writer, including dashboard mapping for Claude, Codex, Command Code and GitHub Copilot. Full checks now pass **433 tests**. Existing snapshots that lost their text need a fresh provider sync; unknown reset dates remain unknown. QA-REPORT.md records the exact evidence and replacement artifact.

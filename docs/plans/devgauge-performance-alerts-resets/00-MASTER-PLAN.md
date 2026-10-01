@@ -69,8 +69,12 @@ Execute 1, 2, 3, 4, 5, 6, 7, 8; Phase 6 discovery may start earlier. External bl
 
 ## 7. Next Step
 
-Continue authorized verification of final artifacts, account-bound earned-reset transport, notification/device/accessibility behavior and signed-in sync performance. EXECUTION-LOG.md and BASELINE.md record committed work and measured evidence. Irreversible account reset consumption still requires the user's explicit in-app confirmation.
+Continue authorized verification of final artifacts, notification/device/accessibility behavior and signed-in sync performance. EXECUTION-LOG.md and BASELINE.md record committed work and measured evidence. Earned-reset controls/redemption are excluded by the owner revision below.
 
 ## Owner detail-page revision
 
 The owner withdrew earned-reset UI because redemption cannot happen in DevGauge. Remove that section/handoff and show Refresh, Reauthorize and Disconnect inline below Connection. Use device-local reset time without GMT/offset labels, semantic connected/stale colors and correct just-now freshness. This supersedes Phase 6’s original visible section/redemption requirement; historical contract findings remain documented. Other live/device/production gates remain open.
+
+## Owner final reset-format revision
+
+Use one display rule on Usage cards and provider detail: hourly/rolling limits show “Resets in 4h 57m,” weekly limits show “Resets in 6d 22h,” monthly limits show “Resets on Oct 15.” Remove “time unverified.” Other wall-clock timestamps use “Oct 2, 2026 3:23AM” in device-local time without GMT suffixes. This replaces the interim request to show full absolute timestamps on every limit. Fix GitHub capture for its Included usage panel without waiting for reset text that the panel does not display. The owner confirmed Command Code unused windows do not have reset dates; dates appear after first use.

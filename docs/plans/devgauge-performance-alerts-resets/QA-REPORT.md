@@ -1,5 +1,17 @@
 # QA report — verification in progress
 
+## 2026-10-01 — GitHub sign-in and final reset display rules
+
+Owner screenshots identify GitHub's current “Included usage” heading with 0 / 200 AI credits and no reset label. `3565ac3` recognizes that heading as the main credit quota, excludes Additional usage from it, and completes sign-in/shared page refresh once those fresh counts are captured. Missing reset text on this panel no longer holds sign-in open. Tests cover the supplied layout, completion policy and SQLite save/reload with Connected status and exact credit counts.
+
+`dd7efee` accepts explicit-offset ISO timestamps with up to nine fractional digits, truncating to JavaScript milliseconds; the owner's Claude timestamps have six digits. Dashboard mapping also recovers valid instants from previously saved reset source text when `resetsAt` is null. `6cb6d0d` uses one formatter for cards and detail: rolling/hourly limits display “Resets in 4h 57m,” weekly “Resets in 6d 22h,” monthly “Resets on Oct 15.” “Time unverified” is removed. Other wall-clock dates use “Oct 2, 2026 3:23AM” in device-local time without a timezone suffix. Offset-free full website date labels support local display countdowns only; they are not promoted to scheduled notification instants.
+
+The owner confirmed Command Code displays reset dates after usage begins. Empty rolling/weekly windows have no reset date yet, and fresh page capture no longer waits for those absent dates. This matches [Command Code's first-request window rules](https://commandcode.ai/docs/resources/usage-limits); no timer is fabricated for an unused window.
+
+Final source gates pass: **83 files / 445 tests**, typecheck, zero-warning lint, configuration and formatting (`/tmp/devgauge-github-time-{check,format}.log`). Three targeted display tests also pass independently under Asia/Karachi and America/New_York (`/tmp/devgauge-github-time-{karachi,new-york}.log`). Live GitHub sign-in verification on the owner's account remains a device recheck; parser/persistence/policy tests do not claim that verification.
+
+Final source `6cb6d0d` release builds pass sequentially: x86_64 74 seconds, arm64 70 seconds (`/tmp/devgauge-github-time-{emulator,phone}-build.log`). Emulator upgrade/launch succeeds; native static gallery shows the shared ProviderCard countdown “Resets in 4h 40m” with the update label at bottom right (`artifacts/devgauge-6cb6d0d-reset-gallery.png`). Gallery fixture data is not a connected provider account. Phone APK is **43,813,858 bytes / 41.78 MiB**, SHA-256 `fedfd51b3e50c973e1b203f095bc2cc6240c39a7d798156870ebbc9adc7ea7fd`; signature verification and 60 MiB budget pass. Emulator APK is **44,619,375 bytes / 42.55 MiB**, SHA-256 `e40f35eee3dc2f6ab3a9788c9e12e8fa8f8938092ee20a92ce0788000b2c5e09`. Stable device-test APK now matches `artifacts/devgauge-preview-phone-6cb6d0d.apk`.
+
 ## 2026-10-01 — website reset labels lost after live save
 
 Owner device evidence on `2d504f9` showed missing Claude, Codex, Command Code and GitHub Copilot reset labels while Antigravity still displayed countdowns. The shared live snapshot INSERT had sixteen columns/placeholders but omitted the final `resetsSourceText` parameter, silently storing null. Earlier parser-only tests did not exercise that missing live-write value.

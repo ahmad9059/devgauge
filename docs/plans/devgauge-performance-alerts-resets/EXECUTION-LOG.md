@@ -1,5 +1,9 @@
 # Execution log
 
+## 2026-10-01 — GitHub Included usage capture and final reset display
+
+`3565ac3` fixes Included usage heading recognition, isolates additional spend, and completes valid GitHub page quota without waiting for absent resets. `dd7efee` handles the owner's six-digit Claude timestamp precision and recovers previously stored valid reset text. `6cb6d0d` shares the final hourly/weekly countdown and monthly date formatting rule between cards and detail, removes time-unverified copy, and formats other wall times in the device timezone. The owner confirmed Command Code empty limits get reset dates only after first use; no missing timer is invented. All source gates pass 445 tests, plus three display tests in each of two timezones. Native build/handoff evidence is recorded in QA-REPORT.md.
+
 ## 2026-10-01 — fix website reset persistence regression
 
 Owner phone test of `2d504f9` showed missing reset labels on all four website providers. `8633b6a` adds the omitted `resetsSourceText` live INSERT argument, guards data rows from switching parser sections, and waits for late reset labels across website providers. Four provider-specific real SQLite round-trip cases reproduce failure on the previous writer and pass with the correction. Full source gates pass: 83 files / 433 tests, typecheck, lint, configuration and formatting. Replacement builds and native scope are recorded in QA-REPORT.md.
