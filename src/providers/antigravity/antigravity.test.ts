@@ -18,6 +18,7 @@ import {
   parseGroupedQuota,
   parseQuotaSummary,
   type AntigravityFetch,
+  type AntigravityDiscovery,
 } from '@/providers/antigravity/quota';
 
 // The real values are injected from a gitignored .env at build time.
@@ -233,6 +234,94 @@ describe('antigravity quota groups', () => {
 });
 
 describe('loadAntigravityQuota', () => {
+  it('caches project discovery and the working summary host for the scoped caller', async () => {
+    const calls: string[] = [];
+    const discovery: AntigravityDiscovery = {
+      projectId: null,
+      plan: null,
+      summaryEndpoint: null,
+      expiresAt: 0,
+    };
+    const fetchImpl: AntigravityFetch = async (url) => {
+      calls.push(url);
+      if (url.includes('loadCodeAssist'))
+        return new Response(
+          JSON.stringify({ cloudaicompanionProject: 'managed-test' }),
+        );
+      if (url.startsWith('https://daily-'))
+        return new Response('', { status: 404 });
+      return new Response(
+        JSON.stringify({
+          groups: [
+            {
+              buckets: [{ bucketId: 'gemini-weekly', remainingFraction: 0.3 }],
+            },
+          ],
+        }),
+      );
+    };
+    await loadAntigravityQuota('token', fetchImpl, {
+      discovery,
+      now: () => 1000,
+    });
+    expect(calls).toHaveLength(3);
+    calls.length = 0;
+    await loadAntigravityQuota('new-access-token', fetchImpl, {
+      discovery,
+      now: () => 2000,
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).not.toContain('daily-');
+    calls.length = 0;
+    await loadAntigravityQuota('token', fetchImpl, {
+      discovery,
+      now: () => 1000 + 86400001,
+    });
+    expect(calls.some((url) => url.includes('loadCodeAssist'))).toBe(true);
+  });
+  it('never onboards during ordinary refresh', async () => {
+    const calls: string[] = [];
+    const quota = await loadAntigravityQuota(
+      'token',
+      async (url) => {
+        calls.push(url);
+        return new Response(
+          JSON.stringify({
+            allowedTiers: [{ id: 'free-tier', isDefault: true }],
+          }),
+        );
+      },
+      { allowOnboarding: false },
+    );
+    expect(calls).toHaveLength(1);
+    expect(quota.windows).toEqual([]);
+    expect(quota.detail).toContain('reconnect');
+  });
+  it('starts independent fallback model and quota reads together', async () => {
+    let started = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const quota = await loadAntigravityQuota('token', async (url) => {
+      if (url.includes('loadCodeAssist'))
+        return new Response(
+          JSON.stringify({ cloudaicompanionProject: 'managed-test' }),
+        );
+      if (url.includes('retrieveUserQuotaSummary'))
+        return new Response('', { status: 404 });
+      started++;
+      if (started === 2) release();
+      await gate;
+      return new Response(
+        JSON.stringify({
+          models: { 'gemini-3-pro': { quotaInfo: { remainingFraction: 0.5 } } },
+        }),
+      );
+    });
+    expect(started).toBe(2);
+    expect(quota.windows[0].used).toBe('50');
+  });
   it('onboards an account and prefers the pooled summary over legacy endpoints', async () => {
     const calls: string[] = [];
     const fetchImpl: AntigravityFetch = async (url) => {

@@ -1,4 +1,5 @@
 import { deriveWindow, type UsageWindow } from '@/domain/usage';
+import { ProviderError } from '@/domain/errors';
 
 export const ANTIGRAVITY_ENDPOINT = 'https://cloudcode-pa.googleapis.com';
 export const ANTIGRAVITY_API_VERSION = 'v1internal';
@@ -413,7 +414,18 @@ export type AntigravityQuota = {
   detail: string;
 };
 
-export type AntigravityOptions = { sleep?: (ms: number) => Promise<void> };
+export type AntigravityDiscovery = {
+  projectId: string | null;
+  plan: string | null;
+  summaryEndpoint: string | null;
+  expiresAt: number;
+};
+export type AntigravityOptions = {
+  sleep?: (ms: number) => Promise<void>;
+  discovery?: AntigravityDiscovery;
+  allowOnboarding?: boolean;
+  now?: () => number;
+};
 
 const defaultSleep = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -438,6 +450,11 @@ async function safePost(
     const text = await response.text();
     return { status: response.status, text, json: safeJson(text) };
   } catch (error) {
+    if (
+      error instanceof ProviderError ||
+      (error instanceof Error && error.name === 'AbortError')
+    )
+      throw error;
     return {
       status: 0,
       text: error instanceof Error ? error.message : String(error),
@@ -459,78 +476,112 @@ export async function loadAntigravityQuota(
   options: AntigravityOptions = {},
 ): Promise<AntigravityQuota> {
   const sleep = options.sleep ?? defaultSleep;
+  const now = options.now ?? Date.now;
+  const discovery = options.discovery;
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
     ...ANTIGRAVITY_REQUEST_HEADERS,
   };
 
-  const loadResponse = await fetchImpl(ANTIGRAVITY_LOAD_ENDPOINT, {
-    method: 'POST',
-    headers,
-    body: buildLoadCodeAssistBody(null),
-  });
-  const loadText = await loadResponse.text();
-  const loadJson = safeJson(loadText);
-  let projectId = extractProjectId(loadJson);
-  const plan = extractPlan(loadJson);
-  let detail = `loadCodeAssist HTTP ${loadResponse.status}`;
-
+  let projectId =
+    discovery && discovery.expiresAt > now() ? discovery.projectId : null;
+  let plan = projectId ? discovery!.plan : null;
+  let detail = 'Cached discovery';
   if (!projectId) {
-    const tierId = extractDefaultTierId(loadJson);
-    if (!tierId) {
-      const reason = extractIneligibleReason(loadJson);
-      return {
-        windows: [],
-        projectId: null,
-        plan,
-        detail: reason ?? `${detail}: ${snippet(loadText)}`,
-      };
-    }
-
-    const onboardResponse = await fetchImpl(ANTIGRAVITY_ONBOARD_ENDPOINT, {
+    const loadResponse = await fetchImpl(ANTIGRAVITY_LOAD_ENDPOINT, {
       method: 'POST',
       headers,
-      body: buildOnboardUserBody(tierId, null),
+      body: buildLoadCodeAssistBody(null),
     });
-    let operation = safeJson(await onboardResponse.text());
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      const record =
-        operation && typeof operation === 'object'
-          ? (operation as Record<string, unknown>)
-          : null;
-      projectId =
-        extractProjectId(record?.response) ??
-        (record?.done ? null : extractProjectId(record));
-      if (projectId) break;
-      const name =
-        record && typeof record.name === 'string' ? record.name : null;
-      if (!name || record?.done === true) break;
-      await sleep(1500);
-      const operationResponse = await fetchImpl(operationUrl(name), {
-        method: 'GET',
-        headers,
-      });
-      operation = safeJson(await operationResponse.text());
-    }
-    detail = `onboard HTTP ${onboardResponse.status}`;
-    if (!projectId) {
+    const loadText = await loadResponse.text();
+    const loadJson = safeJson(loadText);
+    projectId = extractProjectId(loadJson);
+    plan = extractPlan(loadJson);
+    detail = `loadCodeAssist HTTP ${loadResponse.status}`;
+    if (loadResponse.status === 401 || loadResponse.status === 403)
       return { windows: [], projectId: null, plan, detail };
+
+    if (!projectId) {
+      if (options.allowOnboarding === false)
+        return {
+          windows: [],
+          projectId: null,
+          plan,
+          detail: 'Account setup required; reconnect in sign-in flow.',
+        };
+      const tierId = extractDefaultTierId(loadJson);
+      if (!tierId) {
+        const reason = extractIneligibleReason(loadJson);
+        return {
+          windows: [],
+          projectId: null,
+          plan,
+          detail: reason ?? `${detail}: ${snippet(loadText)}`,
+        };
+      }
+
+      const onboardResponse = await fetchImpl(ANTIGRAVITY_ONBOARD_ENDPOINT, {
+        method: 'POST',
+        headers,
+        body: buildOnboardUserBody(tierId, null),
+      });
+      let operation = safeJson(await onboardResponse.text());
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const record =
+          operation && typeof operation === 'object'
+            ? (operation as Record<string, unknown>)
+            : null;
+        projectId =
+          extractProjectId(record?.response) ??
+          (record?.done ? null : extractProjectId(record));
+        if (projectId) break;
+        const name =
+          record && typeof record.name === 'string' ? record.name : null;
+        if (!name || record?.done === true) break;
+        await sleep(1500);
+        const operationResponse = await fetchImpl(operationUrl(name), {
+          method: 'GET',
+          headers,
+        });
+        operation = safeJson(await operationResponse.text());
+      }
+      detail = `onboard HTTP ${onboardResponse.status}`;
+      if (!projectId) {
+        return { windows: [], projectId: null, plan, detail };
+      }
+    }
+    if (projectId && discovery) {
+      discovery.projectId = projectId;
+      discovery.plan = plan;
+      discovery.expiresAt = now() + 24 * 60 * 60 * 1000;
     }
   }
 
   // The Antigravity client uses the daily Cloud Code host first; older
   // accounts/builds may only support the endpoint on one of the two hosts.
   const summaryStatuses: number[] = [];
-  for (const url of [
+  const endpoints = [
     ANTIGRAVITY_DAILY_SUMMARY_ENDPOINT,
     ANTIGRAVITY_SUMMARY_ENDPOINT,
-  ]) {
+  ];
+  if (
+    discovery?.summaryEndpoint &&
+    endpoints.includes(discovery.summaryEndpoint)
+  ) {
+    endpoints.sort(
+      (a, b) =>
+        Number(b === discovery.summaryEndpoint) -
+        Number(a === discovery.summaryEndpoint),
+    );
+  }
+  for (const url of endpoints) {
     const summary = await safePost(fetchImpl, url, headers, '{}');
     summaryStatuses.push(summary.status);
     if (summary.status >= 200 && summary.status < 300) {
       const windows = parseQuotaSummary(summary.json);
       if (windows !== null) {
+        if (discovery) discovery.summaryEndpoint = url;
         return {
           windows,
           projectId,
@@ -539,21 +590,27 @@ export async function loadAntigravityQuota(
         };
       }
     }
+    if (discovery?.summaryEndpoint === url) discovery.summaryEndpoint = null;
   }
 
   const body = buildProjectBody(projectId);
-  const models = await safePost(
-    fetchImpl,
-    ANTIGRAVITY_MODELS_ENDPOINT,
-    headers,
-    body,
-  );
-  const quota = await safePost(
-    fetchImpl,
-    ANTIGRAVITY_QUOTA_ENDPOINT,
-    headers,
-    body,
-  );
+  const [models, quota] = await Promise.all([
+    safePost(fetchImpl, ANTIGRAVITY_MODELS_ENDPOINT, headers, body),
+    safePost(fetchImpl, ANTIGRAVITY_QUOTA_ENDPOINT, headers, body),
+  ]);
+  if (
+    discovery &&
+    (models.status === 401 ||
+      models.status === 403 ||
+      quota.status === 401 ||
+      quota.status === 403 ||
+      models.status === 404 ||
+      quota.status === 404)
+  ) {
+    discovery.projectId = null;
+    discovery.summaryEndpoint = null;
+    discovery.expiresAt = 0;
+  }
 
   const windows = mergeAntigravityWindows([
     models.json ? parseGroupedQuota(models.json) : [],

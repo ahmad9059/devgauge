@@ -13,9 +13,18 @@ import {
   parseTokenResponse,
   tokenRefreshBody,
 } from './oauth';
-import { loadAntigravityQuota, type AntigravityFetch } from './quota';
+import {
+  loadAntigravityQuota,
+  type AntigravityFetch,
+  type AntigravityDiscovery,
+} from './quota';
 
 const CONNECTION_ID = 'session-gemini-cli';
+// Account/session generation scopes non-secret metadata. Never cache access tokens.
+const discoveryByDatabase = new WeakMap<
+  Database,
+  Map<string, AntigravityDiscovery>
+>();
 
 export type AntigravitySyncResult = 'success' | 'needs-sign-in' | 'unavailable';
 
@@ -98,7 +107,33 @@ export async function fetchAntigravityUsage(
     renewed = true;
   }
 
-  let quota = await loadAntigravityQuota(credential.accessToken!, fetchImpl);
+  const discoveryKey = `${connection.id}:${connection.canonicalAccountKey}:${connection.connectedAt}:${connection.credentialRef}`;
+  let discoveryByAccount = discoveryByDatabase.get(db);
+  if (!discoveryByAccount) {
+    discoveryByAccount = new Map();
+    discoveryByDatabase.set(db, discoveryByAccount);
+  }
+  let discovery = discoveryByAccount.get(discoveryKey);
+  if (!discovery) {
+    if (discoveryByAccount.size >= 8) discoveryByAccount.clear();
+    discovery = {
+      projectId: null,
+      plan: null,
+      summaryEndpoint: null,
+      expiresAt: 0,
+    };
+    discoveryByAccount.set(discoveryKey, discovery);
+  }
+  const loadQuota = () =>
+    loadAntigravityQuota(credential!.accessToken!, fetchImpl, {
+      discovery,
+      allowOnboarding: false,
+      now: () => now().getTime(),
+    }).catch((error) => {
+      discoveryByAccount.delete(discoveryKey);
+      throw error;
+    });
+  let quota = await loadQuota();
   // Token can be revoked ahead of its expiry. Try once with the refresh token.
   if (
     quota.windows.length === 0 &&
@@ -113,7 +148,9 @@ export async function fetchAntigravityUsage(
       now,
     );
     if (!credential) return needsSignIn();
-    quota = await loadAntigravityQuota(credential.accessToken!, fetchImpl);
+    discovery.projectId = null;
+    discovery.summaryEndpoint = null;
+    quota = await loadQuota();
   }
   if (quota.windows.length === 0)
     throw new ProviderError(
