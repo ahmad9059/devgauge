@@ -131,6 +131,31 @@ async function buildHarness(options: RefreshHarnessOptions) {
 }
 
 describe('refresh engine', () => {
+  it('drains active and queued work before the encrypted database is closed', async () => {
+    let entered!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const harness = await buildHarness({
+      concurrency: 1,
+      fetchImpl: async () => {
+        entered();
+        return new Promise<FetchResponseLike>(() => undefined);
+      },
+    });
+    await harness.addConnection('c1');
+    await harness.addConnection('c2');
+    const first = harness.engine.refresh('c1');
+    const second = harness.engine.refresh('c2');
+    await started;
+    await harness.engine.cancelAllAndWait();
+    expect(harness.engine.activeCount()).toBe(0);
+    expect(await first).toMatchObject({ status: 'cancelled' });
+    expect(await second).toMatchObject({ status: 'cancelled' });
+    expect((await latestByConnection(harness.db)).size).toBe(0);
+    await harness.db.close();
+  });
+
   it('rejects a late successful response after a persisted disconnect', async () => {
     const gate = deferred<FetchResponseLike>();
     let entered!: () => void;
