@@ -73,6 +73,49 @@ describe('remaining vs used', () => {
 });
 
 describe('page text parsing', () => {
+  it('captures Codex workspace monthly credits and reset text alongside its main windows', () => {
+    const text = [
+      '5 hour usage limit',
+      '0% remaining',
+      'Weekly usage limit',
+      '67% remaining',
+      'Workspace monthly credit limit',
+      '62% remaining',
+      'Resets Nov 1, 2026 5:00 AM378 of 1,000 credits used',
+    ].join('\n');
+    const windows = toDomainWindows(parseUsageText(text, codex), codex);
+    expect(windows.map((w) => w.kind)).toEqual([
+      'rolling',
+      'weekly',
+      'monthly',
+    ]);
+    const monthly = windows.find((w) => w.kind === 'monthly');
+    expect(monthly).toMatchObject({
+      used: '378',
+      limit: '1000',
+      unit: 'credits',
+      utilization: 0.378,
+      resetsSourceText: 'Nov 1, 2026 5:00 AM',
+      resetsAt: null,
+    });
+  });
+  it('shows Codex monthly percentages when exact credit counts are absent without inventing a workspace bar', () => {
+    const monthly = toDomainWindows(
+      parseUsageText('Workspace monthly credit limit\n62% remaining', codex),
+      codex,
+    )[0];
+    expect(monthly).toMatchObject({
+      used: '38',
+      limit: '100',
+      unit: 'percent',
+    });
+    expect(
+      parseUsageText(
+        '5 hour usage limit\n62% remaining\nWeekly usage limit\n67% remaining',
+        codex,
+      ),
+    ).toHaveLength(2);
+  });
   it('reads Claude reset labels before percentages without mixing session and weekly limits', () => {
     const keyMap = SESSION_PROVIDERS.claude.keyMap;
     const text = [
@@ -194,7 +237,10 @@ describe('page text parsing', () => {
     ].join('\n');
     const raw = parseUsageText(text, github);
     const windows = toDomainWindows(raw, github);
-    expect(windows[0]?.used).toBe('11.5');
+    expect(windows[0]?.used).toBe('23');
+    expect(windows[0]?.unit).toBe('credits');
+    expect(windows[0]?.limit).toBe('200');
+    expect(windows[0]?.utilization).toBe(0.115);
     expect(windows[0]?.resetsAt).toBeNull();
     expect(windows[0]?.resetsSourceText).toBe('in 2 days');
   });

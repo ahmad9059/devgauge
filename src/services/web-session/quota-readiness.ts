@@ -37,3 +37,20 @@ export function needsResetTiming(
     )
   );
 }
+
+export function needsWorkspaceCapture({
+  mode,
+  windows,
+  pageWindows,
+  expectsMonthly,
+}: {
+  mode: 'api' | 'page';
+  windows: readonly UsageWindow[];
+  pageWindows: readonly UsageWindow[];
+  expectsMonthly: boolean;
+}): boolean {
+  if (windows.some((window) => window.kind === 'monthly')) return false;
+  return (
+    mode === 'api' || !isQuotaReady('codex', pageWindows) || expectsMonthly
+  );
+}

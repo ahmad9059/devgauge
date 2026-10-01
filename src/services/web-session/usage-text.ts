@@ -8,7 +8,7 @@ import type { RawWindow, WindowKeyMap } from './usage-extract';
 const REMAINING = /(\d+(?:\.\d+)?)\s*%\s*remaining/i;
 const USED = /(\d+(?:\.\d+)?)\s*%\s*used/i;
 const FRACTION =
-  /(\d[\d,]*(?:\.\d+)?)\s*\/\s*(\d[\d,]*(?:\.\d+)?)\s*(ai credits|credits|requests|tokens)?/i;
+  /(\d[\d,]*(?:\.\d+)?)\s*(?:\/|of)\s*(\d[\d,]*(?:\.\d+)?)\s*(ai credits|credits|requests|tokens)?/i;
 // Codex writes absolute reset dates as "Resets Oct 1, 2026 12:29 AM";
 // other providers use "Resets in …" or "Resets on …". Preserve all of them.
 const RESET = /resets?\s+(.+)/i;
@@ -98,7 +98,8 @@ export function parseUsageText(
 
     const reset = RESET.exec(line);
     if (reset) {
-      const value = reset[1].trim();
+      const fractionIndex = FRACTION.exec(reset[1])?.index;
+      const value = reset[1].slice(0, fractionIndex ?? reset[1].length).trim();
       const previous = lastWindow();
       // A reset line applies to the value above it; otherwise to the next one.
       if (previous !== null && previous.resetsAt === null) {
@@ -121,7 +122,21 @@ export function parseUsageText(
     const fraction = FRACTION.exec(line);
     if (fraction) {
       const limit = number(fraction[2]);
-      if (limit > 0) push((number(fraction[1]) / limit) * 100);
+      if (limit > 0) {
+        const used = number(fraction[1]);
+        const usedPercent = (used / limit) * 100;
+        const unit = fraction[3]
+          ?.toLowerCase()
+          .replace('ai ', '') as RawWindow['unit'];
+        const previous = lastWindow();
+        if (previous && previous.key === currentKey && unit) {
+          Object.assign(previous, { usedPercent, used, limit, unit });
+        } else {
+          push(usedPercent);
+          const current = lastWindow();
+          if (current && unit) Object.assign(current, { used, limit, unit });
+        }
+      }
       continue;
     }
     // Some sites split the percentage and "remaining" into separate text nodes.

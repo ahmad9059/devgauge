@@ -54,6 +54,7 @@ import {
 import {
   isQuotaReady,
   needsResetTiming,
+  needsWorkspaceCapture,
 } from '@/services/web-session/quota-readiness';
 import { parseUsageText } from '@/services/web-session/usage-text';
 import type {
@@ -545,7 +546,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             window,
           ]),
         );
-        for (const window of parseUsageText(job.text, config.keyMap)) {
+        const pageRaw = parseUsageText(job.text, config.keyMap);
+        for (const window of pageRaw) {
           const exact = byKey.get(window.key);
           if (exact?.usedPercent === window.usedPercent)
             window.resetsAt ??= exact.resetsAt;
@@ -568,10 +570,25 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         );
         const isReady = isQuotaReady(job.provider.id, windows);
         if (isReady) {
-          // Claude's page can publish percentages before its reset labels.
-          // Keep observing this attempt until timing arrives or its deadline;
-          // an API-only partial response gets one fresh page fallback.
-          if (needsResetTiming(job.provider.id, windows)) {
+          const needsWorkspace =
+            providerId === 'codex' &&
+            needsWorkspaceCapture({
+              mode: job.mode,
+              windows,
+              pageWindows: toDomainWindows(
+                pageRaw,
+                config.keyMap,
+                job.capturedAt,
+              ),
+              expectsMonthly:
+                job.provider.windows.some(
+                  (window) => window.kind === 'monthly',
+                ) || /workspace monthly credit limit/i.test(job.text),
+            });
+          // Keep observing late Claude reset labels and Codex workspace credits.
+          // API-only partial data gets one fresh page fallback; the existing
+          // deadline still saves verified usage when optional data is absent.
+          if (needsResetTiming(job.provider.id, windows) || needsWorkspace) {
             job.partialWindows = windows;
             if (job.mode === 'api') loadFullPage(providerId, job.runId);
           } else {

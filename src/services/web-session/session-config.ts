@@ -65,6 +65,11 @@ export const SESSION_PROVIDERS: Record<
       secondary_window: { ...WEEKLY, remaining: true },
       seven_day: { ...WEEKLY, remaining: true },
       weekly: { ...WEEKLY, remaining: true },
+      workspace_monthly: {
+        label: 'Workspace monthly credit limit',
+        kind: 'monthly',
+        remaining: true,
+      },
     },
   },
   'github-copilot': {

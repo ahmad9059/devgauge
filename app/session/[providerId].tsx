@@ -23,6 +23,11 @@ import {
   type CapturedResponse,
 } from '@/services/web-session/usage-extract';
 import { parseUsageText } from '@/services/web-session/usage-text';
+import {
+  isQuotaReady,
+  needsResetTiming,
+  needsWorkspaceCapture,
+} from '@/services/web-session/quota-readiness';
 
 /**
  * Embedded session. The provider page loads inside the app; after the user
@@ -39,6 +44,7 @@ export default function SessionScreen() {
   const capturedAtRef = useRef(new Date());
   const pageTextRef = useRef('');
   const syncedRef = useRef(false);
+  const quotaDeadlineRef = useRef<number | null>(null);
   const [windows, setWindows] = useState<UsageWindow[]>([]);
   const [status, setStatus] = useState('Connecting…');
   const [busy, setBusy] = useState(false);
@@ -76,13 +82,49 @@ export default function SessionScreen() {
     }
   };
 
-  // Auto-sync the moment usage appears, then go straight to the dashboard.
+  // Give late reset labels/workspace credits a bounded chance to arrive before
+  // leaving the sign-in page. Verified usage still saves at the deadline.
   useEffect(() => {
-    if (windows.length === 0 || syncedRef.current) return;
-    syncedRef.current = true;
-    void sync();
+    if (
+      !sessionProvider ||
+      !isQuotaReady(sessionProvider, windows) ||
+      syncedRef.current
+    )
+      return;
+    const finish = () => {
+      syncedRef.current = true;
+      void sync();
+    };
+    const pageWindows = toDomainWindows(
+      parseUsageText(
+        pageTextRef.current,
+        SESSION_PROVIDERS[sessionProvider].keyMap,
+      ),
+      SESSION_PROVIDERS[sessionProvider].keyMap,
+      capturedAtRef.current,
+    );
+    const waitForPage =
+      sessionProvider === 'codex' &&
+      needsWorkspaceCapture({
+        mode: 'page',
+        windows,
+        pageWindows,
+        expectsMonthly: /workspace monthly credit limit/i.test(
+          pageTextRef.current,
+        ),
+      });
+    if (!needsResetTiming(sessionProvider, windows) && !waitForPage) {
+      finish();
+      return;
+    }
+    quotaDeadlineRef.current ??= Date.now() + 12_000;
+    const timer = setTimeout(
+      finish,
+      Math.max(0, quotaDeadlineRef.current - Date.now()),
+    );
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windows]);
+  }, [windows, sessionProvider]);
 
   if (sessionProvider === null) {
     return (
@@ -120,6 +162,9 @@ export default function SessionScreen() {
         ]),
       );
       for (const window of parseUsageText(pageTextRef.current, config.keyMap)) {
+        const exact = byKey.get(window.key);
+        if (exact?.usedPercent === window.usedPercent)
+          window.resetsAt ??= exact.resetsAt;
         if (sessionProvider === 'codex') {
           for (const [key, captured] of byKey) {
             if (config.keyMap[key].kind === config.keyMap[window.key].kind) {

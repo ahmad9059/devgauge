@@ -27,6 +27,9 @@ type RawWindow = {
   key: string;
   usedPercent: number;
   resetsAt: string | null;
+  used?: number;
+  limit?: number;
+  unit?: 'credits' | 'requests' | 'tokens';
 };
 
 function pickNumber(
@@ -189,9 +192,9 @@ export function toDomainWindows(
         externalKey: `session.${window.key}`,
         kind: keyMap[window.key].kind,
         label: keyMap[window.key].label,
-        used: String(window.usedPercent),
-        limit: '100',
-        unit: 'percent',
+        used: String(window.used ?? window.usedPercent),
+        limit: String(window.limit ?? 100),
+        unit: window.unit ?? 'percent',
         resetsAt: normalizeResetTime(window.resetsAt, capturedAt),
         resetsSourceText: window.resetsAt,
         derivation: 'provider',

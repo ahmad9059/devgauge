@@ -60,11 +60,21 @@ export function ProgressBar({
       }}
     >
       <View style={styles.labelRow}>
-        <Text style={[typography.label, { color: theme.colors.textSecondary }]}>
+        <Text
+          style={[
+            typography.label,
+            styles.labelText,
+            { color: theme.colors.textSecondary },
+          ]}
+        >
           {label}
         </Text>
         <Text
-          style={[typography.monoLabel, { color: theme.colors.textPrimary }]}
+          style={[
+            typography.monoLabel,
+            styles.valueText,
+            { color: theme.colors.textPrimary },
+          ]}
         >
           {hasValues
             ? `${formatCount(used, unit)} / ${formatCount(limit, unit)}`
@@ -99,6 +109,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'baseline',
     gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  labelText: { flexShrink: 1, maxWidth: '100%' },
+  valueText: {
+    marginLeft: 'auto',
+    flexShrink: 1,
+    maxWidth: '100%',
+    textAlign: 'right',
   },
   track: { height: 12, borderRadius: radii.pill, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: radii.pill },

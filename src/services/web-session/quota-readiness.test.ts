@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { deriveWindow, type UsageWindowKind } from '@/domain/usage';
-import { isQuotaReady, needsResetTiming } from './quota-readiness';
+import {
+  isQuotaReady,
+  needsResetTiming,
+  needsWorkspaceCapture,
+} from './quota-readiness';
 
 function window(kind: UsageWindowKind) {
   return deriveWindow({
@@ -14,6 +18,34 @@ function window(kind: UsageWindowKind) {
   });
 }
 describe('verified quota capture completion', () => {
+  it('discovers Codex workspace credits on a fresh page without requiring them for personal accounts', () => {
+    const windows = [window('rolling'), window('weekly')];
+    const input = {
+      mode: 'api' as const,
+      windows,
+      pageWindows: [],
+      expectsMonthly: false,
+    };
+    expect(needsWorkspaceCapture(input)).toBe(true);
+    expect(
+      needsWorkspaceCapture({ ...input, mode: 'page', pageWindows: windows }),
+    ).toBe(false);
+    expect(
+      needsWorkspaceCapture({
+        ...input,
+        mode: 'page',
+        pageWindows: windows,
+        expectsMonthly: true,
+      }),
+    ).toBe(true);
+    expect(
+      needsWorkspaceCapture({
+        ...input,
+        windows: [...windows, window('monthly')],
+        expectsMonthly: true,
+      }),
+    ).toBe(false);
+  });
   it('waits for missing Claude main reset labels but accepts raw provider dates and optional omissions', () => {
     const session = { ...window('rolling'), externalKey: 'session.five_hour' };
     const weekly = {
