@@ -70,6 +70,72 @@ async function seedConnection(
 }
 
 describe('disconnect and delete lifecycle', () => {
+  it('keeps the database key when file deletion fails and permits cleanup retry', async () => {
+    const db = await createMigratedTestDatabase();
+    const key = 'a'.repeat(64);
+    const store = createMemorySecretStore({ [SQLCIPHER_KEY_SECRET]: key });
+    const vault = createSecureVault(store);
+    await seedConnection(db, 'c1');
+    const { canceller } = makeCanceller();
+    await expect(
+      deleteAllLocalData(db, {
+        vault,
+        secretStore: store,
+        canceller,
+        resetDatabaseFile: async () => {
+          expect(await store.get(SQLCIPHER_KEY_SECRET)).toBe(key);
+          throw new Error('file removal failed');
+        },
+      }),
+    ).rejects.toThrow('file removal failed');
+    expect(await store.get(SQLCIPHER_KEY_SECRET)).toBe(key);
+    expect(await getConnection(db, 'c1')).toBeNull();
+    const retry = await deleteAllLocalData(db, {
+      vault,
+      secretStore: store,
+      canceller,
+      resetDatabaseFile: async () => {
+        expect(await store.get(SQLCIPHER_KEY_SECRET)).toBe(key);
+      },
+    });
+    expect(retry.databaseFileReset).toBe(true);
+    expect(await store.get(SQLCIPHER_KEY_SECRET)).toBeNull();
+  });
+
+  it('retains credentials and records if native cancellation fails', async () => {
+    const db = await createMigratedTestDatabase();
+    const store = createMemorySecretStore({
+      [SQLCIPHER_KEY_SECRET]: 'a'.repeat(64),
+    });
+    const vault = createSecureVault(store);
+    const connection = await seedConnection(db, 'c1');
+    await vault.save(connection.credentialRef as string, {
+      version: 1,
+      kind: 'oauth',
+      accessToken: 'secret-access',
+    });
+    let fileReset = false;
+    await expect(
+      deleteAllLocalData(db, {
+        vault,
+        secretStore: store,
+        canceller: {
+          async cancelForConnection() {},
+          async cancelAll() {
+            throw new Error('native cancellation failed');
+          },
+        },
+        resetDatabaseFile: async () => {
+          fileReset = true;
+        },
+      }),
+    ).rejects.toThrow('native cancellation failed');
+    expect(await getConnection(db, 'c1')).not.toBeNull();
+    expect(await vault.load(connection.credentialRef as string)).not.toBeNull();
+    expect(await store.get(SQLCIPHER_KEY_SECRET)).not.toBeNull();
+    expect(fileReset).toBe(false);
+  });
+
   it('disconnect with history removes the credential, schedules, and rows', async () => {
     const db = await createMigratedTestDatabase();
     const store = createMemorySecretStore();

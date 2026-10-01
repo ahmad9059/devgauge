@@ -142,14 +142,15 @@ export async function deleteAllLocalData(
 
   const storedKey = await deps.secretStore.get(SQLCIPHER_KEY_SECRET);
   const databaseKeyDeleted = storedKey !== null;
-  if (databaseKeyDeleted) {
-    await deps.secretStore.delete(SQLCIPHER_KEY_SECRET);
-  }
-
   let databaseFileReset = false;
   if (deps.resetDatabaseFile) {
     await deps.resetDatabaseFile();
     databaseFileReset = true;
+  }
+  // Keep the key if file removal fails, so the emptied database remains
+  // readable and cleanup can be retried instead of relying on key-loss recovery.
+  if (databaseKeyDeleted) {
+    await deps.secretStore.delete(SQLCIPHER_KEY_SECRET);
   }
 
   return {

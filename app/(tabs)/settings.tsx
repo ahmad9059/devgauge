@@ -38,6 +38,7 @@ import {
   resetAppDatabaseHandle,
 } from '@/services/app-database-store';
 import { clearCachedUsage, deleteAllLocalData } from '@/services/local-data';
+import { resetAppDatabaseFile } from '@/storage/app-database';
 import { createSecureStoreBackend } from '@/storage/secure-store-backend';
 import { createSecureVault } from '@/storage/secure-vault';
 
@@ -127,9 +128,12 @@ export default function SettingsScreen() {
           db,
           createExpoNotificationScheduler(),
         ),
+        resetDatabaseFile: async () => {
+          await db.close();
+          resetAppDatabaseHandle();
+          await resetAppDatabaseFile();
+        },
       });
-      await db.close();
-      resetAppDatabaseHandle();
       await reload();
       setDataMessage(
         'App records, credentials and reminders deleted. Browser sign-in can remain.',
