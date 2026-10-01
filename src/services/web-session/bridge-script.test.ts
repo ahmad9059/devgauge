@@ -8,6 +8,7 @@ function browser() {
   const fetch = vi.fn(async (input: string | Request, _init?: RequestInit) => ({
     url: typeof input === 'string' ? input : input.url,
     ok: true,
+    headers: new Headers({ 'content-type': 'application/json' }),
     clone: () => ({
       text: async () => JSON.stringify({ five_hour: { utilization } }),
     }),
@@ -61,6 +62,33 @@ async function flush() {
 }
 
 describe('warm website quota refresh', () => {
+  it('does not clone unrelated, non-JSON, oversized or inactive responses', async () => {
+    const page = browser();
+    runInNewContext(createSyncBridgeScript(1), page.context);
+    const clone = vi.fn(() => ({ text: async () => '{}' }));
+    for (const [url, contentType, length] of [
+      ['https://claude.ai/api/settings', 'application/json', '20'],
+      ['https://other.test/api/usage', 'application/json', '20'],
+      ['https://claude.ai/api/usage', 'text/html', '20'],
+      ['https://claude.ai/api/usage', 'application/json', '250000'],
+    ]) {
+      page.fetch.mockResolvedValueOnce({
+        url,
+        ok: true,
+        headers: new Headers({
+          'content-type': contentType,
+          'content-length': length,
+        }),
+        clone,
+      });
+      await page.context.window.fetch(url);
+    }
+    runInNewContext('window.__devgaugeStopCapture();', page.context);
+    await page.context.window.fetch('https://claude.ai/api/usage');
+    await flush();
+    expect(clone).not.toHaveBeenCalled();
+    expect(page.messages).toEqual([]);
+  });
   it('fetches approved quota requests with fresh data and existing page auth, without reading old DOM', async () => {
     const page = browser();
     runInNewContext(createSyncBridgeScript(1), page.context);
@@ -109,6 +137,7 @@ describe('warm website quota refresh', () => {
     release({
       url: 'https://claude.ai/api/usage',
       ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
       clone: () => ({
         text: async () => JSON.stringify({ five_hour: { utilization: 0.1 } }),
       }),

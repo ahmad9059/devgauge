@@ -17,6 +17,13 @@ export const USAGE_BRIDGE_SCRIPT = `
       }
     } catch (e) {}
   }
+  function isQuotaUrl(value) {
+    try {
+      var url = new URL(value, location.href);
+      return url.protocol === 'https:' && url.origin === location.origin && /(?:usage|quota|rate[_-]?limits|copilot_internal)/i.test(url.pathname);
+    } catch (e) { return false; }
+  }
+  window.__devgaugeIsQuotaUrl = isQuotaUrl;
   function looksLikeUsage(text) {
     if (typeof text !== 'string') return false;
     if (text.length === 0 || text.length > 200000) return false;
@@ -40,21 +47,29 @@ export const USAGE_BRIDGE_SCRIPT = `
     } catch (e) {}
   }
   var scheduled = false;
+  var timer = null;
+  var observer = null;
+  var pending = null;
+  window.__devgaugeStopCapture = function () {
+    window.__devgaugeCaptureActive = false;
+    if (timer) clearInterval(timer);
+    if (pending) clearTimeout(pending);
+    if (observer) observer.disconnect();
+  };
   function schedule() {
     if (scheduled) return;
     scheduled = true;
     postText();
     try {
       var ticks = 0;
-      var timer = setInterval(function () {
+      timer = setInterval(function () {
         postText();
         ticks += 1;
         if (ticks > 40 || window.__devgaugeCaptureActive === false) clearInterval(timer);
       }, 250);
     } catch (e) {}
     try {
-      var pending = null;
-      var observer = new MutationObserver(function () {
+      observer = new MutationObserver(function () {
         if (pending) return;
         pending = setTimeout(function () {
           pending = null;
@@ -87,6 +102,9 @@ export const USAGE_BRIDGE_SCRIPT = `
         return originalFetch.apply(this, args).then(function (response) {
           try {
             var url = response && response.url;
+            var contentType = response.headers && response.headers.get('content-type');
+            var length = response.headers && Number(response.headers.get('content-length'));
+            if (window.__devgaugeCaptureActive === false || !isQuotaUrl(url) || !contentType || !/json/i.test(contentType) || length > 200000) return response;
             response.clone().text().then(function (text) { inspect(url, text, runId); }).catch(function () {});
           } catch (e) {}
           return response;
@@ -105,7 +123,10 @@ export const USAGE_BRIDGE_SCRIPT = `
       var xhr = this;
       var runId = window.__devgaugeRunId;
       xhr.addEventListener('load', function () {
-        try { inspect(xhr.__devgaugeUrl, xhr.responseText, runId); } catch (e) {}
+        try {
+          if (window.__devgaugeCaptureActive === false || !isQuotaUrl(xhr.__devgaugeUrl) || !/json/i.test(xhr.getResponseHeader('content-type') || '')) return;
+          inspect(xhr.__devgaugeUrl, xhr.responseText, runId);
+        } catch (e) {}
       });
       return send.apply(this, arguments);
     };
@@ -132,7 +153,7 @@ const SESSION_REFRESH_SCRIPT = `
   function remember(request) {
     try {
       var url = new URL(request.url, location.href);
-      if (request.method !== 'GET' || url.origin !== location.origin) return;
+      if (request.method !== 'GET' || url.origin !== location.origin || !window.__devgaugeIsQuotaUrl(url.href)) return;
       if (requests.size >= 40 && !requests.has(url.href)) {
         var oldest = requests.keys().next().value;
         requests.delete(oldest);

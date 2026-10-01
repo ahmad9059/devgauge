@@ -175,7 +175,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       webRefs.current
         .get(providerId)
         ?.injectJavaScript(
-          `if (window.__devgaugeRunId === ${runId}) window.__devgaugeCaptureActive = false; true;`,
+          `if (window.__devgaugeRunId === ${runId}) window.__devgaugeStopCapture && window.__devgaugeStopCapture(); true;`,
         );
       if (windows?.length)
         job.resolve({
@@ -471,6 +471,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const job = jobsRef.current.get(providerId);
       if (!job || !isSessionProvider(job.provider.id)) return;
       try {
+        if (event.nativeEvent.data.length > 260000) return;
+        const origin = new URL(SESSION_PROVIDERS[job.provider.id].usageUrl)
+          .origin;
+        if (new URL(event.nativeEvent.url).origin !== origin) return;
         const data = JSON.parse(event.nativeEvent.data) as {
           type?: string;
           url?: string;
@@ -484,7 +488,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           return;
         }
         if (data.type === 'usage' && typeof data.body === 'string') {
-          const response = { url: data.url ?? '', body: data.body };
+          if (
+            typeof data.url !== 'string' ||
+            data.body.length > 200000 ||
+            new URL(data.url).origin !== origin ||
+            !/(?:usage|quota|rate[_-]?limits|copilot_internal)/i.test(
+              new URL(data.url).pathname,
+            )
+          )
+            return;
+          const response = { url: data.url, body: data.body };
           const config = SESSION_PROVIDERS[job.provider.id];
           if (extractRawWindows([response], config.keyMap).length === 0) return;
           job.captured = [
