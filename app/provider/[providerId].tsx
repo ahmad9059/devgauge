@@ -1,3 +1,4 @@
+import { EarnedResetSection } from '@/features/connections/earned-reset-section';
 import { useSyncStatus } from '@/features/dashboard/sync-provider';
 import { getAppDatabase } from '@/services/app-database-store';
 import { disconnectConnection } from '@/services/local-data';
@@ -200,6 +201,9 @@ export default function ProviderDetailScreen() {
           />
         )}
 
+        {provider.id === 'claude' || provider.id === 'codex' ? (
+          <EarnedResetSection providerId={provider.id} />
+        ) : null}
         <SectionTitle>Connection</SectionTitle>
         <Card padded={false}>
           <View style={styles.cardPad}>
