@@ -96,3 +96,9 @@ The goal remains active. Owner production application ID and eligible reset-acco
 Owner confirmed they have an account and requested the final build to test on their device. Built and signature-verified the `0f84dfa` arm64 internal preview APK; stable handoff copy is `artifacts/devgauge-device-test.apk` (41.78 MiB). Exact hashes and architecture/package details are in BASELINE.md. Full source gates pass: **83 files / 417 tests**, typecheck, zero-warning lint, config and format. Current emulator APK installed after boot. No production AAB or direct redemption pass is claimed.
 
 Cold-route fix has unit regression coverage; repeat native cold tap, permission prompt and app delete-all trials remains required. Account access is now owner-held for their device trials, not available within this workspace. Ask for observed sign-in/sync/reminder/cold-tap outcomes after that testing; production application ID and supported account-bound redemption transport remain unresolved.
+
+## Current emulator verification and audit reports
+
+`0f84dfa` native repeat proved contextual Android permission grant, reminder delivery after confirmed process death and correct cold tap to Claude detail. App delete-all removed the elapsed manual fixture and reopened notification settings without an app error. Active future-alarm cancellation/edited-reset proof remains open; an automation edit did not establish such a schedule. NATIVE-QA-LOG.md records exact scenario and times. No owner physical device was modified.
+
+QA-REPORT.md and COMPLETION-REPORT.md now contain the actual phase audit, 417-test evidence, artifact measurements, remaining requirements and reverse chronological commit/undo map. Both explicitly state the goal is incomplete and production NO-GO. Documentation-only changes do not alter the supplied `0f84dfa` device-test APK.

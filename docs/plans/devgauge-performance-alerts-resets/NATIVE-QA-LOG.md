@@ -45,3 +45,15 @@ The tablet was shut down to free build memory, with its QA manual entry still re
 ## Device-test handoff and emulator cleanup
 
 Owner requested the final device-test APK and confirmed account access on their device. `0f84dfa` emulator APK installed successfully after boot; cold tap/OS prompt/app delete-all retests are still not claimed. The tablet's isolated QA data was cleared with Android `pm clear`, rather than claiming that app delete-all was tested. Original light system mode and denied notification permission were restored, adb unrooted and the emulator stopped. Pixel diagnostic sample data was unaffected. Exact final handoff hashes are in BASELINE.md.
+
+## Current candidate native retest
+
+`0f84dfa`, DevGauge_Tablet_API_35/API 35/x86_64, 2560×1600 at density 320. Commands explicitly selected emulator-5554; the owner's newly connected physical device was not modified.
+
+- With denied/retryable notification permission, settings showed **Allow notifications**. Pressing it displayed the actual **Allow DevGauge to send you notifications?** Android prompt. Pressed Allow through UI; returned status was granted. This replaces adb-only grant evidence for contextual prompting, but does not cover every denial/revocation sequence.
+- Created a Claude manual reminder for `2026-10-01T15:50:09Z` through the form with timezone confirmation. Android assigned an 85.417-second inexact window. Backgrounded and killed PID 2562; no app PID remained before delivery. Notification was present by 20:51:41 PKT.
+- Tapped the reminder in the shade after process death. The current build opened **Claude provider detail**, with truthful unavailable usage/unknown earned-reset availability because there is no connected account. Cold routing now passes on this artifact. Screenshot: `artifacts/devgauge-0f84dfa-cold-tap-result.png`; UI tree: `/tmp/devgauge-cold-route-result.xml`.
+- Settings showed the reminder as elapsed. An automation attempt to edit to the next day did not establish a native future schedule; do not count it as edited-schedule or pending-cancellation proof.
+- Used Settings → Delete all local data → Delete everything against this isolated manual-reminder fixture. UI reported deletion; notification settings reopened with no manual reminder. No app fatal/native-JS error was observed and no pending app alarm remained. This verifies successful local cleanup/reopen with an elapsed reminder, not cancellation of an active future alarm or browser cookies/live account credentials. UI evidence: `/tmp/devgauge-delete-result.xml` and `/tmp/devgauge-after-delete.xml`.
+
+Current reports preserve remaining active-schedule cancellation, quiet-hours/timezone, foreground/power, live account and accessibility checks. The candidate APK handed to the owner is unchanged.

@@ -29,9 +29,11 @@ Existing relevant tests; docs/release/mobile-qa-matrix.md; docs/plans/devgauge-p
 
 - [ ] All code gates pass; final artifact tested on phone and emulator including accessibility.
 - [ ] Size/sync measurements reproducible with commit/device/network/architecture/sample count recorded.
-- [ ] Each concern has separate scoped commit; report exact hashes and safe reverse-dependency undo order.
-- [ ] Unverified live reset transport/device QA clearly marked blocked or not run; no synthetic pass.
+- [x] Each concern has separate scoped commit; report exact hashes and safe reverse-dependency undo order.
+- [x] Unverified live reset transport/device QA clearly marked blocked or not run; no synthetic pass.
 
 ## 6. Open Questions
 
 Access to signed-in eligible accounts, physical phone, production package and signing is external. Complete available work and list missing evidence precisely.
+
+Current evidence: QA-REPORT.md and COMPLETION-REPORT.md explicitly report the incomplete goal. Their existence does not close the remaining native/live/production requirements.

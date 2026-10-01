@@ -54,7 +54,7 @@ Proceed under these defaults during implementation; routine choices need no new 
 | 5 | Deliver thresholds and reset notifications | 3, 4 | Scoped settings/journal/reconciliation implemented; native delivery matrix partial |
 | 6 | Claude/Codex earned reset offers and redemption | 3, 4; feasibility independent | Contract/model/handoff implemented; direct transport unproved |
 | 7 | Working provider actions and microinteractions | 4, 5, 6 integration | Implemented; full device/accessibility QA pending |
-| 8 | Release verification and completion report | 2–7 | Planned |
+| 8 | Release verification and completion report | 2–7 | Automated/artifact audit reported; native/live/production gates open |
 
 Execute 1, 2, 3, 4, 5, 6, 7, 8; Phase 6 discovery may start earlier. External blockers must not stop independent work.
 
