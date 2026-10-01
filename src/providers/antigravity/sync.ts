@@ -1,3 +1,5 @@
+import { ProviderError } from '@/domain/errors';
+import type { NormalizedUsageResult } from '@/providers/types';
 import type { Database } from '@/storage/database';
 import {
   getConnection,
@@ -65,21 +67,15 @@ async function renew(
  * Never overwrites a good snapshot with empty/error data. Older installations
  * without a saved credential require one new browser sign-in to opt in.
  */
-export async function syncAntigravity(
+export async function fetchAntigravityUsage(
   input: AntigravitySyncInput,
-): Promise<AntigravitySyncResult> {
-  const { db, vault, fetchImpl, nextId, now = () => new Date() } = input;
+): Promise<NormalizedUsageResult> {
+  const { db, vault, fetchImpl, now = () => new Date() } = input;
   const connection = await getConnection(db, CONNECTION_ID);
   if (!connection || connection.status === 'disconnected')
-    return 'needs-sign-in';
-  const needsSignIn = async (): Promise<AntigravitySyncResult> => {
-    await upsertConnection(db, {
-      ...connection,
-      status: 'expired',
-      lastAttemptAt: now().toISOString(),
-      updatedAt: now().toISOString(),
-    });
-    return 'needs-sign-in';
+    throw new ProviderError('unauthorized', 'Sign in again.');
+  const needsSignIn = async (): Promise<never> => {
+    throw new ProviderError('unauthorized', 'Sign in again.');
   };
   if (!connection.credentialRef) return needsSignIn();
   let credential = await vault.load(connection.credentialRef);
@@ -119,7 +115,45 @@ export async function syncAntigravity(
     if (!credential) return needsSignIn();
     quota = await loadAntigravityQuota(credential.accessToken!, fetchImpl);
   }
-  if (quota.windows.length === 0) return 'unavailable';
+  if (quota.windows.length === 0)
+    throw new ProviderError(
+      /HTTP 401|HTTP 403/.test(quota.detail)
+        ? 'unauthorized'
+        : 'schema_changed',
+      'Provider quota is unavailable.',
+    );
+
+  return {
+    windows: quota.windows,
+    fetchedAt: now().toISOString(),
+    schemaVersion: 1,
+    isPartial: false,
+  };
+}
+
+export async function syncAntigravity(
+  input: AntigravitySyncInput,
+): Promise<AntigravitySyncResult> {
+  const { db, nextId, now = () => new Date() } = input;
+  const connection = await getConnection(db, CONNECTION_ID);
+  if (!connection || connection.status === 'disconnected')
+    return 'needs-sign-in';
+  let quota: NormalizedUsageResult;
+  try {
+    quota = await fetchAntigravityUsage(input);
+  } catch (error) {
+    if (!(error instanceof ProviderError)) throw error;
+    if (error.code === 'unauthorized') {
+      await upsertConnection(db, {
+        ...connection,
+        status: 'expired',
+        lastAttemptAt: now().toISOString(),
+        updatedAt: now().toISOString(),
+      });
+      return 'needs-sign-in';
+    }
+    return 'unavailable';
+  }
 
   await saveSessionSnapshot({
     db,

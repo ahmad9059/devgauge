@@ -10,9 +10,10 @@ import {
 import { AppState, StyleSheet, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
+import * as Crypto from 'expo-crypto';
 import type { UsageWindow } from '@/domain/usage';
 import type { ProviderId } from '@/domain/providers';
-import { syncAntigravity } from '@/providers/antigravity/sync';
+import { fetchAntigravityUsage } from '@/providers/antigravity/sync';
 import { getAppDatabase } from '@/services/app-database-store';
 import { createSecureStoreBackend } from '@/storage/secure-store-backend';
 import { createSecureVault } from '@/storage/secure-vault';
@@ -27,7 +28,18 @@ import {
   SESSION_USER_AGENT,
   type SessionProviderId,
 } from '@/services/web-session/session-config';
-import { saveSessionSnapshot } from '@/services/web-session/session';
+import { createProviderRegistry } from '@/providers/registry';
+import { createHttpClient } from '@/services/network/client';
+import { ProviderError } from '@/domain/errors';
+import { parseRetryAfter } from '@/services/network/backoff';
+import type { NormalizedUsageResult } from '@/providers/types';
+import type { RefreshTrigger } from '@/storage/types';
+import { listConnections } from '@/storage/repositories/connections';
+import {
+  createRefreshEngine,
+  type RefreshEngine,
+  type RefreshOutcome,
+} from './refresh-connection';
 import {
   extractRawWindows,
   toDomainWindows,
@@ -40,7 +52,6 @@ import type {
 } from '@/features/dashboard/provider-view-types';
 
 import { useProviderViews, useReloadProviders } from './app-providers';
-import { retrySync } from './sync-retry';
 
 const SYNCABLE: ProviderState[] = [
   'connected',
@@ -58,10 +69,15 @@ type SyncStatus = {
   completedProviderIds: ProviderId[];
   syncingProviderIds: ProviderId[];
   displayedProviderId: ProviderId | null;
+  outcomes: Partial<Record<ProviderId, RefreshOutcome>>;
 };
 
 type SyncContextValue = SyncStatus & {
-  startSync: () => Promise<void>;
+  startSync: (
+    providerId?: ProviderId,
+    trigger?: RefreshTrigger,
+  ) => Promise<void>;
+  cancelProvider: (providerId: ProviderId) => void;
 };
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -75,7 +91,9 @@ type WebJob = {
   text: string;
   done: boolean;
   timeout: ReturnType<typeof setTimeout>;
-  resolve: (result: 'success' | 'retry' | 'stop') => void;
+  resolve: (result: NormalizedUsageResult) => void;
+  reject: (error: unknown) => void;
+  cleanup: () => void;
 };
 
 type WebHost = { provider: ProviderView; runId: number; epoch: number };
@@ -97,17 +115,28 @@ function hasCodexPageUsage(windows: UsageWindow[]): boolean {
   );
 }
 
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
+function fetchWithSignal(signal: AbortSignal) {
+  return async (url: string, init: RequestInit): Promise<Response> => {
+    try {
+      const response = await fetch(url, { ...init, signal });
+      if (response.status === 429) {
+        const retry = parseRetryAfter(
+          response.headers.get('retry-after'),
+          new Date(),
+        );
+        throw new ProviderError('rate_limited', 'Provider cooldown', {
+          httpStatus: 429,
+          retryAfterMs: retry
+            ? Math.max(0, retry.getTime() - Date.now())
+            : 60_000,
+        });
+      }
+      return response;
+    } catch (error) {
+      if (error instanceof ProviderError || signal.aborted) throw error;
+      throw new ProviderError('offline', 'Could not reach provider');
+    }
+  };
 }
 
 /**
@@ -123,60 +152,51 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     completedProviderIds: [],
     syncingProviderIds: [],
     displayedProviderId: null,
+    outcomes: {},
   });
   const [webHosts, setWebHosts] = useState<WebHost[]>([]);
   const webRefs = useRef(new Map<ProviderId, WebView>());
   const jobsRef = useRef(new Map<ProviderId, WebJob>());
   const nextRunId = useRef(0);
-  const runningRef = useRef(false);
+  const providersRef = useRef(providers);
+  useEffect(() => {
+    providersRef.current = providers;
+  }, [providers]);
+  const engineRef = useRef<Promise<RefreshEngine> | null>(null);
+  const activeRef = useRef(true);
   const autoStartedRef = useRef(false);
 
   const finishWebJob = useCallback(
-    async (
+    (
       providerId: ProviderId,
       runId: number,
       windows?: UsageWindow[],
-      failure: 'retry' | 'stop' = 'retry',
+      failure: ProviderError = new ProviderError(
+        'timeout',
+        'Usage capture timed out',
+      ),
     ) => {
       const job = jobsRef.current.get(providerId);
       if (!job || job.done || job.runId !== runId) return;
       job.done = true;
       clearTimeout(job.timeout);
+      job.cleanup();
       jobsRef.current.delete(providerId);
       webRefs.current
         .get(providerId)
         ?.injectJavaScript(
           `if (window.__devgaugeRunId === ${runId}) window.__devgaugeCaptureActive = false; true;`,
         );
-      let result: 'success' | 'retry' | 'stop' = failure;
-      try {
-        if (
-          windows &&
-          windows.length > 0 &&
-          isSessionProvider(job.provider.id)
-        ) {
-          const db = await getAppDatabase();
-          let ids = 0;
-          await saveSessionSnapshot({
-            db,
-            providerId: job.provider.id,
-            displayName: `${SESSION_PROVIDERS[job.provider.id].label} session`,
-            windows,
-            fetchedAt: new Date().toISOString(),
-            now: new Date(),
-            nextId: () => `${job.provider.id}-${Date.now()}-${(ids += 1)}`,
-          });
-          // Paint the completed provider immediately while the others keep fetching.
-          await reload();
-          result = 'success';
-        }
-      } catch {
-        // Keep the previous snapshot and advance to the next provider.
-      } finally {
-        job.resolve(result);
-      }
+      if (windows?.length)
+        job.resolve({
+          windows,
+          fetchedAt: new Date().toISOString(),
+          schemaVersion: 1,
+          isPartial: windows.some((window) => !window.resetsAt),
+        });
+      else job.reject(failure);
     },
-    [reload],
+    [],
   );
 
   const loadFullPage = useCallback(
@@ -204,8 +224,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   );
 
   const syncWebProvider = useCallback(
-    (provider: ProviderView) =>
-      new Promise<'success' | 'retry' | 'stop'>((resolve) => {
+    (provider: ProviderView, signal: AbortSignal) =>
+      new Promise<NormalizedUsageResult>((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new ProviderError('unknown', 'Cancelled'));
+          return;
+        }
         const runId = ++nextRunId.current;
         const webView = webRefs.current.get(provider.id);
         const timeout = setTimeout(
@@ -225,7 +249,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           done: false,
           timeout,
           resolve,
+          reject,
+          cleanup: () => signal.removeEventListener('abort', abort),
         });
+        const abort = () =>
+          finishWebJob(
+            provider.id,
+            runId,
+            undefined,
+            new ProviderError('unknown', 'Cancelled'),
+          );
+        signal.addEventListener('abort', abort, { once: true });
         setWebHosts((current) => {
           const existing = current.find(
             (host) => host.provider.id === provider.id,
@@ -235,118 +269,211 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             ? current.map((item) =>
                 item.provider.id === provider.id ? host : item,
               )
-            : [...current, host];
+            : [
+                ...current.filter((item) =>
+                  jobsRef.current.has(item.provider.id),
+                ),
+                host,
+              ].slice(-2);
         });
         if (webView) webView.injectJavaScript(refreshSessionScript(runId));
       }),
     [finishWebJob, loadFullPage],
   );
 
-  const startSync = useCallback(async () => {
-    if (runningRef.current) return;
-    const targets = providers.filter(
-      (provider) =>
-        SYNCABLE.includes(provider.state) &&
-        (isSessionProvider(provider.id) || provider.id === 'gemini-cli'),
-    );
-    if (targets.length === 0) return;
+  const getEngine = useCallback(() => {
+    if (!engineRef.current) {
+      engineRef.current = getAppDatabase()
+        .then((db) =>
+          createRefreshEngine({
+            db,
+            registry: createProviderRegistry(),
+            client: createHttpClient(),
+            vault: createSecureVault(createSecureStoreBackend()),
+            nextId: () => Crypto.randomUUID(),
+            concurrency: 2,
+            deadlineMs: 15_000,
+            transport: {
+              supports: (connection) =>
+                (isSessionProvider(connection.providerId) &&
+                  connection.authMode === 'web-session') ||
+                (connection.providerId === 'gemini-cli' &&
+                  connection.authMode === 'oauth-pkce'),
+              async fetchUsage({ connection, signal }) {
+                if (connection.providerId === 'gemini-cli')
+                  return fetchAntigravityUsage({
+                    db,
+                    vault: createSecureVault(createSecureStoreBackend()),
+                    fetchImpl: fetchWithSignal(signal),
+                    nextId: () => Crypto.randomUUID(),
+                  });
+                const provider = providersRef.current.find(
+                  (item) => item.id === connection.providerId,
+                );
+                if (!provider)
+                  throw new ProviderError(
+                    'unsupported_account',
+                    'Connection no longer available',
+                  );
+                return syncWebProvider(provider, signal);
+              },
+            },
+          }),
+        )
+        .catch((error) => {
+          engineRef.current = null;
+          throw error;
+        });
+    }
+    return engineRef.current;
+  }, [syncWebProvider]);
 
-    runningRef.current = true;
-    // Defer the visual transition outside an app-open effect.
-    await Promise.resolve();
-    setStatus({
-      isSyncing: true,
-      completedProviderIds: [],
-      syncingProviderIds: targets.map((provider) => provider.id),
-      displayedProviderId: targets[0].id,
-    });
-    let completionQueue = Promise.resolve();
-    const acknowledge = (providerId: ProviderId) => {
-      completionQueue = completionQueue.then(async () => {
-        setStatus((current) => ({
-          ...current,
-          displayedProviderId: providerId,
-        }));
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      });
-    };
-    try {
+  const startSync = useCallback(
+    async (providerId?: ProviderId, trigger: RefreshTrigger = 'manual') => {
+      const db = await getAppDatabase();
+      const connections = (await listConnections(db)).filter(
+        (connection) =>
+          connection.status !== 'disconnected' &&
+          (!providerId || connection.providerId === providerId) &&
+          ((isSessionProvider(connection.providerId) &&
+            connection.authMode === 'web-session') ||
+            (connection.providerId === 'gemini-cli' &&
+              connection.authMode === 'oauth-pkce')),
+      );
+      if (!activeRef.current || !connections.length) return;
+      const engine = await getEngine();
+      if (!activeRef.current) {
+        engine.cancelAll();
+        return;
+      }
+      setStatus((current) => ({
+        ...current,
+        isSyncing: true,
+        completedProviderIds: [],
+        syncingProviderIds: [
+          ...new Set([
+            ...current.syncingProviderIds,
+            ...connections.map((connection) => connection.providerId),
+          ]),
+        ],
+        displayedProviderId: connections[0].providerId,
+      }));
       await Promise.all(
-        targets.map(async (provider) => {
-          const success = await retrySync(async () => {
-            if (provider.id === 'gemini-cli') {
-              try {
-                const db = await getAppDatabase();
-                let ids = 0;
-                const result = await syncAntigravity({
-                  db,
-                  vault: createSecureVault(createSecureStoreBackend()),
-                  fetchImpl: fetchWithTimeout,
-                  nextId: () => `antigravity-${Date.now()}-${(ids += 1)}`,
-                });
-                await reload();
-                return result === 'success'
-                  ? 'success'
-                  : result === 'needs-sign-in'
-                    ? 'stop'
-                    : 'retry';
-              } catch {
-                return 'retry';
-              }
-            } else {
-              return await syncWebProvider(provider);
-            }
+        connections.map(async (connection) => {
+          let outcome: RefreshOutcome;
+          try {
+            outcome = await engine.refresh(connection.id, trigger);
+          } catch {
+            outcome = {
+              status: 'transient-failure',
+              connectionId: connection.id,
+              code: 'unknown',
+              retryAt: null,
+            };
+          }
+          await reload().catch(() => undefined);
+          if (!activeRef.current) return;
+          setStatus((current) => {
+            const remaining = current.syncingProviderIds.filter(
+              (id) => id !== connection.providerId,
+            );
+            return {
+              ...current,
+              isSyncing: remaining.length > 0,
+              syncingProviderIds: remaining,
+              displayedProviderId: remaining[0] ?? null,
+              completedProviderIds:
+                outcome.status === 'success'
+                  ? [
+                      ...new Set([
+                        ...current.completedProviderIds,
+                        connection.providerId,
+                      ]),
+                    ]
+                  : current.completedProviderIds,
+              outcomes: {
+                ...current.outcomes,
+                [connection.providerId]: outcome,
+              },
+            };
           });
-          setStatus((current) => ({
-            ...current,
-            completedProviderIds: success
-              ? [...current.completedProviderIds, provider.id]
-              : current.completedProviderIds,
-            syncingProviderIds: current.syncingProviderIds.filter(
-              (id) => id !== provider.id,
-            ),
-          }));
-          if (success) acknowledge(provider.id);
         }),
       );
-      await completionQueue;
-    } finally {
-      setStatus({
-        isSyncing: false,
-        completedProviderIds: [],
-        syncingProviderIds: [],
-        displayedProviderId: null,
-      });
-      runningRef.current = false;
-    }
-  }, [providers, reload, syncWebProvider]);
+    },
+    [getEngine, reload],
+  );
 
-  // Runs once per app session. The same status control represents this work.
+  const cancelProvider = useCallback(
+    (providerId: ProviderId) => {
+      void engineRef.current?.then((engine) => {
+        const provider = providersRef.current.find(
+          (item) => item.id === providerId,
+        );
+        if (provider?.connectionId) engine.cancel(provider.connectionId);
+      });
+      const job = jobsRef.current.get(providerId);
+      if (job)
+        finishWebJob(
+          providerId,
+          job.runId,
+          undefined,
+          new ProviderError('unknown', 'Cancelled'),
+        );
+      webRefs.current.delete(providerId);
+      setWebHosts((hosts) =>
+        hosts.filter((host) => host.provider.id !== providerId),
+      );
+    },
+    [finishWebJob],
+  );
+
   useEffect(() => {
-    if (autoStartedRef.current || runningRef.current) return;
-    const hasTarget = providers.some(
-      (provider) =>
-        SYNCABLE.includes(provider.state) &&
-        (isSessionProvider(provider.id) || provider.id === 'gemini-cli'),
-    );
-    if (!hasTarget) return;
-    const timer = setTimeout(() => {
-      autoStartedRef.current = true;
-      void startSync();
-    }, 0);
-    return () => clearTimeout(timer);
+    if (
+      autoStartedRef.current ||
+      !providers.some((provider) => SYNCABLE.includes(provider.state))
+    )
+      return;
+    autoStartedRef.current = true;
+    void startSync(undefined, 'startup').catch(() => undefined);
   }, [providers, startSync]);
 
-  // Idle sessions can be rebuilt after returning from the background, freeing
-  // the website renderers while DevGauge is not being used.
   useEffect(() => {
+    let previous = AppState.currentState;
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active' && !runningRef.current) {
+      if (state === 'active' && previous !== 'active')
+        void startSync(undefined, 'foreground').catch(() => undefined);
+      if (state !== 'active') {
+        void engineRef.current?.then((engine) => engine.cancelAll());
         webRefs.current.clear();
         setWebHosts([]);
       }
+      previous = state;
     });
     return () => subscription.remove();
+  }, [startSync]);
+
+  useEffect(() => {
+    if (status.isSyncing || !webHosts.length) return;
+    const timer = setTimeout(() => {
+      webRefs.current.clear();
+      setWebHosts([]);
+    }, 60_000);
+    return () => clearTimeout(timer);
+  }, [status.isSyncing, webHosts]);
+
+  useEffect(() => {
+    activeRef.current = true;
+    const jobs = jobsRef.current;
+    return () => {
+      activeRef.current = false;
+      void engineRef.current?.then((engine) => engine.cancelAll());
+      for (const job of jobs.values()) {
+        clearTimeout(job.timeout);
+        job.cleanup();
+        job.reject(new ProviderError('unknown', 'Cancelled'));
+      }
+      jobs.clear();
+    };
   }, []);
 
   const onMessage = useCallback(
@@ -429,7 +556,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SyncContext.Provider value={{ ...status, startSync }}>
+    <SyncContext.Provider value={{ ...status, startSync, cancelProvider }}>
       {children}
       {webHosts.map(({ provider, runId, epoch }) =>
         isSessionProvider(provider.id) ? (
@@ -471,9 +598,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
                   provider.id,
                   runId,
                   undefined,
-                  statusCode === 401 || statusCode === 403 || statusCode === 404
-                    ? 'stop'
-                    : 'retry',
+                  new ProviderError(
+                    statusCode === 401 || statusCode === 403
+                      ? 'unauthorized'
+                      : statusCode === 429
+                        ? 'rate_limited'
+                        : statusCode === 404
+                          ? 'schema_changed'
+                          : 'provider_unavailable',
+                    'Provider usage page failed',
+                    { httpStatus: statusCode },
+                  ),
                 );
               }}
               onShouldStartLoadWithRequest={(request) =>

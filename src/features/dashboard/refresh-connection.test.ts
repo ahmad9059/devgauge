@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { createRefreshEngine } from '@/features/dashboard/refresh-connection';
+import {
+  createRefreshEngine,
+  type RefreshEngineDependencies,
+} from '@/features/dashboard/refresh-connection';
+import { deriveWindow } from '@/domain/usage';
 import { createProviderRegistry } from '@/providers/registry';
 import { createMockProviderAdapter } from '@/providers/mock/adapter';
 import {
@@ -14,7 +18,11 @@ import {
   type FetchLike,
   type FetchResponseLike,
 } from '@/services/network/client';
-import { upsertConnection } from '@/storage/repositories/connections';
+import {
+  upsertConnection,
+  markConnectionDisconnected,
+  getConnection,
+} from '@/storage/repositories/connections';
 import { latestByConnection } from '@/storage/repositories/usage';
 import { buildCredentialRef, createSecureVault } from '@/storage/secure-vault';
 import { createMemorySecretStore } from '@/storage/secret-store';
@@ -56,6 +64,8 @@ type RefreshHarnessOptions = {
   requiresCapabilityManifest?: boolean;
   capabilityGate?: ReturnType<typeof createCapabilityGate>;
   concurrency?: number;
+  transport?: RefreshEngineDependencies['transport'];
+  deadlineMs?: number;
 };
 
 async function buildHarness(options: RefreshHarnessOptions) {
@@ -80,6 +90,8 @@ async function buildHarness(options: RefreshHarnessOptions) {
     clock: () => current,
     concurrency: options.concurrency ?? 2,
     backoff: (attempt) => attempt * 1000,
+    transport: options.transport,
+    deadlineMs: options.deadlineMs,
     ...(options.capabilityGate
       ? { capabilityGate: options.capabilityGate }
       : {}),
@@ -119,6 +131,117 @@ async function buildHarness(options: RefreshHarnessOptions) {
 }
 
 describe('refresh engine', () => {
+  it('rejects a late successful response after a persisted disconnect', async () => {
+    const gate = deferred<FetchResponseLike>();
+    let entered!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const harness = await buildHarness({
+      fetchImpl: async () => {
+        entered();
+        return gate.promise;
+      },
+    });
+    await harness.addConnection('c1');
+    const pending = harness.engine.refresh('c1');
+    await started;
+    await markConnectionDisconnected(harness.db, 'c1', NOW.toISOString());
+    gate.resolve(res(successFixture()));
+    expect(await pending).toMatchObject({ status: 'cancelled' });
+    expect((await latestByConnection(harness.db)).size).toBe(0);
+    expect((await getConnection(harness.db, 'c1'))?.status).toBe(
+      'disconnected',
+    );
+  });
+  it('bounds a noncooperative runtime transport and never saves its late result', async () => {
+    const gate =
+      deferred<
+        Awaited<
+          ReturnType<
+            NonNullable<RefreshEngineDependencies['transport']>['fetchUsage']
+          >
+        >
+      >();
+    const harness = await buildHarness({
+      fetchImpl: async () => res(''),
+      deadlineMs: 20,
+      transport: { supports: () => true, fetchUsage: () => gate.promise },
+    });
+    await harness.addConnection('c1');
+    expect(await harness.engine.refresh('c1')).toMatchObject({
+      status: 'transient-failure',
+      code: 'timeout',
+    });
+    gate.resolve({
+      windows: [
+        deriveWindow({
+          externalKey: 'w',
+          kind: 'rolling',
+          label: 'Usage',
+          used: '1',
+          limit: '100',
+          unit: 'percent',
+          derivation: 'provider',
+        }),
+      ],
+      fetchedAt: NOW.toISOString(),
+      schemaVersion: 1,
+      isPartial: true,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((await latestByConnection(harness.db)).size).toBe(0);
+    expect(harness.engine.activeCount()).toBe(0);
+  });
+  it('manual refresh honors persisted provider cooldowns after coordinator restart', async () => {
+    let calls = 0;
+    const harness = await buildHarness({
+      fetchImpl: async () => {
+        calls++;
+        return res('', 429, { 'retry-after': '120' });
+      },
+    });
+    await harness.addConnection('c1');
+    await harness.engine.refresh('c1', 'manual');
+    const restarted = createRefreshEngine({
+      db: harness.db,
+      vault: harness.vault,
+      registry: createProviderRegistry({
+        claude: createMockProviderAdapter({ id: 'claude' }),
+      }),
+      client: createHttpClient({
+        fetchImpl: async () => {
+          calls++;
+          return res(successFixture());
+        },
+      }),
+      nextId: () => 'restart',
+      clock: () => NOW,
+    });
+    expect(await restarted.refresh('c1', 'manual')).toMatchObject({
+      status: 'skipped',
+      reason: 'not-yet-due',
+    });
+    expect(calls).toBe(1);
+  });
+  it('automatic refresh skips a fresh cache while manual refresh uses the transport', async () => {
+    let calls = 0;
+    const harness = await buildHarness({
+      fetchImpl: async () => {
+        calls++;
+        return res(successFixture());
+      },
+    });
+    await harness.addConnection('c1', { lastSuccessAt: NOW.toISOString() });
+    expect(await harness.engine.refresh('c1', 'foreground')).toMatchObject({
+      status: 'skipped',
+      reason: 'fresh-cache',
+    });
+    expect(await harness.engine.refresh('c1', 'manual')).toMatchObject({
+      status: 'success',
+    });
+    expect(calls).toBe(1);
+  });
   it('persists a successful snapshot and marks the connection connected', async () => {
     const harness = await buildHarness({
       fetchImpl: async () => res(successFixture()),

@@ -1,6 +1,7 @@
 import {
   isTransientCode,
   toProviderError,
+  ProviderError,
   type ProviderErrorCode,
 } from '@/domain/errors';
 import type { UsageWindow } from '@/domain/usage';
@@ -14,7 +15,10 @@ import { computeBackoff } from '@/services/network/backoff';
 import type { HttpClient } from '@/services/network/client';
 import type { Database } from '@/storage/database';
 import { getConnection } from '@/storage/repositories/connections';
-import { saveRefresh } from '@/storage/repositories/usage';
+import {
+  saveRefresh,
+  ConnectionChangedError,
+} from '@/storage/repositories/usage';
 import type { SecureVault } from '@/storage/secure-vault';
 import type {
   ConnectionStatus,
@@ -54,6 +58,17 @@ export type RefreshEngineDependencies = {
   clock?: () => Date;
   concurrency?: number;
   backoff?: typeof computeBackoff;
+  /** A verified runtime transport, independent of legacy adapter capability flags. */
+  transport?: {
+    supports(connection: ProviderConnection): boolean;
+    fetchUsage(input: {
+      connection: ProviderConnection;
+      signal: AbortSignal;
+      trigger: RefreshTrigger;
+    }): Promise<NormalizedUsageResult>;
+  };
+  deadlineMs?: number;
+  ttlSeconds?: number;
 };
 
 export type RefreshEngine = {
@@ -66,6 +81,7 @@ export type RefreshEngine = {
     trigger?: RefreshTrigger,
   ): Promise<RefreshOutcome[]>;
   cancel(connectionId: string): void;
+  cancelAll(): void;
   activeCount(): number;
 };
 
@@ -145,6 +161,7 @@ function toStorage(
       periodStartsAt: window.periodStartsAt,
       periodEndsAt: window.periodEndsAt,
       resetsAt: window.resetsAt,
+      resetsSourceText: window.resetsSourceText ?? null,
       derivation: window.derivation,
     }),
   );
@@ -164,7 +181,12 @@ export function createRefreshEngine(
     clock = () => new Date(),
     concurrency = 2,
     backoff = computeBackoff,
+    transport,
+    deadlineMs = 15_000,
+    ttlSeconds = 300,
   } = dependencies;
+  if (!Number.isFinite(deadlineMs) || deadlineMs <= 0)
+    throw new Error('deadlineMs must be positive');
 
   const semaphore = createSemaphore(concurrency);
   const inFlight = new Map<string, Promise<RefreshOutcome>>();
@@ -183,9 +205,14 @@ export function createRefreshEngine(
     status: ConnectionStatus,
     nextAllowedRefreshAt: string | null,
     lastSuccessAt: string | null,
+    outcome?: 'cancelled',
   ): Promise<void> {
     const completedAt = clock().toISOString();
     await saveRefresh(db, {
+      expectedConnection: {
+        canonicalAccountKey: connection.canonicalAccountKey,
+        connectedAt: connection.connectedAt,
+      },
       connection: {
         id: connectionId,
         status,
@@ -200,7 +227,7 @@ export function createRefreshEngine(
         startedAt,
         completedAt,
         trigger,
-        outcome: code === null ? 'success' : 'failure',
+        outcome: outcome ?? (code === null ? 'success' : 'failure'),
         httpStatus,
         errorCode: code,
         retryAfterAt,
@@ -223,11 +250,18 @@ export function createRefreshEngine(
     if (!connection) {
       return { status: 'skipped', connectionId, reason: 'unknown-connection' };
     }
+    if (connection.status === 'disconnected' || signal.aborted) {
+      return { status: 'cancelled', connectionId };
+    }
 
     const descriptor = registry.descriptor(connection.providerId);
     const adapter = registry.adapter(connection.providerId);
+    const runtimeTransport = transport?.supports(connection)
+      ? transport
+      : undefined;
 
     if (
+      !runtimeTransport &&
       descriptor.requiresCapabilityManifest &&
       capabilityGate &&
       !capabilityGate.isLiveAllowed(connection.providerId)
@@ -248,13 +282,13 @@ export function createRefreshEngine(
       return { status: 'skipped', connectionId, reason: 'capability-disabled' };
     }
 
-    if (typeof adapter?.fetchUsage !== 'function') {
+    if (!runtimeTransport && typeof adapter?.fetchUsage !== 'function') {
       return { status: 'skipped', connectionId, reason: 'no-live-adapter' };
     }
 
     // Release gate: a connector can be implemented but not yet enabled (for
     // example GitHub Copilot before its feasibility spikes pass).
-    if (!descriptor.capabilities.liveUsage) {
+    if (!runtimeTransport && !descriptor.capabilities.liveUsage) {
       await persistAttempt(
         connectionId,
         trigger,
@@ -273,11 +307,19 @@ export function createRefreshEngine(
 
     const startedAt = clock().toISOString();
     if (
-      trigger !== 'manual' &&
       connection.nextAllowedRefreshAt !== null &&
       Date.parse(connection.nextAllowedRefreshAt) > clock().getTime()
     ) {
       return { status: 'skipped', connectionId, reason: 'not-yet-due' };
+    }
+    if (
+      trigger !== 'manual' &&
+      trigger !== 'retry' &&
+      connection.lastSuccessAt &&
+      clock().getTime() - Date.parse(connection.lastSuccessAt) <
+        ttlSeconds * 1000
+    ) {
+      return { status: 'skipped', connectionId, reason: 'fresh-cache' };
     }
 
     const credential = await loadCredential(vault, connection);
@@ -285,13 +327,32 @@ export function createRefreshEngine(
 
     try {
       if (signal.aborted) return { status: 'cancelled', connectionId };
-      const normalized = await adapter.fetchUsage({
-        connection,
-        credential,
-        now: clock(),
-        signal,
-        client,
-      });
+      const work = runtimeTransport
+        ? runtimeTransport.fetchUsage({ connection, signal, trigger })
+        : adapter!.fetchUsage!({
+            connection,
+            credential,
+            now: clock(),
+            signal,
+            client,
+          });
+      // A transport that ignores cancellation cannot hold the coordinator forever.
+      const normalized = await new Promise<NormalizedUsageResult>(
+        (resolve, reject) => {
+          const abort = () =>
+            reject(
+              new ProviderError(
+                signal.reason === 'deadline' ? 'timeout' : 'unknown',
+                'Refresh cancelled',
+              ),
+            );
+          signal.addEventListener('abort', abort, { once: true });
+          work
+            .then(resolve, reject)
+            .finally(() => signal.removeEventListener('abort', abort));
+          if (signal.aborted) abort();
+        },
+      );
       if (signal.aborted) {
         await persistAttempt(
           connectionId,
@@ -305,20 +366,20 @@ export function createRefreshEngine(
           connection.status,
           connection.nextAllowedRefreshAt,
           connection.lastSuccessAt,
+          'cancelled',
         );
         return { status: 'cancelled', connectionId };
       }
 
       const { snapshot, windows } = toStorage(connectionId, normalized, nextId);
-      const nextAllowed =
-        descriptor.minimumRefreshIntervalSeconds > 0
-          ? new Date(
-              clock().getTime() +
-                descriptor.minimumRefreshIntervalSeconds * 1000,
-            ).toISOString()
-          : null;
+      // TTL gates automatic refresh; success is not a provider-imposed cooldown.
+      const nextAllowed = null;
 
       await saveRefresh(db, {
+        expectedConnection: {
+          canonicalAccountKey: connection.canonicalAccountKey,
+          connectedAt: connection.connectedAt,
+        },
         connection: {
           id: connectionId,
           status: 'connected',
@@ -355,7 +416,9 @@ export function createRefreshEngine(
         windowCount: windows.length,
       };
     } catch (error) {
-      if (signal.aborted) {
+      if (error instanceof ConnectionChangedError)
+        return { status: 'cancelled', connectionId };
+      if (signal.aborted && signal.reason !== 'deadline') {
         await persistAttempt(
           connectionId,
           trigger,
@@ -368,6 +431,7 @@ export function createRefreshEngine(
           connection.status,
           connection.nextAllowedRefreshAt,
           connection.lastSuccessAt,
+          'cancelled',
         );
         return { status: 'cancelled', connectionId };
       }
@@ -381,7 +445,7 @@ export function createRefreshEngine(
       let retryAt: string | null = null;
 
       if (code === 'rate_limited') {
-        const retryMs = providerError.retryAfterMs ?? 0;
+        const retryMs = providerError.retryAfterMs ?? 60_000;
         retryAt = new Date(failedAt.getTime() + retryMs).toISOString();
         nextAllowedRefreshAt = retryAt;
       } else if (code === 'unauthorized' || code === 'forbidden') {
@@ -397,7 +461,7 @@ export function createRefreshEngine(
         consecutiveFailures.set(connectionId, attempt);
         retryAt = new Date(failedAt.getTime() + backoff(attempt)).toISOString();
         nextAllowedRefreshAt = retryAt;
-        if (!connection.lastSuccessAt) status = 'error';
+        status = 'error';
       }
 
       await persistAttempt(
@@ -446,12 +510,14 @@ export function createRefreshEngine(
     if (existing) return existing;
 
     const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort('deadline'), deadlineMs);
     controllers.set(connectionId, controller);
     const promise = semaphore
       .run(() => runRefresh(connectionId, trigger, controller.signal))
       .finally(() => {
         inFlight.delete(connectionId);
         controllers.delete(connectionId);
+        clearTimeout(timer);
       });
     inFlight.set(connectionId, promise);
     return promise;
@@ -476,6 +542,9 @@ export function createRefreshEngine(
     },
     cancel(connectionId) {
       controllers.get(connectionId)?.abort();
+    },
+    cancelAll() {
+      for (const controller of controllers.values()) controller.abort();
     },
     activeCount() {
       return inFlight.size;
