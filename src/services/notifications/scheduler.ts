@@ -1,3 +1,5 @@
+import type { ProviderId } from '@/domain/providers';
+
 export type ReminderRequest = {
   /** Stable entry id; also used to derive the native identifier. */
   id: string;
@@ -5,12 +7,16 @@ export type ReminderRequest = {
   body: string;
   /** UTC ISO-8601 instant the reminder should fire. */
   at: string;
+  providerId?: ProviderId;
 };
 
 export type NotificationScheduler = {
   /** Schedules and returns the native identifier (idempotent by identifier). */
   schedule(request: ReminderRequest): Promise<string>;
   cancel(nativeIdentifier: string): Promise<void>;
+  /** Native identifiers currently pending, without requesting permission. */
+  list?(): Promise<{ nativeIdentifier: string; at: string | null }[]>;
+  permission?(): Promise<'granted' | 'denied' | 'undetermined'>;
 };
 
 /** Stable native identifier so rescheduling the same entry never duplicates. */
@@ -37,6 +43,15 @@ export function createMemoryScheduler(): MemoryScheduler {
   return {
     scheduled,
     cancelled,
+    async list() {
+      return [...scheduled].map(([nativeIdentifier, request]) => ({
+        nativeIdentifier,
+        at: request.at,
+      }));
+    },
+    async permission() {
+      return 'granted';
+    },
     async schedule(request) {
       const identifier = reminderNativeId(request.id);
       scheduled.set(identifier, request);

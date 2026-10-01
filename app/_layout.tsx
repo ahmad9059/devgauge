@@ -6,6 +6,7 @@ import { ThemeProvider, useTheme } from '@/design/theme-provider';
 import { AppProvidersProvider } from '@/features/dashboard/app-providers';
 import { SyncProvider } from '@/features/dashboard/sync-provider';
 import { SettingsSync } from '@/features/settings/settings-sync';
+import { NotificationRuntime } from '@/services/notifications/notification-runtime';
 
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return <AppErrorBoundary retry={retry} />;
@@ -67,6 +68,7 @@ export default function RootLayout() {
         <SyncProvider>
           <ThemedApp />
           <SettingsSync />
+          <NotificationRuntime />
         </SyncProvider>
       </AppProvidersProvider>
     </ThemeProvider>

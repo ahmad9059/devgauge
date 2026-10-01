@@ -50,6 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       'expo-font',
+      'expo-notifications',
       // Required by the Expo Router config plugin in SDK 57+.
       'expo-router',
       // Google blocks OAuth inside app WebViews, so sign-in opens a Chrome
