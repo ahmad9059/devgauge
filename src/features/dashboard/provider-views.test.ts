@@ -13,6 +13,24 @@ const NOW = new Date('2026-09-28T00:00:00.000Z');
 const descriptors = listProviderDescriptors();
 
 describe('provider views (real data source)', () => {
+  it('keeps a newly captured snapshot just now until a full minute has elapsed', () => {
+    const connection = makeConnection({ id: 'c1', providerId: 'claude' });
+    const record = {
+      ...makeSnapshot('c1', { fetchedAt: NOW.toISOString() }),
+      windows: [],
+    };
+    const ageAt = (seconds: number) =>
+      buildProviderViews({
+        descriptors,
+        connections: [connection],
+        latest: new Map([['c1', record]]),
+        now: new Date(NOW.getTime() + seconds * 1000),
+      }).find((item) => item.id === 'claude')!.updatedMinutesAgo;
+    expect(ageAt(-5)).toBe(0);
+    expect(ageAt(30)).toBe(0);
+    expect(ageAt(59)).toBe(0);
+    expect(ageAt(60)).toBe(1);
+  });
   it('advances freshness/countdowns while preserving the original reset instant', () => {
     const connection = makeConnection({ id: 'c1', providerId: 'claude' });
     const record: SnapshotWithWindows = {

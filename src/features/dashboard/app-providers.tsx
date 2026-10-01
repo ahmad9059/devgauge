@@ -71,6 +71,7 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
         const snapshots = await latestByConnection(db);
         setConnections(storedConnections);
         setLatest(snapshots);
+        setNow(new Date());
       } finally {
         setReady(true);
       }

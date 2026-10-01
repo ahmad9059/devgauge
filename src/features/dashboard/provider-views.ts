@@ -42,8 +42,7 @@ function minutesAgo(iso: string | null, now: Date): number | undefined {
   if (!iso) return undefined;
   const parsed = Date.parse(iso);
   if (!Number.isFinite(parsed)) return undefined;
-  const minutes = Math.round((now.getTime() - parsed) / 60_000);
-  return minutes >= 0 ? minutes : undefined;
+  return Math.max(0, Math.floor((now.getTime() - parsed) / 60_000));
 }
 
 function toNumber(value: string | null): number | undefined {
