@@ -1,5 +1,13 @@
 # QA report — verification in progress
 
+## 2026-10-01 — Usage header polish
+
+`e23c1c0` hides the Usage scroll indicator while retaining scrolling, expands the visible DevGauge mark to 36 dp (matching provider icon width), reduces the name gap to 4 dp, and uses Android image downsampling with theme tint. Launcher safe-zone padding is cropped in the header view; the original artwork is preserved. Source gates pass **83 files / 445 tests**, typecheck, zero-warning lint, config and formatting (`/tmp/devgauge-header-{check,format}.log`).
+
+Pixel API 35 release inspection verifies the larger unclipped mark and tighter spacing in dark and light themes. A reduced-height viewport confirms content scrolls with no right indicator. Existing sample data is retained; this is visual evidence, not live provider verification. Screenshots: `artifacts/devgauge-e23c1c0-header-dark.png`, `artifacts/devgauge-e23c1c0-header-light.png`, and `artifacts/devgauge-e23c1c0-scroll.png`. Display size and dark preference were restored. Only emulator-5554 was installed to; the owner's phone was untouched.
+
+Sequential native builds pass. The initial phone process exited 143; a retry with one worker succeeded in 46 seconds. Phone APK `artifacts/devgauge-preview-phone-e23c1c0.apk`: **43,814,042 bytes / 41.78 MiB**, arm64-v8a, SHA-256 `efeb76ad4940664e627d89980512323c531e9ebab58a1ec0e41d31b25db828b2`. Signature verification and the 60 MiB budget pass. The stable `artifacts/devgauge-device-test.apk` matches it. Emulator APK: **44,619,559 bytes / 42.55 MiB**, SHA-256 `9629d1886adc1c21c0523e66dc678b10c2a694d6f708c96d11d5176f96d6ca83`. These remain internal preview builds, not production AABs. Earlier artifacts below are historical.
+
 ## 2026-10-01 — GitHub sign-in and final reset display rules
 
 Owner screenshots identify GitHub's current “Included usage” heading with 0 / 200 AI credits and no reset label. `3565ac3` recognizes that heading as the main credit quota, excludes Additional usage from it, and completes sign-in/shared page refresh once those fresh counts are captured. Missing reset text on this panel no longer holds sign-in open. Tests cover the supplied layout, completion policy and SQLite save/reload with Connected status and exact credit counts.

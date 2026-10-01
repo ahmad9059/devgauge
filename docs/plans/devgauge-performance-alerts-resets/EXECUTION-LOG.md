@@ -1,5 +1,9 @@
 # Execution log
 
+## 2026-10-01 — Usage header polish
+
+Owner requested a hidden dashboard scrollbar, a sharper and larger header logo, and less space before the name. `e23c1c0` implements these using the existing artwork: remove launcher padding in the view, render a 36 dp visible mark with higher-quality Android decoding, use theme tint, and reduce the gap to 4 dp. Source gates pass 445 tests and all other checks. Emulator dark/light inspection and a short viewport confirm logo contrast, spacing and retained scrolling without an indicator. Sequential preview APK builds and the phone signature/size budget pass; QA-REPORT.md records exact artifact evidence. Physical phone testing remains with the owner.
+
 ## 2026-10-01 — GitHub Included usage capture and final reset display
 
 `3565ac3` fixes Included usage heading recognition, isolates additional spend, and completes valid GitHub page quota without waiting for absent resets. `dd7efee` handles the owner's six-digit Claude timestamp precision and recovers previously stored valid reset text. `6cb6d0d` shares the final hourly/weekly countdown and monthly date formatting rule between cards and detail, removes time-unverified copy, and formats other wall times in the device timezone. The owner confirmed Command Code empty limits get reset dates only after first use; no missing timer is invented. All source gates pass 445 tests, plus three display tests in each of two timezones. Native build/handoff evidence is recorded in QA-REPORT.md.
