@@ -25,6 +25,7 @@ Universal-to-compact reduction **66.27%**, same-ABI **17.51%**; 60 MiB APK budge
 |---|---|
 | Encrypted reopen/forward migration under R8 | Pixel retained diagnostic sample data across release installs; schema-4 manual creation worked |
 | Generic background notification/warm tap | `fb86422` passed on Pixel; OS inexact window recorded |
+| Foreground notification/Codex warm tap | `0f84dfa` tablet: owned generic shade notification while MainActivity focused, tap opens Codex; heads-up animation unverified |
 | Process-death delivery | `c8c20cd` passed on tablet after confirmed PID termination; not force-stop/power-restricted proof |
 | Cold tap | Failed on `c8c20cd`; `0f84dfa` native repeat after PID termination opens Claude detail correctly |
 | Contextual permission prompt | `0f84dfa` tablet denied/retryable → Allow notifications → actual DevGauge OS prompt → granted, via UI |

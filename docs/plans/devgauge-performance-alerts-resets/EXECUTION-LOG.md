@@ -106,3 +106,7 @@ QA-REPORT.md and COMPLETION-REPORT.md now contain the actual phase audit, 417-te
 ## Active schedule cleanup verification
 
 `0f84dfa` tablet native UI trial created a future manual Claude reminder, edited its UTC instant, verified exactly one replacement Android alarm, retried reconciliation twice without duplicates, then deleted all local data. The future alarm was cancelled (zero pending app alarms) and notification settings reopened without the entry/load error. Exact instants and redacted alarm/UI evidence paths are in NATIVE-QA-LOG.md; QA-REPORT.md now reflects this scoped pass. Remote provider-window change, disconnect/live credentials, quiet/timezone/power and full device/accessibility checks remain open. Candidate APK unchanged.
+
+## Foreground notification verification
+
+`0f84dfa` tablet trial proved generic notification list delivery while MainActivity stayed focused and correct tap navigation to Codex. NATIVE-QA-LOG.md records the actual requested time, inexact scheduling window and observation limits; transient heads-up animation is unverified. Candidate APK/source unchanged. Await owner device/account results and production ID; direct earned-reset transport, live latency/account/cookie matrix and full accessibility/power verification remain incomplete.
