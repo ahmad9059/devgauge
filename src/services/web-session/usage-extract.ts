@@ -11,6 +11,9 @@ export type WindowKeyMapEntry = {
   kind: UsageWindowKind;
   /** True when the provider reports this window as remaining, not used. */
   remaining?: boolean;
+  /** Units for ambiguous JSON fields, explicitly declared by the transport. */
+  utilizationUnit?: 'percent' | 'ratio';
+  remainingUnit?: 'percent' | 'ratio';
 };
 export type WindowKeyMap = Record<string, WindowKeyMapEntry>;
 
@@ -33,7 +36,9 @@ function pickNumber(
     const value = node[key];
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string' && value.trim() !== '') {
-      const parsed = Number(value.replace(/[%,$]/g, ''));
+      const numeric = value.trim().replace(/%$/, '').trim();
+      if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(numeric)) continue;
+      const parsed = Number(numeric);
       if (Number.isFinite(parsed)) return parsed;
     }
   }
@@ -69,7 +74,6 @@ const REMAINING_KEYS = [
   'remaining_percent',
   'percent_remaining',
   'remainingPercent',
-  'remaining',
 ];
 const RESET_KEYS = [
   'resets_at',
@@ -79,8 +83,8 @@ const RESET_KEYS = [
   'resets_at_iso',
 ];
 
-function toPercent(value: number): number {
-  return value <= 1 ? value * 100 : value;
+function toPercent(value: number, unit: 'percent' | 'ratio'): number {
+  return unit === 'ratio' ? value * 100 : value;
 }
 
 function walk(
@@ -96,10 +100,35 @@ function walk(
   }
   const record = node as Record<string, unknown>;
   if (knownAncestor !== null) {
-    const used = pickNumber(record, USED_KEYS);
-    const remaining = pickNumber(record, REMAINING_KEYS);
-    if (used !== null) {
-      const percent = toPercent(used);
+    const metadata = keyMap[knownAncestor];
+    const explicitUsed = pickNumber(
+      record,
+      USED_KEYS.filter((key) => key !== 'utilization'),
+    );
+    const ratioUsed = pickNumber(record, ['used_ratio', 'usedRatio']);
+    const utilization = pickNumber(record, ['utilization']);
+    const used =
+      explicitUsed ??
+      (ratioUsed === null ? null : ratioUsed * 100) ??
+      (utilization === null
+        ? null
+        : toPercent(utilization, metadata.utilizationUnit ?? 'percent'));
+    const explicitRemaining = pickNumber(record, REMAINING_KEYS);
+    const ratioRemaining = pickNumber(record, [
+      'remaining_ratio',
+      'remainingRatio',
+    ]);
+    const ambiguousRemaining = metadata.remainingUnit
+      ? pickNumber(record, ['remaining'])
+      : null;
+    const remaining =
+      explicitRemaining ??
+      (ratioRemaining === null ? null : ratioRemaining * 100) ??
+      (ambiguousRemaining === null
+        ? null
+        : toPercent(ambiguousRemaining, metadata.remainingUnit!));
+    if (used !== null && used >= 0) {
+      const percent = used;
       out.push({
         key: knownAncestor,
         // Explicit API used-percent fields already measure consumption.
@@ -107,10 +136,10 @@ function walk(
         usedPercent: percent,
         resetsAt: pickReset(record, RESET_KEYS),
       });
-    } else if (remaining !== null) {
+    } else if (remaining !== null && remaining >= 0 && remaining <= 100) {
       out.push({
         key: knownAncestor,
-        usedPercent: Math.max(0, 100 - toPercent(remaining)),
+        usedPercent: Math.max(0, 100 - remaining),
         resetsAt: pickReset(record, RESET_KEYS),
       });
     }
@@ -153,7 +182,7 @@ export function toDomainWindows(
         externalKey: `session.${window.key}`,
         kind: keyMap[window.key].kind,
         label: keyMap[window.key].label,
-        used: window.usedPercent.toFixed(1),
+        used: String(window.usedPercent),
         limit: '100',
         unit: 'percent',
         resetsAt: window.resetsAt,

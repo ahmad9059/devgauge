@@ -21,8 +21,8 @@ describe('session usage extraction', () => {
   it('extracts five-hour and weekly windows from a captured payload', () => {
     const captured = [
       response('https://claude.ai/api/usage', {
-        five_hour: { utilization: 0.42, resets_at: '2026-09-28T05:00:00.000Z' },
-        seven_day: { utilization: 0.71, resets_at: '2026-09-30T00:00:00.000Z' },
+        five_hour: { utilization: 42, resets_at: '2026-09-28T05:00:00.000Z' },
+        seven_day: { utilization: 71, resets_at: '2026-09-30T00:00:00.000Z' },
         seven_day_opus: { utilization: 12 },
       }),
     ];
@@ -80,7 +80,7 @@ describe('session persistence', () => {
     const windows = extractUsageWindows(
       [
         response('https://claude.ai/api/usage', {
-          five_hour: { utilization: 0.42 },
+          five_hour: { utilization: 42 },
         }),
       ],
       claudeKeyMap,
@@ -106,7 +106,7 @@ describe('session persistence', () => {
     const extracted = extractUsageWindows(
       [
         response('https://claude.ai/api/usage', {
-          five_hour: { utilization: 0.42 },
+          five_hour: { utilization: 42 },
         }),
       ],
       claudeKeyMap,

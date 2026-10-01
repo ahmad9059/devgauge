@@ -41,8 +41,8 @@ describe('remaining vs used', () => {
         {
           url: 'https://chatgpt.com/backend-api/usage',
           body: JSON.stringify({
-            primary_window: { used_percent: 0.23, reset_at: 1_791_234_567 },
-            secondary_window: { used_percent: 0.13, reset_at: 1_791_567_890 },
+            primary_window: { used_percent: 23, reset_at: 1_791_234_567 },
+            secondary_window: { used_percent: 13, reset_at: 1_791_567_890 },
           }),
         },
       ],
@@ -61,7 +61,7 @@ describe('remaining vs used', () => {
       [
         {
           url: 'x',
-          body: JSON.stringify({ five_hour: { utilization: 0.42 } }),
+          body: JSON.stringify({ five_hour: { utilization: 42 } }),
         },
       ],
       SESSION_PROVIDERS.claude.keyMap,
