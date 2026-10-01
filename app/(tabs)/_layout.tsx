@@ -26,12 +26,14 @@ export default function TabLayout() {
           shadowOpacity: 0,
           borderTopColor: theme.colors.tabBarBorder,
           borderTopWidth: 1,
-          height: touchTargets.tabBar + insets.bottom,
+          height:
+            Math.max(touchTargets.tabBar, typography.caption.lineHeight + 40) +
+            insets.bottom,
           paddingTop: 6,
           paddingBottom: insets.bottom + 6,
         },
         tabBarLabelStyle: typography.caption,
-        tabBarItemStyle: { minHeight: touchTargets.minimum },
+        tabBarItemStyle: { minHeight: touchTargets.minimum, padding: 0 },
         sceneStyle: { backgroundColor: theme.colors.background },
       }}
     >
