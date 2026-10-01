@@ -22,6 +22,7 @@ function sectionKey(line: string, keyMap: WindowKeyMap): string | null {
   )
     return null;
   const lower = line.toLowerCase();
+  if (keyMap.ai_credit && /^included usage$/i.test(line)) return 'ai_credit';
   if (keyMap.five_hour && /^current session$/i.test(line)) return 'five_hour';
   if (keyMap.seven_day && /^all models$/i.test(line)) return 'seven_day';
   if (keyMap.seven_day_opus && /^opus(?: only)?$/i.test(line))
@@ -83,6 +84,12 @@ export function parseUsageText(
   };
 
   for (const [index, line] of lines.entries()) {
+    if (keyMap.credits && /^additional usage$/i.test(line)) {
+      currentKey = null;
+      pendingReset = null;
+      last = null;
+      continue;
+    }
     const key = sectionKey(line, keyMap);
     if (key && key !== currentKey) {
       currentKey = key;

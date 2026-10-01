@@ -113,7 +113,14 @@ export default function SessionScreen() {
           pageTextRef.current,
         ),
       });
-    if (!needsResetTiming(sessionProvider, windows) && !waitForPage) {
+    if (
+      !needsResetTiming(
+        sessionProvider,
+        windows,
+        isQuotaReady(sessionProvider, pageWindows),
+      ) &&
+      !waitForPage
+    ) {
       finish();
       return;
     }

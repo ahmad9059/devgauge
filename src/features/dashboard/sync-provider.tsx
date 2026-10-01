@@ -588,7 +588,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           // Keep observing late Claude reset labels and Codex workspace credits.
           // API-only partial data gets one fresh page fallback; the existing
           // deadline still saves verified usage when optional data is absent.
-          if (needsResetTiming(job.provider.id, windows) || needsWorkspace) {
+          if (
+            needsResetTiming(
+              job.provider.id,
+              windows,
+              isQuotaReady(
+                job.provider.id,
+                toDomainWindows(pageRaw, config.keyMap, job.capturedAt),
+              ),
+            ) ||
+            needsWorkspace
+          ) {
             job.partialWindows = windows;
             if (job.mode === 'api') loadFullPage(providerId, job.runId);
           } else {

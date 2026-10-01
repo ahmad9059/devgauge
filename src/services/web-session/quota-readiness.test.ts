@@ -6,18 +6,37 @@ import {
   needsWorkspaceCapture,
 } from './quota-readiness';
 
-function window(kind: UsageWindowKind) {
+function window(kind: UsageWindowKind, used = '1') {
   return deriveWindow({
     externalKey: kind,
     kind,
     label: kind,
-    used: '1',
+    used,
     limit: '100',
     unit: 'percent',
     derivation: 'provider',
   });
 }
 describe('verified quota capture completion', () => {
+  it('does not wait for reset timers on unused Command Code windows after capturing the fresh page', () => {
+    const empty = [
+      window('rolling', '0'),
+      window('weekly', '0'),
+      { ...window('monthly'), resetsSourceText: 'on Oct 15' },
+    ];
+    expect(needsResetTiming('command-code', empty)).toBe(true);
+    expect(needsResetTiming('command-code', empty, true)).toBe(false);
+    expect(needsResetTiming('command-code', [window('rolling')], true)).toBe(
+      true,
+    );
+  });
+  it('completes GitHub capture once its fresh page provides quota without requiring a reset it does not display', () => {
+    const quota = [window('monthly')];
+    expect(isQuotaReady('github-copilot', quota)).toBe(true);
+    expect(needsResetTiming('github-copilot', quota)).toBe(true);
+    expect(needsResetTiming('github-copilot', quota, true)).toBe(false);
+    expect(needsResetTiming('codex', quota, true)).toBe(true);
+  });
   it('discovers Codex workspace credits on a fresh page without requiring them for personal accounts', () => {
     const windows = [window('rolling'), window('weekly')];
     const input = {

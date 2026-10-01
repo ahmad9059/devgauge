@@ -73,6 +73,20 @@ describe('remaining vs used', () => {
 });
 
 describe('page text parsing', () => {
+  it('reads GitHub Included usage without mixing Additional usage or feature settings into its quota', () => {
+    const text =
+      'GitHub Copilot\nUsage\nIncluded usage\nNo usage yet\n0 / 200 AI credits\nAdditional usage\n$0.00 / $0 budget\nNo usage yet\n50%\nFeatures\nCopilot cloud agent\nEnabled';
+    const windows = toDomainWindows(parseUsageText(text, github), github);
+    expect(windows).toHaveLength(1);
+    expect(windows[0]).toMatchObject({
+      used: '0',
+      limit: '200',
+      unit: 'credits',
+      utilization: 0,
+      resetsAt: null,
+      resetsSourceText: null,
+    });
+  });
   it('keeps reset durations and credit values inside their existing section', () => {
     const claude = SESSION_PROVIDERS.claude.keyMap;
     const raw = parseUsageText(

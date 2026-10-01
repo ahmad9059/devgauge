@@ -78,6 +78,45 @@ describe('session host allowlist', () => {
 });
 
 describe('session persistence', () => {
+  it('connects GitHub from the owner Included usage layout and reloads its credit counts without a reset date', async () => {
+    const db = await createMigratedTestDatabase();
+    const keyMap = SESSION_PROVIDERS['github-copilot'].keyMap;
+    const windows = toDomainWindows(
+      parseUsageText(
+        'Usage\nIncluded usage\nNo usage yet\n0 / 200 AI credits\nAdditional usage\n$0.00 / $0 budget',
+        keyMap,
+      ),
+      keyMap,
+      NOW,
+    );
+    let id = 0;
+    const saved = await saveSessionSnapshot({
+      db,
+      providerId: 'github-copilot',
+      displayName: 'GitHub Copilot',
+      windows,
+      fetchedAt: NOW.toISOString(),
+      now: NOW,
+      nextId: () => `github-${++id}`,
+    });
+    const latest = await latestByConnection(db);
+    const connection = await getConnection(db, saved.connectionId);
+    const view = buildProviderViews({
+      descriptors: listProviderDescriptors(),
+      connections: [connection!],
+      latest,
+      now: NOW,
+    }).find((item) => item.id === 'github-copilot')!;
+    expect(connection?.status).toBe('connected');
+    expect(view.windows).toHaveLength(1);
+    expect(view.windows[0]).toMatchObject({
+      used: 0,
+      limit: 200,
+      unit: 'credits',
+      percent: 0,
+    });
+    expect(view.windows[0].resetsText).toBeUndefined();
+  });
   it.each([
     [
       'claude',

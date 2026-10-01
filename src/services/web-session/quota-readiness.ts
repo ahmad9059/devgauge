@@ -24,9 +24,19 @@ export function isQuotaReady(
 export function needsResetTiming(
   providerId: SessionProviderId,
   windows: readonly UsageWindow[],
+  pageQuotaReady = false,
 ): boolean {
+  // GitHub's Included usage panel supplies credit counts without a reset label.
+  // Once fresh page quota is captured, missing timing must not stall sign-in.
+  if (providerId === 'github-copilot' && pageQuotaReady) return false;
   return windows.some(
     (window) =>
+      !(
+        providerId === 'command-code' &&
+        pageQuotaReady &&
+        ['rolling', 'weekly'].includes(window.kind) &&
+        window.utilization === 0
+      ) &&
       (providerId !== 'claude' ||
         ['session.five_hour', 'session.seven_day'].includes(
           window.externalKey,
