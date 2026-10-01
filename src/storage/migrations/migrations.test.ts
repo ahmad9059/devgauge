@@ -102,8 +102,8 @@ describe('migrations', () => {
 
     const version = await migrate(db);
 
-    expect(version).toBe(3);
-    expect(await db.userVersion()).toBe(3);
+    expect(version).toBe(4);
+    expect(await db.userVersion()).toBe(4);
     expect(await tableNames(db)).toEqual(EXPECTED_TABLES);
   });
 
@@ -112,7 +112,7 @@ describe('migrations', () => {
     await migrate(db);
     const before = await tableNames(db);
     await migrate(db);
-    expect(await db.userVersion()).toBe(3);
+    expect(await db.userVersion()).toBe(4);
     expect(await tableNames(db)).toEqual(before);
   });
 
@@ -178,6 +178,8 @@ describe('migrations', () => {
   });
 
   it('ships exactly the declared migrations', () => {
-    expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3]);
+    expect(migrations.map((migration) => migration.version)).toEqual([
+      1, 2, 3, 4,
+    ]);
   });
 });

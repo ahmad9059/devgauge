@@ -136,6 +136,9 @@ export type NotificationRuleRecord = {
   id: string;
   providerId: ProviderId | null;
   ruleType: 'threshold' | 'reset-reminder';
+  connectionId?: string | null;
+  windowExternalKey?: string | null;
+  includeDetails?: boolean;
   enabled: boolean;
   threshold: number | null;
   leadMinutes: number | null;

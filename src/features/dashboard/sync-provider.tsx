@@ -1,3 +1,5 @@
+import { refreshUsageNotifications } from '@/services/notifications/usage-notifications';
+import { createExpoNotificationScheduler } from '@/services/notifications/expo-scheduler';
 import {
   createContext,
   useCallback,
@@ -363,7 +365,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             };
           }
           await reload().catch(() => undefined);
-          if (outcome.status === 'success') scheduleHistoryMaintenance(db);
+          if (outcome.status === 'success') {
+            scheduleHistoryMaintenance(db);
+            void refreshUsageNotifications(
+              db,
+              createExpoNotificationScheduler(),
+            ).catch(() => undefined);
+          }
           if (!activeRef.current) return;
           setStatus((current) => {
             const remaining = current.syncingProviderIds.filter(

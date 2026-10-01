@@ -17,14 +17,16 @@ export function ManualResetForm({
   now,
   onSubmit,
   submitLabel = 'Save reminder',
+  initialValue = '',
 }: {
   timezoneOffsetMinutes: number | null;
   now: Date;
   onSubmit: (resetsAt: string) => Promise<void> | void;
   submitLabel?: string;
+  initialValue?: string;
 }) {
   const { theme, typography } = useTheme();
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

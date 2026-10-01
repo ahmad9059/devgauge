@@ -6,6 +6,9 @@ import type {
 } from '@/storage/types';
 
 type RuleRow = {
+  connection_id: string | null;
+  window_external_key: string | null;
+  include_details: number;
   id: string;
   provider_id: string | null;
   rule_type: string;
@@ -31,13 +34,16 @@ type ScheduledRow = {
 };
 
 const RULE_COLUMNS = `id, provider_id, rule_type, enabled, threshold,
-  lead_minutes, quiet_hours_start, quiet_hours_end, created_at, updated_at`;
+  lead_minutes, quiet_hours_start, quiet_hours_end, created_at, updated_at, connection_id, window_external_key, include_details`;
 const SCHEDULED_COLUMNS = `id, rule_id, connection_id, window_external_key,
   native_identifier, scheduled_for, status, created_at, updated_at`;
 
 function toRule(row: RuleRow): NotificationRuleRecord {
   return {
     id: row.id,
+    connectionId: row.connection_id,
+    windowExternalKey: row.window_external_key,
+    includeDetails: row.include_details === 1,
     providerId: row.provider_id as ProviderId | null,
     ruleType: row.rule_type as NotificationRuleRecord['ruleType'],
     enabled: row.enabled === 1,
@@ -78,8 +84,10 @@ export async function upsertNotificationRule(
   rule: NotificationRuleRecord,
 ): Promise<void> {
   await db.run(
-    `INSERT INTO notification_rules (${RULE_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?)
+    `INSERT INTO notification_rules (${RULE_COLUMNS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
+       connection_id = excluded.connection_id, window_external_key = excluded.window_external_key,
+       include_details = excluded.include_details,
        provider_id = excluded.provider_id, rule_type = excluded.rule_type,
        enabled = excluded.enabled, threshold = excluded.threshold,
        lead_minutes = excluded.lead_minutes,
@@ -97,6 +105,9 @@ export async function upsertNotificationRule(
       rule.quietHoursEnd,
       rule.createdAt,
       rule.updatedAt,
+      rule.connectionId ?? null,
+      rule.windowExternalKey ?? null,
+      rule.includeDetails ? 1 : 0,
     ],
   );
 }

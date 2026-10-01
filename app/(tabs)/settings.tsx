@@ -173,31 +173,13 @@ export default function SettingsScreen() {
         </Card>
 
         <SectionTitle>Notifications</SectionTitle>
-        <Card padded={false}>
-          <View style={styles.cardPad}>
-            <ListRow
-              title="Threshold alerts"
-              subtitle="Notify when a usage window crosses a threshold"
-              trailing={
-                <Text
-                  style={[typography.label, { color: theme.colors.textMuted }]}
-                >
-                  Off
-                </Text>
-              }
-            />
-            <ListRow
-              title="Reset reminders"
-              subtitle="Local reminders you schedule on this device"
-              trailing={
-                <Text
-                  style={[typography.label, { color: theme.colors.textMuted }]}
-                >
-                  Off
-                </Text>
-              }
-            />
-          </View>
+        <Card>
+          <ListRow
+            title="Usage alerts & resets"
+            subtitle="Configure thresholds, quiet hours and local reminders"
+            showChevron
+            onPress={() => router.push('/notifications')}
+          />
         </Card>
 
         <SectionTitle>Privacy &amp; Security</SectionTitle>

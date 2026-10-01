@@ -38,6 +38,10 @@ function ThemedApp() {
         />
         <Stack.Screen name="legal/[document]" options={{ title: 'Legal' }} />
         <Stack.Screen name="support" options={{ title: 'Support' }} />
+        <Stack.Screen
+          name="notifications"
+          options={{ title: 'Notifications' }}
+        />
         <Stack.Screen name="diagnostics" options={{ title: 'Diagnostics' }} />
         <Stack.Screen
           name="auth/callback/[providerId]"
@@ -55,7 +59,7 @@ function ThemedApp() {
         <Stack.Screen
           name="antigravity"
           options={{ title: 'Antigravity', headerShown: false }}
-        />{' '}
+        />
       </Stack>
     </>
   );

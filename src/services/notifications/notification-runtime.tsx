@@ -3,7 +3,7 @@ import { useRootNavigationState, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { getAppDatabase } from '@/services/app-database-store';
-import { reconcileNotifications } from './reconciler';
+import { refreshUsageNotifications } from './usage-notifications';
 import {
   createExpoNotificationScheduler,
   ensureNotificationChannel,
@@ -28,7 +28,7 @@ export function NotificationRuntime() {
     const scheduler = createExpoNotificationScheduler();
     const recover = () => {
       void getAppDatabase()
-        .then((db) => reconcileNotifications(db, scheduler))
+        .then((db) => refreshUsageNotifications(db, scheduler))
         .catch(() => undefined);
     };
     recover();
