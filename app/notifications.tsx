@@ -22,6 +22,7 @@ import {
 } from '@/components/ui';
 import { useTheme } from '@/design/theme-provider';
 import { spacing } from '@/design/tokens';
+import { formatDateTime } from '@/utils/format';
 import { getAppDatabase } from '@/services/app-database-store';
 import {
   createExpoNotificationScheduler,
@@ -546,7 +547,7 @@ export default function NotificationsScreen() {
           <Card key={entry.id}>
             <ListRow
               title={`${entry.providerId} · ${entry.label}`}
-              subtitle={`${new Date(entry.resetsAt).toLocaleString()} · ${describeState(`reset-rule-${entry.id}`)}`}
+              subtitle={`${formatDateTime(entry.resetsAt)} · ${describeState(`reset-rule-${entry.id}`)}`}
             />
             <Button
               label="Edit time"

@@ -34,7 +34,11 @@ import {
 } from '@/features/dashboard/app-providers';
 import { describeSource, describeState } from '@/domain/provider-status';
 import type { UsageWindow as ProviderWindow } from '@/features/dashboard/provider-view-types';
-import { formatRelativeMinutes } from '@/utils/format';
+import {
+  formatDateTime,
+  formatUsageReset,
+  formatRelativeMinutes,
+} from '@/utils/format';
 
 /** Splits windows into their shared-pool sections (Antigravity), else one list. */
 function groupWindows(
@@ -102,7 +106,7 @@ export default function ProviderDetailScreen() {
   const outcomeMessage = syncing
     ? 'Refreshing usage…'
     : outcome?.status === 'rate-limited'
-      ? `Refresh paused until ${new Date(outcome.retryAt).toLocaleString()}. Cached usage is shown.`
+      ? `Refresh paused until ${formatDateTime(outcome.retryAt)}. Cached usage is shown.`
       : outcome?.status === 'transient-failure'
         ? 'Refresh failed. Cached usage is shown; retry when the cooldown ends.'
         : outcome?.status === 'auth-expired'
@@ -179,20 +183,7 @@ export default function ProviderDetailScreen() {
                   used={window.used}
                   limit={window.limit}
                   unit={window.unit}
-                  resetsLabel={
-                    window.resetDue
-                      ? 'Reset due · awaiting fresh usage'
-                      : window.resetsAt
-                        ? new Date(window.resetsAt).toLocaleString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })
-                        : window.resetsText
-                          ? `Resets ${window.resetsText} (time unverified)`
-                          : null
-                  }
+                  resetsLabel={formatUsageReset(window)}
                 />
               ))}
             </Card>

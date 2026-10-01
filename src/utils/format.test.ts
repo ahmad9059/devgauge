@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   clampPercent,
   formatClockTime,
+  formatDateTime,
+  formatProviderResetText,
+  formatUsageReset,
   formatCount,
   formatCountdown,
   formatRelativeMinutes,
@@ -10,6 +13,68 @@ import {
 } from './format';
 
 describe('usage formatting', () => {
+  it('uses countdowns for rolling/weekly limits and a short date for monthly limits', () => {
+    const now = new Date(2026, 9, 1, 10);
+    expect(
+      formatUsageReset(
+        {
+          kind: 'rolling',
+          resetsAt: new Date(2026, 9, 1, 14, 57).toISOString(),
+        },
+        now,
+      ),
+    ).toBe('Resets in 4h 57m');
+    expect(
+      formatUsageReset(
+        { kind: 'weekly', resetsAt: new Date(2026, 9, 8, 8).toISOString() },
+        now,
+      ),
+    ).toBe('Resets in 6d 22h');
+    expect(
+      formatUsageReset(
+        { kind: 'monthly', resetsAt: new Date(2026, 9, 15, 10).toISOString() },
+        now,
+      ),
+    ).toBe('Resets on Oct 15');
+    expect(
+      formatUsageReset({ kind: 'monthly', resetsText: 'on Oct 15' }, now),
+    ).toBe('Resets on Oct 15');
+    expect(formatUsageReset({ kind: 'rolling' }, now)).toBeUndefined();
+  });
+  it('displays offset-free provider dates as local countdowns without changing their scheduling status', () => {
+    const now = new Date(2026, 9, 1, 10);
+    expect(
+      formatUsageReset(
+        { kind: 'rolling', resetsText: 'Oct 1, 2026 2:57 PM' },
+        now,
+      ),
+    ).toBe('Resets in 4h 57m');
+    expect(
+      formatUsageReset(
+        { kind: 'weekly', resetsText: 'Oct 8, 2026 8:00 AM' },
+        now,
+      ),
+    ).toBe('Resets in 6d 22h');
+    expect(
+      formatUsageReset(
+        { kind: 'monthly', resetsText: 'Nov 1, 2026 5:00 AM' },
+        now,
+      ),
+    ).toBe('Resets on Nov 1');
+    expect(
+      formatUsageReset({ kind: 'weekly', resetsText: 'bad date' }, now),
+    ).toBe('Resets bad date');
+  });
+  it('formats wall times in the device timezone with the requested readable date and clock', () => {
+    // A local constructor deliberately follows the test device's timezone.
+    const local = new Date(2026, 9, 2, 3, 23);
+    expect(formatDateTime(local.toISOString())).toBe('Oct 2, 2026 3:23AM');
+    expect(formatDateTime('bad date')).toBeNull();
+    expect(formatProviderResetText('Oct 2, 2026 3:23 AM')).toBe(
+      'Oct 2, 2026 3:23AM',
+    );
+    expect(formatProviderResetText('on Oct 15')).toBe('on Oct 15');
+  });
   it('formats counts by unit', () => {
     expect(formatCount(42, 'percent')).toBe('42%');
     expect(formatCount(0.01, 'percent')).toBe('0.01%');

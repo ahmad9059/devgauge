@@ -1,7 +1,116 @@
+import { normalizeResetTime } from '@/domain/reset-time';
+
 // Pure formatting helpers. They take `now` explicitly so output is testable
 // and never depends on a hidden clock.
 
 const MINUTE = 60_000;
+
+/** Device-local wall time, with one readable format throughout the app. */
+export function formatDateTime(value: string): string | null {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  const day = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const time = date
+    .toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .replace(/\s+(?=[AP]M$)/, '');
+  return `${day} ${time}`;
+}
+
+/** Already-readable provider dates stay display-only when no offset is supplied. */
+export function formatProviderResetText(value: string): string {
+  return value.trim().replace(/\s+(?=[AP]M\b)/gi, '');
+}
+
+/** A website's offset-free wall clock can be used for display, never scheduling. */
+function providerWallDate(text: string): Date | null {
+  const instant = normalizeResetTime(text);
+  if (instant) return new Date(instant);
+  const match =
+    /^(?:on\s+)?([a-z]+)\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(
+      text.trim(),
+    );
+  if (!match) return null;
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  const month = months.findIndex((name) =>
+    [name.toLowerCase(), name.slice(0, 3).toLowerCase()].includes(
+      match[1].toLowerCase(),
+    ),
+  );
+  const day = Number(match[2]),
+    year = Number(match[3]),
+    hour = Number(match[4]),
+    minute = Number(match[5]);
+  if (month < 0 || hour < 1 || hour > 12 || minute > 59) return null;
+  const localHour = (hour % 12) + (match[6].toUpperCase() === 'PM' ? 12 : 0);
+  const date = new Date(year, month, day, localHour, minute);
+  return date.getFullYear() === year &&
+    date.getMonth() === month &&
+    date.getDate() === day &&
+    date.getHours() === localHour
+    ? date
+    : null;
+}
+
+export function formatUsageReset(
+  window: {
+    kind: string;
+    resetsAt?: string;
+    resetsText?: string;
+    resetsInMinutes?: number;
+    resetDue?: boolean;
+  },
+  now = new Date(),
+): string | undefined {
+  const date = window.resetsAt
+    ? new Date(window.resetsAt)
+    : window.resetsText
+      ? providerWallDate(window.resetsText)
+      : null;
+  const hasDate = date !== null && Number.isFinite(date.getTime());
+  if (['monthly', 'billing-period', 'billing'].includes(window.kind)) {
+    const label = hasDate
+      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : window.resetsText?.replace(/^on\s+/i, '').trim();
+    return label
+      ? `Resets on ${formatProviderResetText(label)}${window.resetDue ? ' · awaiting fresh usage' : ''}`
+      : undefined;
+  }
+  const minutes =
+    window.resetsInMinutes ??
+    (hasDate
+      ? Math.max(0, Math.round((date.getTime() - now.getTime()) / MINUTE))
+      : undefined);
+  if (window.resetDue || (hasDate && date.getTime() <= now.getTime()))
+    return 'Reset due · awaiting fresh usage';
+  if (minutes !== undefined) {
+    const countdown = formatCountdown(minutes);
+    return countdown ? `Resets in ${countdown}` : undefined;
+  }
+  return window.resetsText
+    ? `Resets ${formatProviderResetText(window.resetsText)}`
+    : undefined;
+}
 
 export function formatCount(
   value: number,

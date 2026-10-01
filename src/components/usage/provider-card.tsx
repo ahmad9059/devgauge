@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { describeSource, describeState } from '@/domain/provider-status';
 import { spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
-import { formatCountdown, formatRelativeMinutes } from '@/utils/format';
+import { formatUsageReset, formatRelativeMinutes } from '@/utils/format';
 import type {
   ProviderView,
   UsageWindow,
@@ -47,17 +47,6 @@ function cardWindows(windows: UsageWindow[]): UsageWindow[] {
 
 function windowLabel(window: UsageWindow): string {
   return window.label;
-}
-
-/** Reset as a countdown, or the provider's own reset text when unparseable. */
-function resetLabel(window: UsageWindow): string | undefined {
-  if (window.resetDue) return 'Reset due · awaiting fresh usage';
-  if (window.resetsText) return `Resets ${window.resetsText}`;
-  if (window.resetsInMinutes !== undefined) {
-    const countdown = formatCountdown(window.resetsInMinutes);
-    return countdown ? `Resets in ${countdown}` : undefined;
-  }
-  return undefined;
 }
 
 export function ProviderCard({
@@ -110,7 +99,7 @@ export function ProviderCard({
           used={window.used}
           limit={window.limit}
           unit={window.unit}
-          resetsLabel={resetLabel(window)}
+          resetsLabel={formatUsageReset(window)}
           tone={progressTone(window.percent)}
         />
       ))}
