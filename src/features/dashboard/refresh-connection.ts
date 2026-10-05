@@ -69,6 +69,8 @@ export type RefreshEngineDependencies = {
   };
   deadlineMs?: number;
   ttlSeconds?: number;
+  maxRetries?: number;
+  retryDelayMs?: number;
 };
 
 export type RefreshEngine = {
@@ -185,9 +187,19 @@ export function createRefreshEngine(
     transport,
     deadlineMs = 15_000,
     ttlSeconds = 300,
+    maxRetries = 0,
+    retryDelayMs = 500,
   } = dependencies;
   if (!Number.isFinite(deadlineMs) || deadlineMs <= 0)
     throw new Error('deadlineMs must be positive');
+  if (
+    !Number.isInteger(maxRetries) ||
+    maxRetries < 0 ||
+    maxRetries > 3 ||
+    !Number.isFinite(retryDelayMs) ||
+    retryDelayMs < 0
+  )
+    throw new Error('Invalid retry policy');
 
   const semaphore = createSemaphore(concurrency);
   const inFlight = new Map<string, Promise<RefreshOutcome>>();
@@ -246,6 +258,7 @@ export function createRefreshEngine(
     connectionId: string,
     trigger: RefreshTrigger,
     signal: AbortSignal,
+    transientRetry = false,
   ): Promise<RefreshOutcome> {
     const connection = await getConnection(db, connectionId);
     if (!connection) {
@@ -309,7 +322,8 @@ export function createRefreshEngine(
     const startedAt = clock().toISOString();
     if (
       connection.nextAllowedRefreshAt !== null &&
-      Date.parse(connection.nextAllowedRefreshAt) > clock().getTime()
+      Date.parse(connection.nextAllowedRefreshAt) > clock().getTime() &&
+      !transientRetry
     ) {
       return { status: 'skipped', connectionId, reason: 'not-yet-due' };
     }
@@ -511,15 +525,59 @@ export function createRefreshEngine(
     if (existing) return existing;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort('deadline'), deadlineMs);
     controllers.set(connectionId, controller);
-    const promise = semaphore
-      .run(() => runRefresh(connectionId, trigger, controller.signal))
-      .finally(() => {
-        inFlight.delete(connectionId);
-        controllers.delete(connectionId);
-        clearTimeout(timer);
-      });
+    const execute = async (): Promise<RefreshOutcome> => {
+      for (let attempt = 0; ; attempt += 1) {
+        const outcome = await semaphore.run(async () => {
+          if (controller.signal.aborted)
+            return { status: 'cancelled', connectionId } as RefreshOutcome;
+          const request = new AbortController();
+          const cancel = () => request.abort(controller.signal.reason);
+          controller.signal.addEventListener('abort', cancel, { once: true });
+          // Each actual fetch gets a deadline; queued providers and retries do not lose their budget.
+          const timer = setTimeout(() => request.abort('deadline'), deadlineMs);
+          try {
+            return await runRefresh(
+              connectionId,
+              trigger,
+              request.signal,
+              attempt > 0,
+            );
+          } finally {
+            clearTimeout(timer);
+            controller.signal.removeEventListener('abort', cancel);
+          }
+        });
+        if (controller.signal.aborted)
+          return { status: 'cancelled', connectionId };
+        if (
+          attempt >= maxRetries ||
+          outcome.status !== 'transient-failure' ||
+          !isTransientCode(outcome.code)
+        )
+          return outcome;
+        const continued = await new Promise<boolean>((resolve) => {
+          const abort = () => {
+            clearTimeout(timer);
+            resolve(false);
+          };
+          const timer = setTimeout(
+            () => {
+              controller.signal.removeEventListener('abort', abort);
+              resolve(true);
+            },
+            retryDelayMs * 2 ** attempt,
+          );
+          controller.signal.addEventListener('abort', abort, { once: true });
+          if (controller.signal.aborted) abort();
+        });
+        if (!continued) return { status: 'cancelled', connectionId };
+      }
+    };
+    const promise = execute().finally(() => {
+      inFlight.delete(connectionId);
+      controllers.delete(connectionId);
+    });
     inFlight.set(connectionId, promise);
     return promise;
   }

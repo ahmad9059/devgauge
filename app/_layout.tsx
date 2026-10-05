@@ -1,4 +1,5 @@
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import '@/services/background-refresh';
 import { StatusBar } from 'expo-status-bar';
 
 import { AppErrorBoundary } from '@/components/app-error-boundary';

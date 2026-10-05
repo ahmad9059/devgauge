@@ -41,6 +41,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             enableMinifyInReleaseBuilds: true,
             enableShrinkResourcesInReleaseBuilds: true,
+            // TaskManager discovers this class by name. R8 otherwise removes
+            // it, preventing WorkManager from starting a killed app headlessly.
+            extraProguardRules:
+              '-keep class expo.modules.adapters.react.apploader.RNHeadlessAppLoader { *; }',
             ...(artifact === 'phone'
               ? { buildArchs: ['arm64-v8a'] }
               : artifact === 'emulator'
@@ -51,6 +55,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
       'expo-font',
       'expo-notifications',
+      'expo-background-task',
       // Required by the Expo Router config plugin in SDK 57+.
       'expo-router',
       // Google blocks OAuth inside app WebViews, so sign-in opens a Chrome

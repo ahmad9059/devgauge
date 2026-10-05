@@ -10,6 +10,35 @@ import { parseUsageText } from '@/services/web-session/usage-text';
 const codex = SESSION_PROVIDERS.codex.keyMap;
 const github = SESSION_PROVIDERS['github-copilot'].keyMap;
 
+describe('updated Codex layout and malformed page values', () => {
+  it('recognizes left wording, compact resets and excludes history percentages', () => {
+    const result = parseUsageText(
+      '5-hour usage limit\n60\n%\nleft\nResets in 2h37m\nWeekly usage limit\n57% left\nResets Oct 7, 2026 12:00 AM\nUsage history\n99% used',
+      codex,
+    );
+    expect(result.map((window) => window.usedPercent)).toEqual([40, 43]);
+    expect(
+      toDomainWindows(result, codex, new Date('2026-10-05T00:00:00Z'))[0]
+        .resetsAt,
+    ).toBe('2026-10-05T02:37:00.000Z');
+  });
+  it.each([
+    '-5% left',
+    '101% left',
+    '+5% left',
+    '1e3% used',
+    'NaN% left',
+    'Infinity% used',
+  ])('rejects invalid quota %s', (value) => {
+    expect(parseUsageText(`Weekly usage limit\n${value}`, codex)).toEqual([]);
+  });
+  it('preserves explicit used qualifiers and decimal comma percentages', () => {
+    expect(
+      parseUsageText('Weekly usage limit\nUsed: 40,5%', codex)[0].usedPercent,
+    ).toBe(40.5);
+  });
+});
+
 describe('remaining vs used', () => {
   it('inverts remaining-percent payloads (Codex)', () => {
     const raw = extractRawWindows(

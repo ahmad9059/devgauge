@@ -53,7 +53,7 @@ export function normalizeResetTime(
     return null;
   const duration = text.replace(/^in\s+/i, '');
   const token =
-    /(\d+(?:\.\d+)?)\s*(days?|d|hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)\b/gi;
+    /(\d+(?:\.\d+)?)\s*(days?|d|hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)(?=\s|\d|$)/gi;
   let milliseconds = 0;
   let end = 0;
   let count = 0;

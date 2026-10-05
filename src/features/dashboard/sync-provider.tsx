@@ -14,6 +14,10 @@ import {
   type ReactNode,
 } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
+import {
+  drainBackgroundRefresh,
+  registerBackgroundRefresh,
+} from '@/services/background-refresh';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import * as Crypto from 'expo-crypto';
@@ -167,6 +171,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const engineRef = useRef<Promise<RefreshEngine> | null>(null);
   const activeRef = useRef(true);
   const autoStartedRef = useRef(false);
+  useEffect(() => {
+    void registerBackgroundRefresh().catch(() => undefined);
+  }, []);
 
   const finishWebJob = useCallback(
     (
@@ -299,6 +306,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             nextId: () => Crypto.randomUUID(),
             concurrency: 2,
             deadlineMs: 15_000,
+            maxRetries: 3,
             transport: {
               supports: (connection) => supportsMountedUsage(connection),
               async fetchUsage({ connection, signal }) {
@@ -332,6 +340,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const startSync = useCallback(
     async (providerId?: ProviderId, trigger: RefreshTrigger = 'manual') => {
+      if (AppState.currentState !== 'active') return;
+      await drainBackgroundRefresh();
+      if (AppState.currentState !== 'active') return;
       const db = await getAppDatabase();
       const connections = (await listConnections(db)).filter(
         (connection) =>
@@ -453,11 +464,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let previous = AppState.currentState;
+    let draining: Promise<void> = Promise.resolve();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active' && previous !== 'active')
-        void startSync(undefined, 'foreground').catch(() => undefined);
+        void draining
+          .then(() => startSync(undefined, 'foreground'))
+          .catch(() => undefined);
       if (state !== 'active') {
-        void engineRef.current?.then((engine) => engine.cancelAll());
+        draining = (
+          engineRef.current?.then((engine) => engine.cancelAllAndWait()) ??
+          Promise.resolve()
+        ).catch(() => undefined);
         webRefs.current.clear();
         setWebHosts([]);
       }
@@ -556,7 +573,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           if (providerId === 'codex') {
             for (const [key, captured] of byKey) {
               if (config.keyMap[key].kind === config.keyMap[window.key].kind) {
-                window.resetsAt ??= captured.resetsAt;
+                if (captured.usedPercent === window.usedPercent)
+                  window.resetsAt ??= captured.resetsAt;
                 byKey.delete(key);
               }
             }

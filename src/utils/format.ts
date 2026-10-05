@@ -131,6 +131,38 @@ export function formatCount(
   }
 }
 
+/** Complete quota labels: percentages always use the shared 100% denominator. */
+export function formatUsageValue({
+  percent,
+  used,
+  limit,
+  unit,
+}: {
+  percent?: number;
+  used?: number;
+  limit?: number;
+  unit?: 'percent' | 'requests' | 'credits' | 'tokens' | 'currency';
+}): string {
+  if (unit === 'percent' || (unit === undefined && Number.isFinite(percent))) {
+    const value = Number.isFinite(percent)
+      ? percent!
+      : Number.isFinite(used) && limit && limit > 0
+        ? (used! / limit) * 100
+        : undefined;
+    return value === undefined
+      ? '—'
+      : `${formatCount(value, 'percent')} / 100%`;
+  }
+  if (unit && Number.isFinite(used) && Number.isFinite(limit)) {
+    const consumed = formatCount(used!, unit);
+    const capacity = formatCount(limit!, unit);
+    if (consumed && capacity) return `${consumed} / ${capacity}`;
+  }
+  return Number.isFinite(percent)
+    ? `${formatCount(percent!, 'percent')} / 100%`
+    : '—';
+}
+
 export function trim(value: number): string {
   if (!Number.isFinite(value)) return '—';
   return Number.isInteger(value) ? String(value) : value.toFixed(1);

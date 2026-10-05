@@ -20,6 +20,24 @@ function extract(payload: unknown, keyMap = keys) {
 }
 
 describe('field-specific usage units', () => {
+  it('normalizes tiny finite percentages without throwing on scientific notation', () => {
+    expect(extract({ used_percent: 0.0000001 })[0].used).toBe('0.0000001');
+  });
+  it('does not let nested usage history override the current direct quota', () => {
+    expect(
+      extract({ used_percent: 40, history: [{ used_percent: 99 }] }).map(
+        (window) => window.used,
+      ),
+    ).toEqual(['40']);
+  });
+  it('preserves a fresh lower quota after a reset', () => {
+    expect(
+      mergeRawWindows([
+        { key: 'primary', usedPercent: 90, resetsAt: 'in 1 hour' },
+        { key: 'primary', usedPercent: 0, resetsAt: null },
+      ]),
+    ).toEqual([{ key: 'primary', usedPercent: 0, resetsAt: null }]);
+  });
   it('enriches duplicate quota values with reset timing without mutating capture inputs', () => {
     const first = { key: 'five_hour', usedPercent: 24, resetsAt: null };
     const reset = '2026-10-01T09:00:00Z';
@@ -30,7 +48,10 @@ describe('field-specific usage units', () => {
     expect(
       mergeRawWindows([first, { ...first, usedPercent: 0, resetsAt: reset }])[0]
         .resetsAt,
-    ).toBeNull();
+    ).toBe(reset);
+    expect(
+      mergeRawWindows([first, { ...first, usedPercent: 0, resetsAt: null }])[0],
+    ).toMatchObject({ usedPercent: 0, resetsAt: null });
   });
   it.each([0, 0.5, 1, 1.5, 100])('preserves explicit %s percent', (value) => {
     expect(extract({ used_percent: value })[0].utilization).toBe(value / 100);

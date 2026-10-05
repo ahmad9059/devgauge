@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ProviderError } from '@/domain/errors';
 
 import {
   createRefreshEngine,
@@ -66,6 +67,7 @@ type RefreshHarnessOptions = {
   concurrency?: number;
   transport?: RefreshEngineDependencies['transport'];
   deadlineMs?: number;
+  maxRetries?: number;
 };
 
 async function buildHarness(options: RefreshHarnessOptions) {
@@ -92,6 +94,8 @@ async function buildHarness(options: RefreshHarnessOptions) {
     backoff: (attempt) => attempt * 1000,
     transport: options.transport,
     deadlineMs: options.deadlineMs,
+    maxRetries: options.maxRetries,
+    retryDelayMs: 0,
     ...(options.capabilityGate
       ? { capabilityGate: options.capabilityGate }
       : {}),
@@ -339,6 +343,113 @@ describe('refresh engine', () => {
 
     await harness.engine.refreshMany(['c1', 'c2', 'c3'], 'startup');
     expect(maxActive).toBe(2);
+  });
+
+  it('retries temporary transport failures three times despite the persisted backoff', async () => {
+    let calls = 0;
+    const harness = await buildHarness({
+      maxRetries: 3,
+      fetchImpl: async () => res(''),
+      transport: {
+        supports: () => true,
+        fetchUsage: async () => {
+          calls++;
+          throw new ProviderError('timeout', 'Temporary timeout');
+        },
+      },
+    });
+    await harness.addConnection('c1');
+    expect(await harness.engine.refresh('c1', 'startup')).toMatchObject({
+      status: 'transient-failure',
+      code: 'timeout',
+    });
+    expect(calls).toBe(4);
+    expect((await latestByConnection(harness.db)).size).toBe(0);
+  });
+
+  it('does not consume queued providers deadlines before they get a slot', async () => {
+    const harness = await buildHarness({
+      concurrency: 1,
+      deadlineMs: 80,
+      fetchImpl: async () => res(''),
+      transport: {
+        supports: () => true,
+        fetchUsage: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          return {
+            windows: [
+              deriveWindow({
+                externalKey: 'w',
+                kind: 'rolling',
+                label: 'Usage',
+                used: '1',
+                limit: '100',
+                unit: 'percent',
+                derivation: 'provider',
+              }),
+            ],
+            fetchedAt: NOW.toISOString(),
+            schemaVersion: 1,
+            isPartial: false,
+          };
+        },
+      },
+    });
+    await harness.addConnection('c1');
+    await harness.addConnection('c2');
+    await harness.addConnection('c3');
+    const outcomes = await harness.engine.refreshMany(
+      ['c1', 'c2', 'c3'],
+      'startup',
+    );
+    expect(outcomes.map((outcome) => outcome.status)).toEqual([
+      'success',
+      'success',
+      'success',
+    ]);
+  });
+
+  it('commits a recovered fourth attempt and keeps good data if a later retry batch fails', async () => {
+    let calls = 0;
+    const harness = await buildHarness({
+      maxRetries: 3,
+      fetchImpl: async () => res(''),
+      transport: {
+        supports: () => true,
+        fetchUsage: async () => {
+          calls++;
+          if (calls !== 4)
+            throw new ProviderError('offline', 'Temporary network error');
+          return {
+            windows: [
+              deriveWindow({
+                externalKey: 'w',
+                kind: 'rolling',
+                label: 'Usage',
+                used: '43',
+                limit: '100',
+                unit: 'percent',
+                derivation: 'provider',
+              }),
+            ],
+            fetchedAt: NOW.toISOString(),
+            schemaVersion: 1,
+            isPartial: false,
+          };
+        },
+      },
+    });
+    await harness.addConnection('c1');
+    expect(await harness.engine.refresh('c1')).toMatchObject({
+      status: 'success',
+    });
+    const good = (await latestByConnection(harness.db)).get('c1');
+    expect(good?.windows[0].usedDecimal).toBe('43');
+    expect(await harness.engine.refresh('c1')).toMatchObject({
+      status: 'transient-failure',
+    });
+    expect(calls).toBe(8);
+    expect((await latestByConnection(harness.db)).get('c1')).toEqual(good);
   });
 
   it('fails one connection independently of another', async () => {

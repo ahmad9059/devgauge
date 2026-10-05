@@ -1,93 +1,134 @@
 import type { RawWindow, WindowKeyMap } from './usage-extract';
 
-/**
- * Parses visible page text into usage windows. It complements JSON capture for
- * first-party pages whose payload shape is unknown: it recognizes
- * "NN% remaining", "NN% used", "X / Y credits|requests", and "Resets …".
- */
-const REMAINING = /(\d+(?:\.\d+)?)\s*%\s*remaining/i;
-const USED = /(\d+(?:\.\d+)?)\s*%\s*used/i;
+const PERCENT =
+  /(?:^|[^\w.,+-])(\d+(?:[.,]\d+)?)\s*%\s*(?:(remaining|left|available|used|consumed|utilized)\b)?/i;
 const FRACTION =
-  /(\d[\d,]*(?:\.\d+)?)\s*(?:\/|of)\s*(\d[\d,]*(?:\.\d+)?)\s*(ai credits|credits|requests|tokens)?/i;
-// Codex writes absolute reset dates as "Resets Oct 1, 2026 12:29 AM";
-// other providers use "Resets in …" or "Resets on …". Preserve all of them.
-const RESET = /resets?\s+(.+)/i;
+  /(\d[\d,\u00a0\u202f]*(?:\.\d+)?)\s*(?:\/|of)\s*(\d[\d,\u00a0\u202f]*(?:\.\d+)?)\s*(?:monthly\s+)?(ai\s+credits?|credits?|requests?|tokens?)?/i;
+const STOP_SECTION =
+  /^(?:additional usage|features|usage limit resets|daily usage|analytics|usage history|full reset|available resets?|buy credits|purchase credits|history)\b/i;
+
+function keyForKind(keyMap: WindowKeyMap, kind: string): string | null {
+  return Object.keys(keyMap).find((key) => keyMap[key].kind === kind) ?? null;
+}
 
 function sectionKey(line: string, keyMap: WindowKeyMap): string | null {
-  // Reset durations and credit counts are values inside the current section,
-  // even when they contain words that also occur in quota headings.
+  // Value/reset lines and descriptions cannot switch the active quota section.
   if (
-    /^resets?\b/i.test(line) ||
-    /^\d[\d,]*(?:\.\d+)?\s*(?:%|\/|of\b)/i.test(line)
+    /^resets?\b|^[-+]?\d[\d, .]*\s*(?:%|\/|of\b)|\b(?:are set|shared across|not included|approximate|delayed by)\b/i.test(
+      line,
+    )
   )
     return null;
-  const lower = line.toLowerCase();
-  if (keyMap.ai_credit && /^included usage$/i.test(line)) return 'ai_credit';
-  if (keyMap.five_hour && /^current session$/i.test(line)) return 'five_hour';
-  if (keyMap.seven_day && /^all models$/i.test(line)) return 'seven_day';
-  if (keyMap.seven_day_opus && /^opus(?: only)?$/i.test(line))
+  if (/^current session\b/i.test(line) && keyMap.five_hour) return 'five_hour';
+  if (/^all models$/i.test(line) && keyMap.seven_day) return 'seven_day';
+  if (/^opus(?: only)?$/i.test(line) && keyMap.seven_day_opus)
     return 'seven_day_opus';
-  if (keyMap.seven_day_sonnet && /^sonnet(?: only)?$/i.test(line))
+  if (/^sonnet(?: only)?$/i.test(line) && keyMap.seven_day_sonnet)
     return 'seven_day_sonnet';
+  if (
+    /^(?:5\s*[- ]?\s*(?:hours?|hr)|five[- ]?hour|hourly|rolling|current session)\b/i.test(
+      line,
+    )
+  )
+    return keyForKind(keyMap, 'rolling');
+  if (/^(?:weekly|seven[- ]?day|7[- ]?day)\b/i.test(line))
+    return keyForKind(keyMap, 'weekly');
+  if (/^(?:workspace monthly|monthly|billing)\b/i.test(line))
+    return keyForKind(keyMap, 'monthly');
+  if (/^included usage$/i.test(line) && keyMap.ai_credit) return 'ai_credit';
+  if (/^(?:included )?(?:ai )?credits?\b/i.test(line)) {
+    return keyMap.workspace_monthly
+      ? 'workspace_monthly'
+      : keyMap.credits
+        ? 'credits'
+        : keyForKind(keyMap, 'monthly');
+  }
   for (const key of Object.keys(keyMap)) {
-    if (lower.includes(key.replace(/_/g, ' ')) || lower.includes(key)) {
+    if (
+      line.toLowerCase() === key.replace(/_/g, ' ') ||
+      line.toLowerCase() === key
+    )
       return key;
-    }
-    const label = keyMap[key].label.toLowerCase();
-    if (label.length > 3 && lower.includes(label)) return key;
-  }
-  if (/5[-\s]?hour|five[-\s]?hour/.test(lower)) {
-    return Object.keys(keyMap).find((k) => /five|primary|hour/.test(k)) ?? null;
-  }
-  if (/weekly|seven[-\s]?day/.test(lower)) {
-    return (
-      Object.keys(keyMap).find((k) => /seven|weekly|secondary/.test(k)) ?? null
-    );
-  }
-  if (/monthly|workspace|billing/.test(lower)) {
-    return Object.keys(keyMap).find((k) => /monthly|billing/.test(k)) ?? null;
-  }
-  if (/credits?/.test(lower)) {
-    return Object.keys(keyMap).find((k) => /credit/.test(k)) ?? null;
+    const label = keyMap[key].label;
+    if (line.toLowerCase() === label.toLowerCase()) return key;
   }
   return null;
 }
 
-function number(value: string): number {
-  return Number(value.replace(/,/g, ''));
+function count(value: string): number {
+  return Number(value.replace(/[,\s\u00a0\u202f]/g, ''));
 }
 
+function validNumber(value: number): boolean {
+  return (
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= Number.MAX_SAFE_INTEGER / 100
+  );
+}
+
+/** Parse only recognized quota sections; usage history and reset purchases are not quotas. */
 export function parseUsageText(
   text: string,
   keyMap: WindowKeyMap,
 ): RawWindow[] {
-  const lines = text
-    .split('\n')
+  if (typeof text !== 'string' || text.length > 60000) return [];
+  const normalized = text
+    .replace(/[\u200b-\u200d\ufeff]/g, '')
+    .replace(/[\u2010-\u2015\u2212]/g, '-');
+  // Joining only numeric percentages and their qualifiers handles split DOM
+  // nodes without joining unrelated headings, dates or credit counts.
+  const lines = normalized
+    .replace(
+      /(\d+(?:[.,]\d+)?)\s*%\s*(remaining|left|available|used|consumed|utilized)\b/gi,
+      '$1% $2',
+    )
+    .replace(/(\d+(?:[.,]\d+)?)\s*%/g, '$1%')
+    .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter(Boolean);
-  const out: RawWindow[] = [];
+    .filter(Boolean)
+    .slice(0, 2000);
+  const out = new Map<string, RawWindow>();
   let currentKey: string | null = null;
   let pendingReset: string | null = null;
   let last: RawWindow | null = null;
-  const lastWindow = (): RawWindow | null => last;
 
-  const push = (usedPercent: number): void => {
-    if (!currentKey) return;
+  const push = (
+    usedPercent: number,
+    quantities?: Pick<RawWindow, 'used' | 'limit' | 'unit'>,
+  ) => {
+    if (!currentKey || !validNumber(usedPercent)) return;
+    const prior = out.get(currentKey);
     const window: RawWindow = {
       key: currentKey,
       usedPercent,
-      resetsAt: pendingReset,
+      resetsAt:
+        pendingReset ??
+        (last?.key === currentKey
+          ? last.resetsAt
+          : prior?.usedPercent === usedPercent
+            ? prior.resetsAt
+            : null),
+      ...quantities,
     };
     pendingReset = null;
     last = window;
-    out.push(window);
+    out.set(currentKey, window);
   };
 
   for (const [index, line] of lines.entries()) {
-    if (keyMap.credits && /^additional usage$/i.test(line)) {
+    if (
+      /^(?:usage history|daily usage|analytics|usage limit resets|full reset|history)\b/i.test(
+        line,
+      )
+    )
+      break;
+    if (STOP_SECTION.test(line)) {
       currentKey = null;
       pendingReset = null;
       last = null;
+      // Everything following these sections is analytics/history, except a
+      // later recognized quota heading (e.g. another Copilot quota panel).
       continue;
     }
     const key = sectionKey(line, keyMap);
@@ -96,83 +137,80 @@ export function parseUsageText(
       pendingReset = null;
       last = null;
     }
+    if (!currentKey) continue;
 
-    // Some responsive layouts put the reset label and its value into separate
-    // blocks, producing "Resets" then the date/time on the next text line.
-    if (/^resets?$/i.test(line)) {
-      const value = lines[index + 1]?.trim();
-      const previous = lastWindow();
-      if (value && previous !== null && previous.resetsAt === null) {
-        previous.resetsAt = value;
-      } else if (value) {
-        pendingReset = value;
-      }
-      continue;
-    }
-
-    const reset = RESET.exec(line);
-    if (reset) {
-      const fractionIndex = FRACTION.exec(reset[1])?.index;
-      const value = reset[1].slice(0, fractionIndex ?? reset[1].length).trim();
-      const previous = lastWindow();
-      // A reset line applies to the value above it; otherwise to the next one.
-      if (previous !== null && previous.resetsAt === null) {
-        previous.resetsAt = value;
-      } else {
-        pendingReset = value;
-      }
-    }
-
-    const remaining = REMAINING.exec(line);
-    if (remaining) {
-      push(Math.max(0, 100 - number(remaining[1])));
-      continue;
-    }
-    const used = USED.exec(line);
-    if (used) {
-      push(number(used[1]));
-      continue;
-    }
+    const percent = PERCENT.exec(line);
     const fraction = FRACTION.exec(line);
+    const reset = /^resets?\s*(.*)/i.exec(line);
+    if (reset) {
+      let value = reset[1].trim();
+      if (!value) {
+        const next = lines[index + 1];
+        if (
+          next &&
+          !sectionKey(next, keyMap) &&
+          !STOP_SECTION.test(next) &&
+          !PERCENT.test(next) &&
+          !FRACTION.test(next)
+        )
+          value = next;
+      } else {
+        const start = line.indexOf(reset[1]);
+        const ends = [percent?.index, fraction?.index].filter(
+          (position): position is number =>
+            position !== undefined && position >= start,
+        );
+        value = line
+          .slice(start, ends.length ? Math.min(...ends) : undefined)
+          .trim();
+      }
+      if (value && value.length <= 200) {
+        const activeWindow = out.get(currentKey);
+        if (activeWindow) activeWindow.resetsAt = value;
+        else pendingReset = value;
+      }
+    }
+
     if (fraction) {
-      const limit = number(fraction[2]);
-      if (limit > 0) {
-        const used = number(fraction[1]);
-        const usedPercent = (used / limit) * 100;
-        const unit = fraction[3]
-          ?.toLowerCase()
-          .replace('ai ', '') as RawWindow['unit'];
-        const previous = lastWindow();
-        if (previous && previous.key === currentKey && unit) {
-          Object.assign(previous, { usedPercent, used, limit, unit });
-        } else {
-          push(usedPercent);
-          const current = lastWindow();
-          if (current && unit) Object.assign(current, { used, limit, unit });
-        }
+      if (/[+\-\d.,]$|\d[eE][+-]?\s*$/.test(line.slice(0, fraction.index)))
+        continue;
+      const amount = count(fraction[1]);
+      const limit = count(fraction[2]);
+      const unitText = fraction[3]
+        ?.toLowerCase()
+        .replace(/^ai\s+/, '')
+        .replace(/s?$/, 's');
+      const unit = ['credits', 'requests', 'tokens'].includes(unitText ?? '')
+        ? (unitText as RawWindow['unit'])
+        : undefined;
+      const qualifier = line.slice(fraction.index + fraction[0].length).trim();
+      const isRemaining = /^(?:remaining|left|available)\b/i.test(qualifier);
+      if (
+        validNumber(amount) &&
+        validNumber(limit) &&
+        limit > 0 &&
+        (!isRemaining || amount <= limit)
+      ) {
+        const used = isRemaining ? limit - amount : amount;
+        push((used / limit) * 100, unit ? { used, limit, unit } : undefined);
       }
       continue;
     }
-    // Some sites split the percentage and "remaining" into separate text nodes.
-    // Treat the adjacent qualifier as part of the value before considering it used.
-    const bare = /(?:^|[^\d.])(\d+(?:\.\d+)?)%\s*$/.exec(line);
-    if (bare) {
-      const qualifier = lines[index + 1]?.toLowerCase().trim();
-      const value = number(bare[1]);
-      if (qualifier === 'remaining') {
-        push(Math.max(0, 100 - value));
-      } else if (qualifier === 'used') {
-        push(value);
-      } else {
-        // Codex's responsive page can omit the remaining qualifier entirely.
-        push(
-          currentKey && keyMap[currentKey].remaining
-            ? Math.max(0, 100 - value)
-            : value,
-        );
-      }
+    if (percent) {
+      const value = Number(percent[1].replace(',', '.'));
+      const prefix = line.slice(0, percent.index);
+      if (!validNumber(value) || /\d[eE][+-]?\s*$/.test(prefix)) continue;
+      const qualifier =
+        percent[2]?.toLowerCase() ??
+        /(remaining|left|available|used|consumed|utilized)\s*:?\s*$/i
+          .exec(prefix)?.[1]
+          .toLowerCase();
+      const isRemaining = qualifier
+        ? /^(remaining|left|available)$/.test(qualifier)
+        : keyMap[currentKey].remaining === true;
+      if (isRemaining && value > 100) continue;
+      push(isRemaining ? 100 - value : value);
     }
   }
-
-  return out;
+  return [...out.values()];
 }

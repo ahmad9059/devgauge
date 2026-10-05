@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { radii, spacing } from '@/design/tokens';
 import { useTheme } from '@/design/theme-provider';
 import type { UsageUnit } from '@/features/dashboard/provider-view-types';
-import { clampPercent, formatCount, trim } from '@/utils/format';
+import { clampPercent, formatUsageValue } from '@/utils/format';
 
 /**
  * A thin, monochrome data bar. Color is only used for warning/danger state and
@@ -37,14 +37,7 @@ export function ProgressBar({
         ? theme.colors.warning
         : theme.colors.progressFill;
 
-  const hasValues =
-    used !== undefined && limit !== undefined && unit !== undefined;
-  const valueText =
-    percent !== undefined
-      ? `${trim(percent)}%`
-      : hasValues
-        ? formatCount(used, unit)
-        : '—';
+  const valueText = formatUsageValue({ percent, used, limit, unit });
 
   return (
     <View
@@ -76,9 +69,7 @@ export function ProgressBar({
             { color: theme.colors.textPrimary },
           ]}
         >
-          {hasValues
-            ? `${formatCount(used, unit)} / ${formatCount(limit, unit)}`
-            : valueText}
+          {valueText}
         </Text>
       </View>
       <View
@@ -107,15 +98,17 @@ const styles = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: spacing.sm,
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
   },
-  labelText: { flexShrink: 1, maxWidth: '100%' },
+  labelText: { flex: 1, minWidth: 0 },
   valueText: {
-    marginLeft: 'auto',
-    flexShrink: 1,
-    maxWidth: '100%',
+    // Android's TextView can shape bundled fonts slightly wider than Fabric's
+    // intrinsic measurement (observed: 144.59px painted into a 144px box).
+    // An explicitly allocated column avoids a hidden second line after '/'.
+    flex: 1,
+    minWidth: 0,
     textAlign: 'right',
   },
   track: { height: 12, borderRadius: radii.pill, overflow: 'hidden' },

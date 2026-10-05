@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
 import {
+  formatUsageValue,
   clampPercent,
   formatClockTime,
   formatDateTime,
@@ -11,6 +11,16 @@ import {
   formatRelativeMinutes,
   trim,
 } from './format';
+
+describe('complete usage labels', () => {
+  it('prints percentages against 100% even when persisted limits are missing', () => {
+    expect(formatUsageValue({ percent: 43, unit: 'percent' })).toBe(
+      '43% / 100%',
+    );
+    expect(formatUsageValue({ percent: 0, unit: 'percent' })).toBe('0% / 100%');
+    expect(formatUsageValue({ percent: NaN, unit: 'percent' })).toBe('—');
+  });
+});
 
 describe('usage formatting', () => {
   it('uses countdowns for rolling/weekly limits and a short date for monthly limits', () => {
