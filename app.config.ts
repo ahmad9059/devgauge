@@ -6,12 +6,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     throw new Error(`Unknown APP_VARIANT: ${environment}`);
   }
   const productionPackage = process.env.ANDROID_PACKAGE;
-  const artifact = process.env.ANDROID_ARTIFACT ?? 'universal';
-  if (!['universal', 'phone', 'emulator'].includes(artifact)) {
+  const artifact = process.env.ANDROID_ARTIFACT ?? 'phone';
+  if (!['universal', 'phone'].includes(artifact)) {
     throw new Error(`Unknown ANDROID_ARTIFACT: ${artifact}`);
-  }
-  if (environment === 'production' && artifact !== 'universal') {
-    throw new Error('Production AAB must preserve all supported architectures');
   }
   if (environment === 'production' && !productionPackage) {
     throw new Error('ANDROID_PACKAGE is required for a production build');
@@ -45,11 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             // it, preventing WorkManager from starting a killed app headlessly.
             extraProguardRules:
               '-keep class expo.modules.adapters.react.apploader.RNHeadlessAppLoader { *; }',
-            ...(artifact === 'phone'
-              ? { buildArchs: ['arm64-v8a'] }
-              : artifact === 'emulator'
-                ? { buildArchs: ['x86_64'] }
-                : {}),
+            buildArchs: ['arm64-v8a'],
           },
         },
       ],

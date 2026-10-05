@@ -38,7 +38,6 @@ export async function drainBackgroundRefresh() {
 }
 
 TaskManager.defineTask(BACKGROUND_REFRESH_TASK, async () => {
-  console.info('DG_WORKER_STAGE', 'start', AppState.currentState);
   // Foreground owns its mounted renderers; Android's worker runs headlessly.
   if (isForeground()) return BackgroundTask.BackgroundTaskResult.Success;
   let finish!: () => void;
@@ -47,7 +46,6 @@ TaskManager.defineTask(BACKGROUND_REFRESH_TASK, async () => {
   });
   try {
     const db = await getAppDatabase();
-    console.info('DG_WORKER_STAGE', 'database');
     const vault = createSecureVault(createSecureStoreBackend());
     const connections = (await listConnections(db)).filter(
       (connection) =>
@@ -83,14 +81,12 @@ TaskManager.defineTask(BACKGROUND_REFRESH_TASK, async () => {
       },
     });
     backgroundEngine = engine;
-    console.info('DG_WORKER_STAGE', 'refresh', connections.length);
     if (isForeground()) return BackgroundTask.BackgroundTaskResult.Success;
     const outcomes = await engine.refreshMany(
       connections.map((connection) => connection.id),
       'retry',
     );
     scheduleHistoryMaintenance(db);
-    console.info('DG_WORKER_STAGE', 'outcomes', JSON.stringify(outcomes));
     await refreshUsageNotifications(db, createExpoNotificationScheduler());
     return outcomes.some((outcome) => outcome.status === 'transient-failure')
       ? BackgroundTask.BackgroundTaskResult.Failed

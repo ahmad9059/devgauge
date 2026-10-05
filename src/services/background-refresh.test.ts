@@ -77,7 +77,7 @@ describe('six-hour Android background worker', () => {
   it('refreshes connected accounts headlessly with three retries', async () => {
     expect(await task()).toBe(1);
     expect(mocks.createEngine).toHaveBeenLastCalledWith(
-      expect.objectContaining({ maxRetries: 3, deadlineMs: 20000 }),
+      expect.objectContaining({ maxRetries: 3, deadlineMs: 40000 }),
     );
     expect(mocks.refreshMany).toHaveBeenCalledWith(['connected'], 'retry');
   });

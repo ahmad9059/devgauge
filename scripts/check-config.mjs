@@ -42,12 +42,13 @@ for (const variant of ['development', 'preview', 'production']) {
   )?.[1]?.android;
   assert.equal(properties.enableMinifyInReleaseBuilds, true);
   assert.equal(properties.enableShrinkResourcesInReleaseBuilds, true);
-  assert.equal(properties.buildArchs, undefined);
+  assert.deepEqual(properties.buildArchs, ['arm64-v8a']);
+  assert.ok(properties.extraProguardRules.includes('RNHeadlessAppLoader'));
 }
 
 for (const [artifact, abis] of [
   ['phone', ['arm64-v8a']],
-  ['emulator', ['x86_64']],
+  ['universal', ['arm64-v8a']],
 ]) {
   const config = JSON.parse(
     execFileSync('node', ['node_modules/expo/bin/cli', 'config', '--json'], {

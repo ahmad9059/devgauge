@@ -2,6 +2,7 @@
 // Register tasks before the router so killed-process refresh can execute.
 import './src/services/background-refresh';
 import { AppRegistry, Platform } from 'react-native';
+import 'expo-router/entry';
 
 if (Platform.OS === 'android') {
   // TaskService owns this keep-alive task and finishes it after all Expo tasks.
@@ -11,5 +12,3 @@ if (Platform.OS === 'android') {
     () => () => new Promise(() => {}),
   );
 }
-
-import 'expo-router/entry';

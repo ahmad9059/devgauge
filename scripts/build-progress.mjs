@@ -5,8 +5,10 @@ import path from 'node:path';
 
 const started = Date.now();
 const artifact = process.env.ANDROID_ARTIFACT ?? 'phone';
-if (!['phone', 'emulator', 'universal'].includes(artifact)) {
-  throw new Error('ANDROID_ARTIFACT must be phone, emulator, or universal');
+if (!['phone', 'universal'].includes(artifact)) {
+  throw new Error(
+    'ANDROID_ARTIFACT must be phone (ARM64); universal is a legacy ARM64 alias',
+  );
 }
 process.env.ANDROID_ARTIFACT = artifact;
 const output = `artifacts/devgauge-preview-${artifact}.apk`;

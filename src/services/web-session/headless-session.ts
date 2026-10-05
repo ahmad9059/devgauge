@@ -107,7 +107,6 @@ export async function fetchHeadlessSession(
     );
     if (signal.aborted) throw new ProviderError('unknown', 'Cancelled');
     const windows = parseHeadlessCapture(providerId, messages, capturedAt);
-    console.info('DG_CAPTURE_AUDIT', providerId, messages.map(message => {try { const data = JSON.parse(message); return {type: data.type, runId: data.runId, text: data.text?.slice(0, 450), url: data.url?.split('?')[0]}; } catch {return 'malformed';}}));
     if (!isQuotaReady(providerId, windows))
       throw new ProviderError('timeout', 'Background quota capture incomplete');
     return {
