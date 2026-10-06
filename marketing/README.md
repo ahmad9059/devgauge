@@ -1,6 +1,6 @@
 # DevGauge marketing pipeline
 
-Five portrait assets use genuine Android screenshots with clearly labeled sample data. Maestro captures the application; Remotion adds the headline, branding, and presentation. The screenshot itself is never recreated in HTML.
+Six portrait assets use genuine Android screenshots with clearly labeled sample data. Maestro captures the application; Remotion adds the headline, branding, and presentation. The screenshot itself is never recreated in HTML.
 
 ## Outputs
 
@@ -9,6 +9,7 @@ Five portrait assets use genuine Android screenshots with clearly labeled sample
 - `output/playstore/03-limits.png`
 - `output/playstore/04-alerts.png`
 - `output/playstore/05-privacy.png`
+- `output/playstore/06-settings.png`
 - `output/github/preview.png`
 - `output/contact-sheet.png`
 
@@ -48,7 +49,7 @@ Maestro flows: `.maestro/store-screenshots/capture.yaml` and `dashboard-all-prov
 npm run screenshots:render
 ```
 
-For the optional 15-second video and GIF:
+For the optional 18-second video and GIF:
 
 ```sh
 npm --prefix marketing run render -- --video
@@ -67,6 +68,8 @@ Copy is configured in `remotion/design.ts`. Layouts live in `remotion/StoreScree
 Run the **Marketing assets** workflow manually to render the checked-in captures and download the output artifact. The workflow does not simulate provider usage through an account or operate a connected phone. Fresh captures remain a deliberate local step.
 
 ## Asset review
+
+The Settings tab uses a dedicated `settings.yaml` Maestro flow at 288 dpi, showing appearance, text sizing, privacy, and data controls. The contact sheet and published galleries form a three-column, two-row grid.
 
 Review `output/contact-sheet.png` and the full-size files. Confirm that captures show the correct screens, percentages have complete denominators, reset information and sample-data labels are legible, images retain their aspect ratio, and headlines do not overlap screenshots.
 

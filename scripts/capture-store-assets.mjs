@@ -164,15 +164,44 @@ try {
   if (dashboardResult.error) throw dashboardResult.error;
   if (dashboardResult.status !== 0)
     throw new Error('The all-six-provider dashboard capture failed.');
+  adb('shell', 'wm', 'density', '288');
+  const settingsOutputDir = `${testOutputDir}-settings`;
+  const settingsResult = spawnSync(
+    maestro,
+    [
+      '--device',
+      device,
+      'test',
+      '--test-output-dir',
+      settingsOutputDir,
+      '.maestro/store-screenshots/settings.yaml',
+    ],
+    {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        MAESTRO_CLI_NO_ANALYTICS: '1',
+        MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED: 'true',
+      },
+    },
+  );
+  if (settingsResult.error) throw settingsResult.error;
+  if (settingsResult.status !== 0)
+    throw new Error('The Settings-tab capture failed.');
   for (const capture of [
     'dashboard',
     'providers',
     'provider-detail',
     'alerts',
     'privacy',
+    'settings',
   ]) {
     const sourceDir =
-      capture === 'dashboard' ? dashboardOutputDir : testOutputDir;
+      capture === 'dashboard'
+        ? dashboardOutputDir
+        : capture === 'settings'
+          ? settingsOutputDir
+          : testOutputDir;
     const sourceName =
       capture === 'dashboard' ? 'dashboard-all-providers' : capture;
     const files = await readdir(sourceDir, { recursive: true });
@@ -206,7 +235,7 @@ try {
         data: 'illustrative sample data',
         size: '1080x1920',
         method: 'Maestro takeScreenshot',
-        density: { dashboard: 168, otherScreens: 256 },
+        density: { dashboard: 168, settings: 288, otherScreens: 256 },
       },
       null,
       2,

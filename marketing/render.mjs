@@ -35,6 +35,7 @@ const names = [
   '03-limits',
   '04-alerts',
   '05-privacy',
+  '06-settings',
 ];
 for (const capture of [
   'dashboard',
@@ -42,6 +43,7 @@ for (const capture of [
   'provider-detail',
   'alerts',
   'privacy',
+  'settings',
 ]) {
   await access(path.join(publicDir, 'captures', `${capture}.png`));
 }
@@ -88,7 +90,7 @@ execFileSync(hasMagick ? 'magick' : 'montage', [
   '-thumbnail',
   '270x480',
   '-tile',
-  '5x1',
+  '3x2',
   '-geometry',
   '+8+8',
   '-background',

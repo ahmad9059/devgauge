@@ -2,7 +2,7 @@
 
 ## Authority
 
-The user approved five restrained black/off-white layouts showing real usage, connectors, details, alerts, and privacy. Product truth is in `../PRODUCT.md`; composition requirements are in `DESIGN-CONTRACT.md`. The existing Android interface and supplied DevGauge logo are the visual authority.
+The user approved six restrained black/off-white layouts showing real usage, connectors, details, alerts, privacy, and the Settings tab. Product truth is in `../PRODUCT.md`; composition requirements are in `DESIGN-CONTRACT.md`. The existing Android interface and supplied DevGauge logo are the visual authority.
 
 ## Durable choices
 
@@ -17,7 +17,7 @@ The user approved five restrained black/off-white layouts showing real usage, co
 
 ## Implementation
 
-Remotion compositions are in `remotion/`. `render.mjs` creates the five portraits, a landscape preview, and a contact sheet. Maestro flows operate the isolated Android marketing package. Capture dimensions and device display preferences are controlled and restored by `../scripts/capture-store-assets.mjs`.
+Remotion compositions are in `remotion/`. `render.mjs` creates the six portraits, a landscape preview, and a three-by-two contact sheet. Maestro flows operate the isolated Android marketing package. Capture dimensions and device display preferences are controlled and restored by `../scripts/capture-store-assets.mjs`.
 
 ## Finish review
 
@@ -31,4 +31,4 @@ The optional skill detector could not run because its bundled detector was missi
 
 ## Verdict
 
-Ready for delivery as a five-image marketing set. Optional video/GIF generation is implemented but is not part of this static-image delivery.
+Ready for delivery as a six-image marketing set. The Settings-tab portrait was captured on the real device and visually reviewed for readable appearance, text-size, privacy, and local-data controls. Optional video/GIF generation is implemented but is not part of this static-image delivery.

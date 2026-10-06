@@ -34,6 +34,13 @@ export const slides = [
     description: 'Local history. Encrypted storage. No cloud sync.',
     light: false,
   },
+  {
+    id: '06-settings',
+    capture: 'settings',
+    title: 'Make it\nyour own.',
+    description: 'Appearance, text size, and local data controls.',
+    light: true,
+  },
 ] as const;
 
 export const colors = {

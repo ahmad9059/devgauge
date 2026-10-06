@@ -1,0 +1,11 @@
+appId: app.devgauge.marketing
+---
+- launchApp
+- tapOn: Settings
+- assertVisible: 'Appearance, data, and privacy'
+- assertVisible: 'Theme'
+- assertVisible: 'Text size'
+- assertNotVisible: 'Diagnostics'
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: settings

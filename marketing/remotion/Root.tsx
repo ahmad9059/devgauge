@@ -2,6 +2,7 @@ import { Composition } from 'remotion';
 import { StoreScreenshot } from './StoreScreenshot';
 import { GithubPreview } from './GithubPreview';
 import { ReleaseVideo } from './ReleaseVideo';
+import { slides } from './design';
 
 export function Root() {
   return (
@@ -29,7 +30,7 @@ export function Root() {
         width={1080}
         height={1920}
         fps={30}
-        durationInFrames={450}
+        durationInFrames={slides.length * 90}
       />
     </>
   );

@@ -45,6 +45,7 @@ See all six providers in the usage dashboard, manage connections, inspect reset 
 <p align="center">
   <a href="assets/screenshots/04-alerts.png"><img src="assets/screenshots/04-alerts.png" alt="DevGauge local usage alerts and reset reminders" width="260" /></a>
   <a href="assets/screenshots/05-privacy.png"><img src="assets/screenshots/05-privacy.png" alt="DevGauge privacy policy and encrypted local storage" width="260" /></a>
+  <a href="assets/screenshots/06-settings.png"><img src="assets/screenshots/06-settings.png" alt="DevGauge Settings tab with appearance, text size, and local data controls" width="260" /></a>
 </p>
 
 ## Overview
