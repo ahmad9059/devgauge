@@ -17,6 +17,8 @@ These are scoped exceptions, not claims that the dependencies are fixed. Keep bu
 
 The fixable `source-map-js` advisory was resolved by updating the lockfile to version 1.2.2. The audit does not downgrade Expo or skip the dependency check.
 
+The critical `shell-quote` advisory [GHSA-pqg4-j6r4-53mv](https://github.com/advisories/GHSA-pqg4-j6r4-53mv) affected the previously locked 1.10.0 version used by React Native developer tooling. Updating the transitive lockfile entry to patched version 1.12.0 resolves this finding without adding an exception or weakening CI's audit gate.
+
 ## Validation
 
 ```sh
