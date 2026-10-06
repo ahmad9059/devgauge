@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/adaptive-icon.png" alt="DevGauge logo" width="160" />
+  <img src="assets/readme-logo.png" alt="DevGauge logo" width="200" />
 </p>
 
 <h1 align="center">DevGauge</h1>
