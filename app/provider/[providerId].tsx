@@ -365,6 +365,6 @@ const styles = StyleSheet.create({
   },
   actionsRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
   actionCell: { flex: 1, minWidth: 0 },
-  actionButton: { paddingHorizontal: spacing.sm, flexGrow: 1 },
+  actionButton: { minHeight: 48, paddingHorizontal: spacing.sm, flexGrow: 1 },
   cardPad: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
 });

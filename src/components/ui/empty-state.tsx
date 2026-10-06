@@ -10,18 +10,20 @@ export function EmptyState({
   title,
   description,
   action,
+  iconSize = 20,
   testID,
 }: {
   icon: IconName;
   title: string;
   description: string;
   action?: ReactNode;
+  iconSize?: number;
   testID?: string;
 }) {
   const { theme, typography } = useTheme();
   return (
     <View testID={testID} style={styles.container}>
-      <Icon name={icon} size={20} color={theme.colors.textMuted} />
+      <Icon name={icon} size={iconSize} color={theme.colors.textMuted} />
       <Text
         accessibilityRole="header"
         style={[

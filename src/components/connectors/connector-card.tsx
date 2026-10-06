@@ -40,13 +40,14 @@ export function ConnectorCard({
   testID?: string;
 }) {
   const { theme, typography } = useTheme();
-  const status = describeState(provider.state);
   const canConnect = allowsConnection(provider.state);
   const relative = formatRelativeMinutes(provider.updatedMinutesAgo);
   const isConnected =
     provider.state === 'connected' || provider.state === 'stale';
   const hasConnection =
-    isConnected || (!!provider.connectionId && provider.state !== 'disconnected');
+    isConnected ||
+    (!!provider.connectionId && provider.state !== 'disconnected');
+  const status = describeState(hasConnection ? provider.state : 'disconnected');
 
   return (
     <Card testID={testID} elevated={isConnected}>
@@ -151,8 +152,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: spacing.sm,
-    // Keep the smaller visual controls easy to tap without overlapping rows.
-    paddingVertical: 9,
-    rowGap: 26,
   },
 });

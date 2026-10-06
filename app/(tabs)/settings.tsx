@@ -362,7 +362,7 @@ export default function SettingsScreen() {
             kept.
           </Notice>
         )}
-        <Stack gap="sm">
+        <Stack gap="sm" style={{ flex: 0 }}>
           <Button
             label={
               dataAction === 'delete' ? 'Delete everything' : 'Clear cache'

@@ -8,6 +8,7 @@ import {
 
 import {
   borderWidths,
+  compactButton,
   opacities,
   radii,
   spacing,
@@ -23,7 +24,7 @@ export function Button({
   label,
   onPress,
   variant = 'primary',
-  size = 'md',
+  size = 'compact',
   disabled = false,
   loading = false,
   icon,
@@ -48,7 +49,7 @@ export function Button({
   const inactive = disabled || loading;
   const compact = size === 'compact';
   const minHeight = compact
-    ? 31
+    ? compactButton.height
     : size === 'lg'
       ? touchTargets.comfortable
       : size === 'sm'
@@ -60,7 +61,7 @@ export function Button({
       ? spacing.xs
       : spacing.sm;
   const paddingHorizontal = compact
-    ? 9
+    ? compactButton.horizontalPadding
     : size === 'sm'
       ? spacing.md
       : spacing.lg;
@@ -95,6 +96,7 @@ export function Button({
   const style = ({ pressed }: { pressed: boolean }): ViewStyle => ({
     minHeight,
     minWidth: compact ? touchTargets.minimum : undefined,
+    marginVertical: compact ? compactButton.verticalHitSlop : undefined,
     paddingVertical,
     paddingHorizontal,
     borderRadius: radii.control,
@@ -104,7 +106,7 @@ export function Button({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: compact ? 6 : spacing.sm,
+    gap: compact ? compactButton.gap : spacing.sm,
     alignSelf: fullWidth ? 'stretch' : 'flex-start',
     opacity: inactive ? opacities.disabled : pressed ? opacities.pressed : 1,
     ...customStyle,
@@ -115,7 +117,16 @@ export function Button({
       testID={testID}
       onPress={inactive ? undefined : onPress}
       disabled={inactive}
-      hitSlop={compact ? { top: 9, bottom: 9, left: 0, right: 0 } : undefined}
+      hitSlop={
+        compact
+          ? {
+              top: compactButton.verticalHitSlop,
+              bottom: compactButton.verticalHitSlop,
+              left: 0,
+              right: 0,
+            }
+          : undefined
+      }
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
@@ -125,12 +136,21 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={colors.text} size="small" />
       ) : icon ? (
-        <Icon name={icon} size={compact ? 14 : 20} color={colors.text} />
+        <Icon
+          name={icon}
+          size={compact ? compactButton.icon : 20}
+          color={colors.text}
+        />
       ) : null}
       <Text
         style={[
           typography.labelStrong,
-          compact ? { fontSize: 12, lineHeight: 17 } : undefined,
+          compact
+            ? {
+                fontSize: compactButton.fontSize,
+                lineHeight: compactButton.lineHeight,
+              }
+            : undefined,
           { color: colors.text, flexShrink: 1, textAlign: 'center' },
         ]}
       >
@@ -174,7 +194,11 @@ export function IconButton({
         },
       ]}
     >
-      <Icon name={icon} size={24} color={theme.colors.textPrimary} />
+      <Icon
+        name={icon}
+        size={compactButton.standaloneIcon}
+        color={theme.colors.textPrimary}
+      />
     </Pressable>
   );
 }

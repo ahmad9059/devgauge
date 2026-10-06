@@ -32,7 +32,12 @@ export default function UsageScreen() {
 
   return (
     <Screen>
-      <ScreenScroll showsVerticalScrollIndicator={false}>
+      <ScreenScroll
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={
+          providers.length === 0 ? styles.emptyContent : undefined
+        }
+      >
         <View style={styles.brandHeader}>
           <DevGaugeLockup />
           <View style={styles.actions}>
@@ -41,18 +46,21 @@ export default function UsageScreen() {
         </View>
 
         {providers.length === 0 ? (
-          <EmptyState
-            icon="connection"
-            title="No connectors yet"
-            description="Add a provider to see its usage here."
-            action={
-              <Button
-                label="Open connectors"
-                icon="arrow-right"
-                onPress={() => router.push('/(tabs)/connectors')}
-              />
-            }
-          />
+          <View style={styles.emptyArea}>
+            <EmptyState
+              icon="connection"
+              iconSize={72}
+              title="No connectors yet"
+              description="Add a provider to see its usage here."
+              action={
+                <Button
+                  label="Open connectors"
+                  icon="arrow-right"
+                  onPress={() => router.push('/(tabs)/connectors')}
+                />
+              }
+            />
+          </View>
         ) : (
           <Stack gap="md">
             {providers.map((provider) => (
@@ -75,6 +83,8 @@ export default function UsageScreen() {
 }
 
 const styles = StyleSheet.create({
+  emptyContent: { flexGrow: 1 },
+  emptyArea: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   brandHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

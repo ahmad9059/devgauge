@@ -46,6 +46,17 @@ export const touchTargets = {
   tabBar: 60,
 } as const;
 
+export const compactButton = {
+  height: 38,
+  icon: 16,
+  standaloneIcon: 17,
+  fontSize: 13,
+  lineHeight: 18,
+  horizontalPadding: 12,
+  verticalHitSlop: 5,
+  gap: 8,
+} as const;
+
 export const fontSizes = {
   caption: 12,
   label: 13,
