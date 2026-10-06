@@ -8,6 +8,11 @@ import {
 } from 'react';
 
 import { AppState } from 'react-native';
+import { marketingEnabled } from '@/config/marketing';
+import {
+  marketingReference,
+  seedMarketingDemo,
+} from '@/services/marketing-demo';
 import { startForegroundClock } from './foreground-clock';
 
 import { listProviderDescriptors } from '@/providers/registry';
@@ -40,7 +45,7 @@ function gatedOnly(): ProviderView[] {
 /**
  * Loads the real provider list from the encrypted database (connections +
  * latest snapshots), derives each provider's state from the registry, and can
- * reload after a connection change. There is no static/mock usage data.
+ * reload after a connection change. Isolated marketing builds seed labeled samples.
  */
 export function AppProvidersProvider({ children }: { children: ReactNode }) {
   const [connections, setConnections] = useState<ProviderConnection[]>([]);
@@ -51,7 +56,7 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       startForegroundClock(setNow, {
-        isActive: () => AppState.currentState === 'active',
+        isActive: () => !marketingEnabled && AppState.currentState === 'active',
         subscribe: (listener) => {
           const subscription = AppState.addEventListener('change', (state) =>
             listener(state === 'active'),
@@ -67,11 +72,12 @@ export function AppProvidersProvider({ children }: { children: ReactNode }) {
     createCoalescedReload(async () => {
       try {
         const db = await getAppDatabase();
+        if (marketingEnabled) await seedMarketingDemo(db);
         const storedConnections = await listConnections(db);
         const snapshots = await latestByConnection(db);
         setConnections(storedConnections);
         setLatest(snapshots);
-        setNow(new Date());
+        setNow(marketingEnabled ? marketingReference : new Date());
       } finally {
         setReady(true);
       }

@@ -1,0 +1,34 @@
+appId: app.devgauge.marketing
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: '72% / 100%'
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: dashboard
+- tapOn: Connectors
+- assertVisible: 'Connect a provider'
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: providers
+- tapOn: Usage
+- tapOn: 'Claude, Pro · sample data, Connected, updated just now'
+- assertVisible: Reauthorize
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: provider-detail
+- back
+- tapOn: Settings
+- tapOn: 'Usage alerts & resets'
+- assertVisible: 'Usage rules'
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: alerts
+- back
+- tapOn: 'Privacy policy'
+- assertVisible: 'What DevGauge stores on this device and what it does not.'
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: privacy

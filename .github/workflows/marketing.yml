@@ -1,0 +1,51 @@
+name: Marketing assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      video:
+        description: Include the MP4 and GIF demo
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            marketing/package-lock.json
+      - name: Install npm and application fonts
+        run: |
+          npm install -g npm@12.0.2
+          npm ci
+          npm ci --prefix marketing
+      - name: Install asset utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick ffmpeg
+      - name: Typecheck compositions
+        run: npm --prefix marketing run typecheck
+      - name: Render screenshots and preview
+        env:
+          INCLUDE_VIDEO: ${{ inputs.video }}
+        run: |
+          if [ "$INCLUDE_VIDEO" = "true" ]; then
+            npm --prefix marketing run render -- --video
+          else
+            npm run screenshots:render
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devgauge-marketing-assets
+          path: marketing/output/
+          if-no-files-found: error

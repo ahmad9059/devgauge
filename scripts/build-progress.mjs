@@ -19,10 +19,13 @@ if (!['phone', 'universal'].includes(artifact)) {
 }
 process.env.ANDROID_ARTIFACT = artifact;
 const production = process.env.APP_VARIANT === 'production';
+const marketing = process.env.DEVGAUGE_MARKETING === '1';
 const { version } = JSON.parse(await readFile('package.json', 'utf8'));
 const output = production
   ? `artifacts/devgauge-${version}-arm64.apk`
-  : `artifacts/devgauge-preview-${artifact}.apk`;
+  : marketing
+    ? 'artifacts/devgauge-marketing.apk'
+    : `artifacts/devgauge-preview-${artifact}.apk`;
 await mkdir('artifacts', { recursive: true });
 // Keep the last successful artifact until its replacement has built.
 const logPath = production

@@ -3,6 +3,7 @@ import {
   createProviderRegistry,
 } from '@/providers/registry';
 import { refreshUsageNotifications } from '@/services/notifications/usage-notifications';
+import { marketingEnabled } from '@/config/marketing';
 import { createExpoNotificationScheduler } from '@/services/notifications/expo-scheduler';
 import {
   createContext,
@@ -172,7 +173,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const activeRef = useRef(true);
   const autoStartedRef = useRef(false);
   useEffect(() => {
-    void registerBackgroundRefresh().catch(() => undefined);
+    if (!marketingEnabled)
+      void registerBackgroundRefresh().catch(() => undefined);
   }, []);
 
   const finishWebJob = useCallback(
@@ -340,6 +342,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const startSync = useCallback(
     async (providerId?: ProviderId, trigger: RefreshTrigger = 'manual') => {
+      if (marketingEnabled) return;
       if (AppState.currentState !== 'active') return;
       await drainBackgroundRefresh();
       if (AppState.currentState !== 'active') return;

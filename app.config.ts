@@ -7,6 +7,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     throw new Error(`Unknown APP_VARIANT: ${environment}`);
   }
   const productionPackage = process.env.ANDROID_PACKAGE ?? 'app.devgauge';
+  const marketingMode = process.env.DEVGAUGE_MARKETING === '1';
+  if (marketingMode && environment !== 'preview') {
+    throw new Error('Marketing capture mode requires APP_VARIANT=preview');
+  }
   const artifact = process.env.ANDROID_ARTIFACT ?? 'phone';
   if (!['universal', 'phone'].includes(artifact)) {
     throw new Error(`Unknown ANDROID_ARTIFACT: ${artifact}`);
@@ -68,12 +72,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
     ],
-    extra: { appVariant: environment },
+    extra: { appVariant: environment, marketingMode },
     android: {
       package:
         environment === 'production'
           ? productionPackage
-          : `app.devgauge.${environment}`,
+          : marketingMode
+            ? 'app.devgauge.marketing'
+            : `app.devgauge.${environment}`,
       versionCode: 1,
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',

@@ -4,6 +4,12 @@ import expoConfig from 'eslint-config-expo/flat.js';
 export default defineConfig([
   expoConfig,
   {
-    ignores: ['.expo/**', 'dist/**', 'coverage/**', 'node_modules/**'],
+    ignores: [
+      '.expo/**',
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      'marketing/**',
+    ],
   },
 ]);

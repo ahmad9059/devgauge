@@ -92,4 +92,19 @@ const defaultRelease = JSON.parse(
 assert.equal(defaultRelease.android.package, 'app.devgauge');
 assert.equal(defaultRelease.version, version);
 
+assert.throws(() =>
+  execFileSync('node', ['node_modules/expo/bin/cli', 'config', '--json'], {
+    env: { ...process.env, APP_VARIANT: 'production', DEVGAUGE_MARKETING: '1' },
+    stdio: 'pipe',
+  }),
+);
+const marketingConfig = JSON.parse(
+  execFileSync('node', ['node_modules/expo/bin/cli', 'config', '--json'], {
+    env: { ...process.env, APP_VARIANT: 'preview', DEVGAUGE_MARKETING: '1' },
+    encoding: 'utf8',
+  }),
+);
+assert.equal(marketingConfig.android.package, 'app.devgauge.marketing');
+assert.equal(marketingConfig.extra.marketingMode, true);
+
 console.log('Android build profiles and route config validated');

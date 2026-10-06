@@ -21,6 +21,7 @@
 
 <p align="center">
   <a href="#overview">Overview</a> ·
+  <a href="#screenshots">Screenshots</a> ·
   <a href="#features">Features</a> ·
   <a href="#providers">Providers</a> ·
   <a href="#installation">Installation</a> ·
@@ -30,6 +31,21 @@
 </p>
 
 ---
+
+## Screenshots
+
+See all six providers in the usage dashboard, manage connections, inspect reset windows, and configure local alerts. These are real Android app captures with illustrative sample data. Select an image to view it at full size.
+
+<p align="center">
+  <a href="assets/screenshots/01-dashboard.png"><img src="assets/screenshots/01-dashboard.png" alt="DevGauge usage dashboard showing quotas and reset times for all six providers" width="260" /></a>
+  <a href="assets/screenshots/02-providers.png"><img src="assets/screenshots/02-providers.png" alt="DevGauge provider connections" width="260" /></a>
+  <a href="assets/screenshots/03-limits.png"><img src="assets/screenshots/03-limits.png" alt="Claude usage windows and reset countdowns in DevGauge" width="260" /></a>
+</p>
+
+<p align="center">
+  <a href="assets/screenshots/04-alerts.png"><img src="assets/screenshots/04-alerts.png" alt="DevGauge local usage alerts and reset reminders" width="260" /></a>
+  <a href="assets/screenshots/05-privacy.png"><img src="assets/screenshots/05-privacy.png" alt="DevGauge privacy policy and encrypted local storage" width="260" /></a>
+</p>
 
 ## Overview
 

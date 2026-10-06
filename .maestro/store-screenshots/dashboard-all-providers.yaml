@@ -1,0 +1,18 @@
+appId: app.devgauge.marketing
+---
+- launchApp
+- tapOn: Usage
+- extendedWaitUntil:
+    visible: '72% / 100%'
+    timeout: 30000
+- assertVisible: '.*Claude, Pro · sample data.*'
+- assertVisible: '.*Codex, Plus · sample data.*'
+- assertVisible: '.*Command Code, Pro · sample data.*'
+- assertVisible: '.*OpenCode Go, Go · sample data.*'
+- assertVisible: '.*GitHub Copilot, Pro · sample data.*'
+- assertVisible: '.*Antigravity, AI Pro · sample data.*'
+- assertVisible: '36% / 100%'
+- assertVisible: 'Resets in 3d 3h'
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: dashboard-all-providers

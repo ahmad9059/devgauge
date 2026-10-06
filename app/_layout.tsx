@@ -2,6 +2,7 @@ import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { AppErrorBoundary } from '@/components/app-error-boundary';
+import { marketingEnabled } from '@/config/marketing';
 import { ThemeProvider, useTheme } from '@/design/theme-provider';
 import { AppProvidersProvider } from '@/features/dashboard/app-providers';
 import { SyncProvider } from '@/features/dashboard/sync-provider';
@@ -67,12 +68,12 @@ function ThemedApp() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
+    <ThemeProvider initialPreference={marketingEnabled ? 'dark' : 'system'}>
       <AppProvidersProvider>
         <SyncProvider>
           <ThemedApp />
-          <SettingsSync />
-          <NotificationRuntime />
+          {!marketingEnabled ? <SettingsSync /> : null}
+          {!marketingEnabled ? <NotificationRuntime /> : null}
         </SyncProvider>
       </AppProvidersProvider>
     </ThemeProvider>
