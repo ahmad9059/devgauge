@@ -18,9 +18,9 @@ Use accounts and devices you own or are authorized to test. Do not access anothe
 
 ## Supported code
 
-Security fixes are currently developed against the latest code on the repository's default branch. There is no separate long-term support policy for older preview builds. Update to the latest reviewed build when a fix is available.
+Security fixes are developed against the latest code on the repository's default branch and delivered through GitHub Releases. Use the latest published release; older versions do not have a separate long-term support policy.
 
-Production distribution status and outstanding release checks are documented in the [README](README.md#overview) and [release-readiness checklist](docs/release/release-readiness.md).
+Release installation and distribution details are documented in the [README](README.md#installation) and [release guide](docs/release/github-release.md).
 
 ## Handling reports
 

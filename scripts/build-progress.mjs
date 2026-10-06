@@ -1,6 +1,13 @@
 import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
-import { copyFile, mkdir } from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  appendFile,
+  writeFile,
+} from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 const started = Date.now();
@@ -11,10 +18,16 @@ if (!['phone', 'universal'].includes(artifact)) {
   );
 }
 process.env.ANDROID_ARTIFACT = artifact;
-const output = `artifacts/devgauge-preview-${artifact}.apk`;
+const production = process.env.APP_VARIANT === 'production';
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
+const output = production
+  ? `artifacts/devgauge-${version}-arm64.apk`
+  : `artifacts/devgauge-preview-${artifact}.apk`;
 await mkdir('artifacts', { recursive: true });
 // Keep the last successful artifact until its replacement has built.
-const logPath = `artifacts/android-build-${artifact}.log`;
+const logPath = production
+  ? 'artifacts/android-build-release.log'
+  : `artifacts/android-build-${artifact}.log`;
 const log = createWriteStream(logPath);
 const completed = new Set();
 let totalTasks = 0;
@@ -86,6 +99,38 @@ try {
     '--clean',
     '--no-install',
   ]);
+  if (production) {
+    const credentials = JSON.parse(
+      await readFile('.release/signing.json', 'utf8'),
+    );
+    if (!credentials.keystore || !credentials.alias || !credentials.password) {
+      throw new Error('Release signing credentials are incomplete.');
+    }
+    process.env.DEVGAUGE_KEYSTORE = path.resolve(
+      '.release',
+      credentials.keystore,
+    );
+    process.env.DEVGAUGE_KEY_ALIAS = credentials.alias;
+    process.env.DEVGAUGE_SIGNING_PASSWORD = credentials.password;
+    // Applied after clean prebuild. Credentials remain in the environment,
+    // outside generated source and build logs; never use the template debug key.
+    await appendFile(
+      'android/app/build.gradle',
+      `
+android {
+    signingConfigs {
+        devgaugeRelease {
+            storeFile file(System.getenv("DEVGAUGE_KEYSTORE"))
+            storePassword System.getenv("DEVGAUGE_SIGNING_PASSWORD")
+            keyAlias System.getenv("DEVGAUGE_KEY_ALIAS")
+            keyPassword System.getenv("DEVGAUGE_SIGNING_PASSWORD")
+        }
+    }
+    buildTypes.release.signingConfig = signingConfigs.devgaugeRelease
+}
+`,
+    );
+  }
   stage = 'Calculating compilation tasks';
   percent = 5;
   render();
@@ -127,10 +172,21 @@ try {
     'android/app/build/outputs/apk/release/app-release.apk',
     output,
   );
+  if (production) {
+    const digest = createHash('sha256')
+      .update(await readFile(output))
+      .digest('hex');
+    await writeFile(
+      `${output}.sha256`,
+      `${digest}  ${path.basename(output)}\n`,
+    );
+  }
   stage = 'Build complete';
   percent = 100;
   render();
-  console.log(`\nInternal test APK: ${output}`);
+  console.log(
+    `\n${production ? 'Signed release APK' : 'Internal test APK'}: ${output}`,
+  );
 } catch (error) {
   console.error(`\nBuild failed. Full output: ${logPath}\n${error.message}`);
   process.exitCode = 1;

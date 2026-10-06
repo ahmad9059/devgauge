@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
 
 for (const variant of ['development', 'preview', 'production']) {
   const output = execFileSync(
@@ -19,6 +22,7 @@ for (const variant of ['development', 'preview', 'production']) {
   assert.deepEqual(config.platforms, ['android']);
   assert.equal(config.experiments.typedRoutes, true);
   assert.equal(config.scheme, 'devgauge');
+  assert.equal(config.version, version);
   assert.equal(config.extra.appVariant, variant);
   assert.equal(
     config.android.package,
@@ -72,5 +76,20 @@ assert.throws(() =>
     stdio: 'pipe',
   }),
 );
+
+const defaultReleaseEnvironment = {
+  ...process.env,
+  APP_VARIANT: 'production',
+  ANDROID_ARTIFACT: 'phone',
+};
+delete defaultReleaseEnvironment.ANDROID_PACKAGE;
+const defaultRelease = JSON.parse(
+  execFileSync('node', ['node_modules/expo/bin/cli', 'config', '--json'], {
+    env: defaultReleaseEnvironment,
+    encoding: 'utf8',
+  }),
+);
+assert.equal(defaultRelease.android.package, 'app.devgauge');
+assert.equal(defaultRelease.version, version);
 
 console.log('Android build profiles and route config validated');

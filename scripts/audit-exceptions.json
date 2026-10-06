@@ -1,0 +1,16 @@
+[
+  {
+    "package": "braces",
+    "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "range": "<=3.0.3",
+    "expires": "2026-11-06T00:00:00Z",
+    "reason": "No upstream patch. Used by Metro build-time file matching with repository-controlled patterns, not provider response parsing. Review when an upstream fix is published."
+  },
+  {
+    "package": "node-forge",
+    "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+    "range": "<=1.4.0",
+    "expires": "2026-11-06T00:00:00Z",
+    "reason": "No upstream patch. Used by Expo Node.js certificate tooling, not the Android APK signer or DevGauge provider authentication. Expo Updates code signing is not configured. Review when an upstream fix is published."
+  }
+]

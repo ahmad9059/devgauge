@@ -1,11 +1,12 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { version } from './package.json';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const environment = process.env.APP_VARIANT ?? 'development';
   if (!['development', 'preview', 'production'].includes(environment)) {
     throw new Error(`Unknown APP_VARIANT: ${environment}`);
   }
-  const productionPackage = process.env.ANDROID_PACKAGE;
+  const productionPackage = process.env.ANDROID_PACKAGE ?? 'app.devgauge';
   const artifact = process.env.ANDROID_ARTIFACT ?? 'phone';
   if (!['universal', 'phone'].includes(artifact)) {
     throw new Error(`Unknown ANDROID_ARTIFACT: ${artifact}`);
@@ -15,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   }
   if (
     productionPackage &&
-    !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/.test(productionPackage)
+    !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(productionPackage)
   ) {
     throw new Error(
       'ANDROID_PACKAGE must be a reverse-domain Android application ID',
@@ -26,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: 'DevGauge',
     slug: 'devgauge',
-    version: '0.1.0',
+    version,
     orientation: 'default',
     platforms: ['android'],
     icon: './assets/icon.png',

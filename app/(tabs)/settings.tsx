@@ -85,7 +85,7 @@ export default function SettingsScreen() {
   const [dataAction, setDataAction] = useState<null | 'cache' | 'delete'>(null);
   const [dataMessage, setDataMessage] = useState<string | null>(null);
 
-  const version = Constants.expoConfig?.version ?? '0.1.0';
+  const version = Constants.expoConfig?.version ?? '1.0.0';
   const themeLabel =
     THEME_OPTIONS.find((option) => option.value === preference)?.label ??
     'System';

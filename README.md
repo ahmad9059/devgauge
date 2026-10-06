@@ -11,6 +11,8 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" /></a>
+  <a href="https://github.com/ahmad9059/devgauge/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version: 1.0.0" /></a>
+  <a href="https://github.com/ahmad9059/devgauge/actions/workflows/ci.yml"><img src="https://github.com/ahmad9059/devgauge/actions/workflows/ci.yml/badge.svg" alt="Android CI" /></a>
   <img src="https://img.shields.io/badge/platform-Android-green" alt="Platform: Android" />
   <img src="https://img.shields.io/badge/architecture-ARM64-555" alt="Architecture: ARM64" />
   <img src="https://img.shields.io/badge/storage-local--first-555" alt="Storage: local-first" />
@@ -35,7 +37,7 @@ DevGauge brings coding-agent usage into a single dashboard. Connect your provide
 
 The application is local-first. Connection metadata, usage snapshots, and preferences are stored on your device. Authentication and refresh requests go to the selected providers and their identity services; usage history is not uploaded to a DevGauge backend.
 
-The repository includes the Android application, provider integrations, encrypted storage, background refresh, and local notification scheduling. Internal preview builds are available through the build workflow below. Production distribution requires release signing, an owner-configured application ID, and completion of the [release-readiness checklist](docs/release/release-readiness.md).
+The repository includes the Android application, provider integrations, encrypted storage, background refresh, and local notification scheduling. The first release is **DevGauge 1.0.0**, distributed as a signed ARM64 APK through [GitHub Releases](https://github.com/ahmad9059/devgauge/releases).
 
 ## Features
 
@@ -69,23 +71,35 @@ DevGauge is an independent project and is not affiliated with or endorsed by the
 
 ## Installation
 
+### Install from GitHub Releases
+
+1. Open [GitHub Releases](https://github.com/ahmad9059/devgauge/releases).
+2. Download `devgauge-1.0.0-arm64.apk` from the v1.0.0 release assets.
+3. Allow installation from your browser or file manager when Android prompts you.
+4. Open the APK and install DevGauge.
+
+The release includes a `.sha256` checksum file for verifying the download. Release builds use package ID `app.devgauge` and do not expose development diagnostics.
+
+Development and preview installations use separate package IDs. The release installs alongside them and does not import their connections or usage history. Connect your providers in the release app after installing it.
+
 ### Requirements
 
 - An Android device or emulator with the `arm64-v8a` architecture.
+  The release requires Android 7.0 (API 24) or later.
 - Node.js 24 LTS and npm for building from source.
 - Android Studio, an Android SDK, and a compatible Java runtime for local Android builds.
 - A provider account for each connector you want to use.
 
 All configured Android builds package ARM64 native libraries only. Intel x86 and x86_64 emulators are not supported by these artifacts.
 
-### Build an installable preview APK
+### Build the release APK from source
 
 ```sh
 git clone https://github.com/ahmad9059/devgauge.git
 cd devgauge
 npm ci
 cp .env.example .env
-npm run android:preview-apk
+npm run android:release-apk
 ```
 
 If you intend to use Antigravity, configure the OAuth client values documented in `.env.example` before building. Keep `.env` local. Values prefixed with `EXPO_PUBLIC_` are included in the application bundle and must not be treated as confidential server secrets.
@@ -93,16 +107,19 @@ If you intend to use Antigravity, configure the OAuth client values documented i
 The completed APK is written to:
 
 ```text
-artifacts/devgauge-preview-phone.apk
+artifacts/devgauge-1.0.0-arm64.apk
+artifacts/devgauge-1.0.0-arm64.apk.sha256
 ```
 
 Install it using Android Debug Bridge with a connected device:
 
 ```sh
-adb install -r artifacts/devgauge-preview-phone.apk
+adb install -r artifacts/devgauge-1.0.0-arm64.apk
 ```
 
-The build reports progress and elapsed time. Full output is recorded in `artifacts/android-build-phone.log`. Preview builds use a debug signing key and are intended for internal testing.
+The build reports progress and elapsed time. Full output is recorded in `artifacts/android-build-release.log`. On the first run, it creates a persistent signing key and credentials in the ignored `.release/` directory. Back up that directory securely: future updates must use the same key. A source build with a different signing key cannot update an installed official APK in place.
+
+See the [release guide](docs/release/github-release.md) for checksum verification, signing-key handling, and GitHub publication steps.
 
 ## Getting started
 
@@ -173,6 +190,8 @@ npm run format:check
 
 `npm run check` runs TypeScript validation, ESLint, unit tests, and application configuration checks. Formatting is checked separately.
 
+CI also runs Expo compatibility checks, a production Android bundle export, and the [dependency audit policy](docs/release/dependency-audit.md). The policy records exact, expiring exceptions for two unpatched build-tool advisories and fails on unreviewed high or critical findings.
+
 ### Project structure
 
 ```text
@@ -192,9 +211,11 @@ docs/                 Architecture, operations, release, and implementation note
 
 ### Production configuration
 
-`APP_VARIANT` selects `development`, `preview`, or `production`. Production requires `ANDROID_PACKAGE` with an owner-controlled reverse-domain application ID. The production EAS profile produces an Android App Bundle; signing and distribution must be configured for the release environment.
+`APP_VARIANT` selects `development`, `preview`, or `production`. Production defaults to application ID `app.devgauge`. The local release command produces a signed APK with diagnostics disabled. `ANDROID_PACKAGE` can override the ID for a separate distribution.
 
-See [app.config.ts](app.config.ts), [eas.json](eas.json), and the [release-readiness checklist](docs/release/release-readiness.md) for the repository's build configuration and release requirements.
+The `release` EAS profile produces an APK and the `production` profile produces an Android App Bundle. EAS signing credentials must match the official local release key if both build services are used for the same application.
+
+See [app.config.ts](app.config.ts), [eas.json](eas.json), and the [release guide](docs/release/github-release.md) for build and distribution details. Internal development APKs remain available through `npm run android:preview-apk`.
 
 ## Documentation
 
@@ -205,7 +226,7 @@ See [app.config.ts](app.config.ts), [eas.json](eas.json), and the [release-readi
 | Technical decisions      | [Architecture decision records](docs/decisions/)                                          |
 | Data handling            | [Privacy and data inventory](docs/release/privacy-data-inventory.md)                      |
 | Device validation        | [Mobile QA matrix](docs/release/mobile-qa-matrix.md)                                      |
-| Release preparation      | [Release readiness](docs/release/release-readiness.md)                                    |
+| Release preparation      | [GitHub release guide](docs/release/github-release.md)                                    |
 | Provider troubleshooting | [Provider incident runbook](docs/operations/provider-incident-runbook.md)                 |
 
 Implementation plans and execution logs document historical development decisions. Current behavior should be confirmed against the application code and build configuration.
