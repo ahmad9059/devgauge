@@ -17,7 +17,7 @@ import { useTheme } from '@/design/theme-provider';
 import { Icon, type IconName } from './icon';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonSize = 'compact' | 'sm' | 'md' | 'lg';
 
 export function Button({
   label,
@@ -46,14 +46,24 @@ export function Button({
 }) {
   const { theme, typography } = useTheme();
   const inactive = disabled || loading;
-  const minHeight =
-    size === 'lg'
+  const compact = size === 'compact';
+  const minHeight = compact
+    ? 31
+    : size === 'lg'
       ? touchTargets.comfortable
       : size === 'sm'
         ? 44
         : touchTargets.minimum;
-  const paddingVertical = size === 'sm' ? spacing.xs : spacing.sm;
-  const paddingHorizontal = size === 'sm' ? spacing.md : spacing.lg;
+  const paddingVertical = compact
+    ? spacing.xxs
+    : size === 'sm'
+      ? spacing.xs
+      : spacing.sm;
+  const paddingHorizontal = compact
+    ? 9
+    : size === 'sm'
+      ? spacing.md
+      : spacing.lg;
 
   const palette: Record<
     ButtonVariant,
@@ -84,6 +94,7 @@ export function Button({
 
   const style = ({ pressed }: { pressed: boolean }): ViewStyle => ({
     minHeight,
+    minWidth: compact ? touchTargets.minimum : undefined,
     paddingVertical,
     paddingHorizontal,
     borderRadius: radii.control,
@@ -93,7 +104,7 @@ export function Button({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: compact ? 6 : spacing.sm,
     alignSelf: fullWidth ? 'stretch' : 'flex-start',
     opacity: inactive ? opacities.disabled : pressed ? opacities.pressed : 1,
     ...customStyle,
@@ -104,6 +115,7 @@ export function Button({
       testID={testID}
       onPress={inactive ? undefined : onPress}
       disabled={inactive}
+      hitSlop={compact ? { top: 9, bottom: 9, left: 0, right: 0 } : undefined}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
@@ -113,11 +125,12 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={colors.text} size="small" />
       ) : icon ? (
-        <Icon name={icon} size={20} color={colors.text} />
+        <Icon name={icon} size={compact ? 14 : 20} color={colors.text} />
       ) : null}
       <Text
         style={[
           typography.labelStrong,
+          compact ? { fontSize: 12, lineHeight: 17 } : undefined,
           { color: colors.text, flexShrink: 1, textAlign: 'center' },
         ]}
       >

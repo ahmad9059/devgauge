@@ -200,7 +200,7 @@ export default function AntigravityScreen() {
   };
 
   return (
-    <Screen edges={['left', 'right', 'bottom']}>
+    <Screen>
       <ScreenScroll>
         <Header title="Antigravity" subtitle="Sign in with Google" />
         <Notice tone="info" icon="information-outline">

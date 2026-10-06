@@ -19,6 +19,7 @@ export function ConnectorCard({
   onOpenUsage,
   onOpenDashboard,
   onDisconnect,
+  disconnecting = false,
   testID,
 }: {
   provider: ProviderView;
@@ -35,6 +36,7 @@ export function ConnectorCard({
   onOpenUsage?: () => void;
   onOpenDashboard?: () => void;
   onDisconnect?: () => void;
+  disconnecting?: boolean;
   testID?: string;
 }) {
   const { theme, typography } = useTheme();
@@ -43,6 +45,8 @@ export function ConnectorCard({
   const relative = formatRelativeMinutes(provider.updatedMinutesAgo);
   const isConnected =
     provider.state === 'connected' || provider.state === 'stale';
+  const hasConnection =
+    isConnected || (!!provider.connectionId && provider.state !== 'disconnected');
 
   return (
     <Card testID={testID} elevated={isConnected}>
@@ -80,36 +84,39 @@ export function ConnectorCard({
       ) : null}
 
       <View style={styles.actions}>
-        {isConnected && onOpenUsage ? (
+        {hasConnection && onOpenUsage ? (
           <Button
-            size="sm"
+            size="compact"
             label="Open usage"
             icon="chart-timeline-variant"
             onPress={onOpenUsage}
+            disabled={disconnecting}
           />
         ) : null}
         {onSignIn ? (
           <Button
-            size="sm"
-            label={isConnected ? 'Sign in again (in-app)' : 'Sign in (in-app)'}
+            size="compact"
+            label="Connect"
             icon="login-variant"
             accessibilityHint="Opens the provider page inside DevGauge"
             onPress={onSignIn}
+            disabled={disconnecting}
           />
         ) : null}
-        {isConnected && onDisconnect ? (
+        {hasConnection && onDisconnect ? (
           <Button
-            size="sm"
+            size="compact"
             label="Disconnect"
             variant="secondary"
             icon="link-off"
             onPress={onDisconnect}
+            loading={disconnecting}
           />
         ) : null}
         {!onSignIn && canConnect && onConnect ? (
           <Button
-            size="sm"
-            label={isConnected ? 'Refresh connection' : 'Connect'}
+            size="compact"
+            label="Connect"
             variant={isConnected ? 'secondary' : 'primary'}
             icon="link-variant"
             onPress={onConnect}
@@ -117,7 +124,7 @@ export function ConnectorCard({
         ) : null}
         {!onSignIn && provider.state === 'blocked' && onOpenDashboard ? (
           <Button
-            size="sm"
+            size="compact"
             label="Open provider dashboard"
             variant="secondary"
             icon="open-in-new"
@@ -142,6 +149,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: spacing.sm,
+    // Keep the smaller visual controls easy to tap without overlapping rows.
+    paddingVertical: 9,
+    rowGap: 26,
   },
 });
