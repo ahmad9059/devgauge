@@ -254,7 +254,6 @@ Bug reports, documentation improvements, and focused pull requests are welcome. 
 
 - [Contributing guidelines](CONTRIBUTING.md)
 - [Code of conduct](CODE_OF_CONDUCT.md)
-- [Issue tracker](https://github.com/ahmad9059/devgauge/issues)
 - [Security reporting](SECURITY.md)
 
 ## License
