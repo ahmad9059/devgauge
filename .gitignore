@@ -22,6 +22,3 @@ marketing/output/
 
 expo-env.d.ts
 # @end expo-cli
-
-# Licensed commercial font (BB Anonym Pro) - do not publish
-landing/fonts/BBAnonymPro-*

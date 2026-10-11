@@ -11,6 +11,7 @@ landing/
   sitemap.xml        Single-URL sitemap
   site.webmanifest   Icons and theme colour
   _headers           Security and cache headers (Netlify / Cloudflare Pages)
+  vercel.json        Same headers for Vercel
   assets/            Black logo, favicons, social image, phone captures
   fonts/         Self-hosted Inter fallback font; add licensed BB Anonym Pro .woff2 here
 ```
@@ -21,7 +22,7 @@ The page uses **BB Anonym Pro** by [Bold Studio](https://www.myfonts.com/collect
 
 To add heavier styles, convert them to `.woff2`, drop them in `fonts/`, and add one `@font-face` per file in `styles.css` with its weight (for example SemiBold at 600 and Bold at 700), then narrow the Medium declaration to `font-weight: 500`.
 
-`BBAnonymPro-*` files are git-ignored so the licensed font is not published with this MIT repository. Check that your license covers web use before deploying.
+The licensed font file is committed so hosts that build from git (such as Vercel) can serve it. It is not covered by this repository's MIT license; keep it under your BB Anonym Pro license.
 
 ## Preview
 
@@ -70,4 +71,4 @@ After deploying, submit `https://devgauge.devshub.xyz/sitemap.xml` in Google Sea
 ### Serving notes
 
 - `robots.txt` and `sitemap.xml` must sit at the site root, so serve `landing/` as the root of the host.
-- `_headers` is honoured by Netlify and Cloudflare Pages. GitHub Pages ignores it and cannot set custom headers.
+- `_headers` is honoured by Netlify and Cloudflare Pages. Vercel reads `vercel.json` instead (included). GitHub Pages ignores both and cannot set custom headers.
