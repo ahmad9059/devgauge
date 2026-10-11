@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
+import type { WebViewErrorEvent } from 'react-native-webview/lib/WebViewTypes';
 
 import { Button, ErrorState, Header, Screen } from '@/components/ui';
 import { spacing } from '@/design/tokens';
@@ -16,6 +17,13 @@ import {
   SESSION_PROVIDERS,
   SESSION_USER_AGENT,
 } from '@/services/web-session/session-config';
+import {
+  describeLoadError,
+  isRetryableLoadError,
+  loadRetryDelayMs,
+  MAX_LOAD_RETRIES,
+  type LoadErrorMessage,
+} from '@/services/web-session/load-retry';
 import { saveSessionSnapshot } from '@/services/web-session/session';
 import {
   extractRawWindows,
@@ -48,6 +56,16 @@ export default function SessionScreen() {
   const [windows, setWindows] = useState<UsageWindow[]>([]);
   const [status, setStatus] = useState('Connecting…');
   const [busy, setBusy] = useState(false);
+  const loadAttempts = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [loadError, setLoadError] = useState<LoadErrorMessage | null>(null);
+
+  useEffect(
+    () => () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+    },
+    [],
+  );
 
   const providerId = params.providerId;
   const sessionProvider =
@@ -145,6 +163,48 @@ export default function SessionScreen() {
   }
 
   const config = SESSION_PROVIDERS[sessionProvider];
+  const host = new URL(config.usageUrl).hostname;
+
+  const reloadPage = () => {
+    if (retryTimer.current) clearTimeout(retryTimer.current);
+    loadAttempts.current = 0;
+    setLoadError(null);
+    setStatus('Connecting…');
+    webView.current?.reload();
+  };
+
+  // Some mobile networks reset a share of fresh TLS handshakes to a site
+  // (net::ERR_CONNECTION_RESET). Retrying quietly gets through most of them.
+  const onLoadError = (event: WebViewErrorEvent) => {
+    const description = event.nativeEvent.description;
+    if (
+      isRetryableLoadError(description) &&
+      loadAttempts.current < MAX_LOAD_RETRIES
+    ) {
+      loadAttempts.current += 1;
+      setStatus(
+        `Connection problem. Retrying (${loadAttempts.current}/${MAX_LOAD_RETRIES})…`,
+      );
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      retryTimer.current = setTimeout(
+        () => webView.current?.reload(),
+        loadRetryDelayMs(loadAttempts.current),
+      );
+      return;
+    }
+    setLoadError(describeLoadError(host, description));
+    setStatus('Could not connect.');
+  };
+
+  const onLoadSuccess = () => {
+    loadAttempts.current = 0;
+    setLoadError(null);
+    setStatus((current) =>
+      /^(Connection problem|Could not connect)/.test(current)
+        ? 'Connecting…'
+        : current,
+    );
+  };
 
   const onMessage = (event: WebViewMessageEvent) => {
     try {
@@ -237,14 +297,37 @@ export default function SessionScreen() {
               if (host === null) return false;
               return true;
             }}
-            onError={() => setStatus('Connection problem. Retrying…')}
+            onError={onLoadError}
+            onLoad={onLoadSuccess}
+            renderError={() => (
+              <View
+                style={[
+                  styles.loadError,
+                  { backgroundColor: theme.colors.background },
+                ]}
+              >
+                {loadError ? (
+                  <ErrorState
+                    title={loadError.title}
+                    description={loadError.description}
+                    onRetry={reloadPage}
+                    retryLabel="Reload"
+                  />
+                ) : (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.colors.textSecondary}
+                  />
+                )}
+              </View>
+            )}
           />
         </View>
         <Button
           label="Reload"
           variant="ghost"
           icon="refresh"
-          onPress={() => webView.current?.reload()}
+          onPress={reloadPage}
         />
       </View>
     </Screen>
@@ -256,4 +339,9 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   webviewWrap: { flex: 1, borderRadius: 8, overflow: 'hidden' },
   webview: { flex: 1 },
+  loadError: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
