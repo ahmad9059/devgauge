@@ -10,6 +10,7 @@ export default defineConfig([
       'coverage/**',
       'node_modules/**',
       'marketing/**',
+      'landing/**',
     ],
   },
 ]);

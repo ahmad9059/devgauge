@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>DevGauge – AI Coding Quota &amp; Usage Tracker for Android</title>
+    <meta
+      name="description"
+      content="Free, open-source Android app that tracks quota usage and reset times for Claude, Codex, GitHub Copilot and more. Local-first, with usage alerts."
+    />
+    <link rel="canonical" href="https://devgauge.devshub.xyz/" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="author" content="ahmad9059" />
+    <meta name="application-name" content="DevGauge" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DevGauge" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://devgauge.devshub.xyz/" />
+    <meta property="og:title" content="DevGauge – Your AI limits. One glance." />
+    <meta
+      property="og:description"
+      content="Track quota, reset windows and alerts across Claude, Codex, GitHub Copilot and more from one local-first Android app."
+    />
+    <meta property="og:image" content="https://devgauge.devshub.xyz/assets/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="DevGauge landing page: the headline 'Your AI limits. One glance.' between two phones showing the usage dashboard and connectors."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DevGauge – Your AI limits. One glance." />
+    <meta
+      name="twitter:description"
+      content="Track quota, reset windows and alerts across Claude, Codex, GitHub Copilot and more from one local-first Android app."
+    />
+    <meta name="twitter:image" content="https://devgauge.devshub.xyz/assets/og-image.jpg" />
+
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
+
+    <link
+      rel="preload"
+      href="fonts/BBAnonymPro-Medium.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="styles.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://devgauge.devshub.xyz/#website",
+            "url": "https://devgauge.devshub.xyz/",
+            "name": "DevGauge",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://devgauge.devshub.xyz/#app",
+            "name": "DevGauge",
+            "description": "DevGauge is a local-first Android app that tracks quota usage, reset windows and usage alerts for Claude, Codex, Command Code, OpenCode Go, GitHub Copilot and Antigravity.",
+            "url": "https://devgauge.devshub.xyz/",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Android 7.0 or later (ARM64)",
+            "softwareVersion": "1.0.0",
+            "downloadUrl": "https://github.com/ahmad9059/devgauge/releases/latest",
+            "image": "https://devgauge.devshub.xyz/assets/icon-512.png",
+            "screenshot": [
+              "https://devgauge.devshub.xyz/assets/phone-dashboard.webp",
+              "https://devgauge.devshub.xyz/assets/phone-connectors.webp"
+            ],
+            "license": "https://opensource.org/licenses/MIT",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "author": {
+              "@type": "Person",
+              "name": "ahmad9059",
+              "url": "https://github.com/ahmad9059"
+            },
+            "sameAs": ["https://github.com/ahmad9059/devgauge"]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="nav">
+        <a class="brand" href="./" aria-label="DevGauge home">
+          <img class="brand__mark" src="assets/logo.png" alt="" width="292" height="256" />
+          <span class="brand__name">DevGauge</span>
+        </a>
+
+        <nav class="nav__links" aria-label="Primary">
+          <div class="menu">
+            <button class="menu__trigger" type="button" aria-haspopup="true" aria-expanded="false">
+              <span class="menu__label">Product</span>
+              <svg class="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+            </button>
+            <ul class="menu__panel">
+              <li><a href="https://github.com/ahmad9059/devgauge#overview" rel="noopener">Overview</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#features" rel="noopener">Features</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#screenshots" rel="noopener">Screenshots</a></li>
+            </ul>
+          </div>
+
+          <div class="menu">
+            <button class="menu__trigger" type="button" aria-haspopup="true" aria-expanded="false">
+              <span class="menu__label">Providers</span>
+              <svg class="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+            </button>
+            <ul class="menu__panel">
+              <li><a href="https://github.com/ahmad9059/devgauge#providers" rel="noopener">Claude</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#providers" rel="noopener">Codex</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#providers" rel="noopener">Command Code</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#providers" rel="noopener">OpenCode Go</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#providers" rel="noopener">GitHub Copilot</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge#providers" rel="noopener">Antigravity</a></li>
+            </ul>
+          </div>
+
+          <div class="menu">
+            <button class="menu__trigger" type="button" aria-haspopup="true" aria-expanded="false">
+              <span class="menu__label">About</span>
+              <svg class="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+            </button>
+            <ul class="menu__panel">
+              <li><a href="https://github.com/ahmad9059/devgauge#privacy-and-security" rel="noopener">Privacy</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge/blob/main/SECURITY.md" rel="noopener">Security</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge/blob/main/CHANGELOG.md" rel="noopener">Changelog</a></li>
+              <li><a href="https://github.com/ahmad9059/devgauge/blob/main/LICENSE" rel="noopener">MIT License</a></li>
+            </ul>
+          </div>
+        </nav>
+
+        <div class="nav__actions">
+          <a class="nav__login" href="https://github.com/ahmad9059/devgauge" rel="noopener">GitHub</a>
+          <a class="btn btn--small" href="https://github.com/ahmad9059/devgauge/releases/latest" rel="noopener">Get started</a>
+        </div>
+      </header>
+
+      <main class="hero">
+        <div class="phone phone--left">
+          <div class="phone__screen">
+            <img
+              src="assets/phone-dashboard.webp"
+              alt="DevGauge usage dashboard showing quota used and reset countdowns for Claude, Codex, Command Code, OpenCode Go, GitHub Copilot and Antigravity"
+              width="720"
+              height="1280"
+              decoding="async"
+            />
+          </div>
+          <span class="phone__island" aria-hidden="true"></span>
+        </div>
+
+        <div class="phone phone--right">
+          <div class="phone__screen">
+            <img
+              src="assets/phone-connectors.webp"
+              alt="DevGauge Connectors screen listing connected coding-agent providers with Open usage, Connect and Disconnect actions"
+              width="720"
+              height="1280"
+              decoding="async"
+            />
+          </div>
+          <span class="phone__island" aria-hidden="true"></span>
+        </div>
+
+        <div class="hero__content">
+          <p class="eyebrow">Coding-agent quotas, simplified</p>
+          <h1 class="hero__title">Your AI limits.<br />One glance.</h1>
+          <p class="hero__lead">
+            Track quota, reset windows and alerts across all your coding agents from one place.
+          </p>
+          <a
+            class="btn btn--large"
+            href="https://github.com/ahmad9059/devgauge/releases/latest"
+            rel="noopener"
+            aria-label="Get the DevGauge app for Android from GitHub Releases"
+          >
+            <span>Get the App</span>
+            <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4483-.9993.9993-.9993c.5511 0 .9993.4483.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4483.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02 1.9973-3.4592a.416.416 0 0 0-.1521-.5676.416.416 0 0 0-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 0 0-.5677-.1521.4157.4157 0 0 0-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3435-4.1021-2.6892-7.5743-6.1185-9.4396"
+              />
+            </svg>
+            <span class="btn__divider" aria-hidden="true"></span>
+            <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+              />
+            </svg>
+          </a>
+        </div>
+      </main>
+    </div>
+    <script src="script.js" defer></script>
+  </body>
+</html>
